@@ -36,6 +36,14 @@ npm start
 
 Заменить демо-квартиры, сохранив настройки: `node lib/seed.js --keep-settings`.
 
+## Отправка на GitHub
+
+Двойной клик по `publish.cmd` или из терминала:
+
+```bash
+C:\Users\arlen\realtor-site\publish.cmd "что изменилось"
+```
+
 ## На сервере (VPS)
 
 Запускать через pm2 или systemd за nginx с HTTPS (Let's Encrypt). Резервные копии `data/` и `uploads/` стоит дополнительно копировать за пределы сервера.
