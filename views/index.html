@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<!--HEAD-->
+</head>
+<body id="top">
+<!-- Заставка с логотипом: показывается один раз за сессию -->
+<script>try { if (sessionStorage.getItem('pl')) document.documentElement.classList.add('no-pl'); } catch (e) {}</script>
+<div class="preloader" id="preloader" aria-hidden="true">
+  <div class="pl-in">
+    <img src="/img/logo.png" alt="" class="pl-logo" width="160" height="97">
+    <div class="pl-line"><span></span></div>
+    <div class="pl-cap">Квартиры от застройщика</div>
+  </div>
+</div>
+<!--HEADER-->
+
+<main>
+  <!-- 1. Первый экран -->
+  <section class="hero"><div class="wrap hero-in">
+    <div class="hero-text">
+      <div class="pill" id="heroKicker"></div>
+      <h1 id="heroTitle"></h1>
+      <p class="hero-sub" id="heroSub"></p>
+      <div class="hero-btns">
+        <a href="#catalog" class="btn btn-primary btn-lg">Подобрать квартиру <span aria-hidden="true">→</span></a>
+        <a href="#" class="btn btn-wa btn-lg" id="heroWa" data-wa="hero" target="_blank" rel="noopener">Написать в WhatsApp</a>
+      </div>
+      <ul class="hero-points" id="heroPoints">
+      </ul>
+    </div>
+    <div class="hero-media">
+      <div class="hero-photo" id="heroPhoto"></div>
+      <div class="hero-badge">
+        <img src="/img/logo.png" alt="Строительная компания «Кут»" width="52" height="31">
+        <div><b id="badgeName"></b><span id="badgeRole"></span></div>
+      </div>
+    </div>
+  </div></section>
+
+  <!-- 2. Обо мне -->
+  <section class="section about" id="about"><div class="wrap">
+    <div class="about-grid">
+      <div>
+        <div class="kicker">Обо мне</div>
+        <h2 id="aboutTitle"></h2>
+        <p class="about-text" id="aboutText"></p>
+      </div>
+      <a class="office" id="office" target="_blank" rel="noopener">
+        <img src="/img/logo.png" alt="Строительная компания «Кут»" class="office-logo">
+        <div class="office-label">Офис продаж</div>
+        <div class="office-addr" id="officeAddr"></div>
+        <div class="office-link" id="officeLinkText">Открыть в 2ГИС →</div>
+      </a>
+    </div>
+    <div class="stats" id="stats"></div>
+  </div></section>
+
+  <!-- 3. Подбор квартир -->
+  <section class="section catalog" id="catalog"><div class="wrap">
+    <div class="sec-head">
+      <div><div class="kicker">Подбор квартир</div>
+      <h2>Квартиры под <span class="hl">ваш бюджет</span></h2>
+      <p class="lead">Укажите, сколько готовы внести сейчас и платить в месяц — сразу покажу подходящие квартиры.</p></div>
+    </div>
+
+    <div class="filter" id="filter">
+      <div class="seg" id="fType">
+        <button data-v="installment" class="on">Рассрочка · сом</button>
+        <button data-v="cash">Наличные · $</button>
+      </div>
+      <div class="field" id="fDownWrap">
+        <div class="field-head"><label for="fDown">Готов внести сейчас</label><output id="oDown"></output></div>
+        <input type="range" id="fDown" class="range">
+      </div>
+
+      <div class="field" id="fMonthlyWrap">
+        <div class="field-head"><label for="fMonthly">Платёж в месяц до</label><output id="oMonthly"></output></div>
+        <input type="range" id="fMonthly" class="range">
+      </div>
+
+      <div class="field">
+        <div class="field-head"><label>Цена</label><output id="oPrice"></output></div>
+        <div class="dual" id="fPrice"><input type="range" aria-label="Цена от"><input type="range" aria-label="Цена до"></div>
+      </div>
+
+      <div class="field">
+        <div class="field-head"><label>Комнаты</label></div>
+        <div class="chips" id="fRooms">
+          <button data-v="0">Студия</button><button data-v="1">1</button><button data-v="2">2</button><button data-v="3">3</button><button data-v="4">4+</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="field-head"><label>Площадь, м²</label><output id="oArea"></output></div>
+        <div class="dual" id="fArea"><input type="range" aria-label="Площадь от"><input type="range" aria-label="Площадь до"></div>
+      </div>
+
+      <button class="link-btn" id="fReset" type="button">Сбросить фильтр</button>
+    </div>
+
+    <div class="results-head">
+      <div id="count"></div>
+      <select id="sort" aria-label="Сортировка">
+        <option value="monthly">По платежу в месяц</option>
+        <option value="down">По взносу</option>
+        <option value="price">По цене</option>
+        <option value="ppm">По цене за м²</option>
+        <option value="new">Сначала новые</option>
+      </select>
+    </div>
+    <div class="cards" id="cards"></div>
+  </div></section>
+
+  <!-- 4. Как работает рассрочка -->
+  <section class="section steps-sec" id="installment"><div class="wrap">
+    <div class="kicker">Рассрочка</div>
+    <h2>Как работает <span class="hl">рассрочка</span></h2>
+    <ol class="steps" id="steps"></ol>
+    <div class="docs" id="docsWrap"><h3>Какие документы нужны</h3><ul id="docs"></ul></div>
+  </div></section>
+
+  <!-- 5. Отзывы -->
+  <section class="section reviews-sec" id="reviews-sec"><div class="wrap">
+    <div class="kicker">Отзывы</div>
+    <h2>Что говорят <span class="hl">клиенты</span></h2>
+    <div class="reviews" id="reviews"></div>
+  </div></section>
+
+  <!-- 6. Вопросы и ответы -->
+  <section class="section faq-sec" id="faq-sec"><div class="wrap">
+    <div class="kicker">Вопросы и ответы</div>
+    <h2>Частые <span class="hl">вопросы</span></h2>
+    <div class="faq" id="faq"></div>
+  </div></section>
+
+  <!-- 7. Призыв к действию -->
+  <section class="section cta-sec"><div class="wrap">
+    <div class="cta">
+      <h2 id="ctaTitle"></h2>
+      <p id="ctaText"></p>
+      <a href="#" class="btn btn-wa btn-lg" id="ctaWa" data-wa="cta" target="_blank" rel="noopener">Написать в WhatsApp</a>
+    </div>
+  </div></section>
+</main>
+
+<!--FOOTER-->
+<!--SCRIPTS-->
+</body>
+</html>
