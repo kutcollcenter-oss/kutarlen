@@ -418,6 +418,57 @@
     };
   }
 
+  // ---------- Отзывы: редактор карточками ----------
+  // На сайте отзывы хранятся текстом: «Имя | 06.10.2026», на следующих строках — отзыв, между отзывами пустая строка.
+  const toISO = d => { const m = String(d || '').match(/^(\d{2})\.(\d{2})\.(\d{4})$/); return m ? `${m[3]}-${m[2]}-${m[1]}` : ''; };
+  const fromISO = d => { const m = String(d || '').match(/^(\d{4})-(\d{2})-(\d{2})$/); return m ? `${m[3]}.${m[2]}.${m[1]}` : ''; };
+  function parseReviews(text) {
+    return String(text || '').split(/\n\s*\n/).map(b => b.trim()).filter(Boolean).map(b => {
+      const [head, ...rest] = b.split('\n');
+      const [name, date] = head.split('|').map(x => (x || '').trim());
+      return { name, date: toISO(date) || '', dateRaw: toISO(date) ? '' : (date || ''), text: rest.join(' ').trim() };
+    });
+  }
+  function buildReviews(list) {
+    return list.filter(r => r.name || r.text)
+      .map(r => `${r.name || 'Клиент'}${r.date ? ` | ${fromISO(r.date)}` : r.dateRaw ? ` | ${r.dateRaw}` : ''}\n${r.text}`)
+      .join('\n\n');
+  }
+  function reviewsEditor(initial) {
+    let list = parseReviews(initial);
+    const box = document.getElementById('revList');
+    const draw = () => {
+      box.innerHTML = list.length ? list.map((r, i) => `<div class="rev" data-i="${i}">
+        <div class="grid2">
+          <label class="f"><span>Имя клиента</span><input data-k="name" value="${esc(r.name)}" placeholder="Айгерим А."></label>
+          <label class="f"><span>Дата</span><input data-k="date" type="date" value="${esc(r.date)}"></label>
+        </div>
+        <label class="f"><span>Текст отзыва</span><textarea data-k="text" rows="3" placeholder="Что клиент написал о вас">${esc(r.text)}</textarea></label>
+        <button type="button" class="btn btn-danger rev-del">Удалить отзыв</button>
+      </div>`).join('') : '<p class="hint">Отзывов пока нет. Добавьте 3–5 отзывов клиентов — им доверяют больше, чем рекламе.</p>';
+    };
+    box.addEventListener('input', e => {
+      const el = e.target.closest('[data-k]'); if (!el) return;
+      const r = list[+el.closest('.rev').dataset.i];
+      r[el.dataset.k] = el.value;
+      if (el.dataset.k === 'date') r.dateRaw = '';
+    });
+    box.addEventListener('click', async e => {
+      const b = e.target.closest('.rev-del'); if (!b) return;
+      const i = +b.closest('.rev').dataset.i;
+      const r = list[i];
+      if ((r.name || r.text) && !(await confirmBox('Удалить отзыв?', r.name ? `Отзыв «${r.name}» исчезнет с сайта после сохранения.` : 'Отзыв исчезнет с сайта после сохранения.', 'Удалить', true))) return;
+      list.splice(i, 1); draw();
+    });
+    document.getElementById('revAdd').onclick = () => {
+      list.unshift({ name: '', date: new Date().toISOString().slice(0, 10), dateRaw: '', text: '' });
+      draw();
+      const first = box.querySelector('.rev input'); if (first) first.focus();
+    };
+    draw();
+    return () => buildReviews(list);
+  }
+
   // ---------- Мой сайт (настройки) ----------
   async function renderSettings() {
     settings = await api('GET', '/api/admin/settings');
@@ -460,7 +511,11 @@
         <div class="card"><h2 style="margin-top:0">Блоки главной</h2>
           ${t('steps', 'Как работает рассрочка — шаги', 'Каждый шаг с новой строки')}
           ${t('documents', 'Какие документы нужны', 'Каждый пункт с новой строки')}
-          ${t('reviews', 'Отзывы', 'Первая строка — «Имя | дата», дальше текст. Отзывы разделяйте пустой строкой.')}
+          <div class="f"><span>Отзывы клиентов</span>
+            <div id="revList" class="rev-list"></div>
+            <button type="button" class="btn btn-block" id="revAdd">+ Добавить отзыв</button>
+            <div class="hint">Новые отзывы появляются на сайте сверху. Пустые карточки не сохраняются.</div>
+          </div>
           ${t('faq', 'Вопросы и ответы', 'Первая строка — вопрос, дальше ответ. Разделяйте пустой строкой.')}
           ${f('ctaTitle', 'Заголовок финального блока')}
           ${t('ctaText', 'Текст финального блока')}
@@ -485,9 +540,13 @@
     </div>`;
     bindNav();
     const form = document.getElementById('sf');
+    const getReviews = reviewsEditor(s.reviews);
     form.onsubmit = async e => {
       e.preventDefault();
-      settings = await api('PUT', '/api/admin/settings', Object.fromEntries(new FormData(form)));
+      // Поля карточек отзывов без name — в форму не попадают; отзывы собираются из карточек
+      const data = Object.fromEntries(new FormData(form));
+      data.reviews = getReviews();
+      settings = await api('PUT', '/api/admin/settings', data);
       toast('Сохранено');
     };
     const upload = (input, url, field, done) => {

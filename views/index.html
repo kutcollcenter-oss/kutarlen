@@ -38,24 +38,6 @@
     </div>
   </div></section>
 
-  <!-- 2. Обо мне -->
-  <section class="section about" id="about"><div class="wrap">
-    <div class="about-grid">
-      <div>
-        <div class="kicker">Обо мне</div>
-        <h2 id="aboutTitle"></h2>
-        <p class="about-text" id="aboutText"></p>
-      </div>
-      <a class="office" id="office" target="_blank" rel="noopener">
-        <!--LOGO:office-->
-        <div class="office-label">Офис продаж</div>
-        <div class="office-addr" id="officeAddr"></div>
-        <div class="office-link" id="officeLinkText">Открыть в 2ГИС →</div>
-      </a>
-    </div>
-    <div class="stats" id="stats"></div>
-  </div></section>
-
   <!-- 3. Подбор квартир -->
   <section class="section catalog" id="catalog"><div class="wrap">
     <div class="sec-head">
@@ -76,7 +58,7 @@
 
       <div class="field" id="fMonthlyWrap">
         <div class="field-head"><label for="fMonthly">Платёж в месяц до</label><output id="oMonthly"></output></div>
-        <input type="range" id="fMonthly" class="range">
+        <input type="range" id="fMonthly" class="range" data-hint="Двигайте — подберём квартиры под ваш платёж">
       </div>
 
       <div class="field">
@@ -118,6 +100,24 @@
     <h2>Как работает <span class="hl">рассрочка</span></h2>
     <ol class="steps" id="steps"></ol>
     <div class="docs" id="docsWrap"><h3>Какие документы нужны</h3><ul id="docs"></ul></div>
+  </div></section>
+
+  <!-- Обо мне и офис — над отзывами: сначала клиент попадает к подбору квартир -->
+  <section class="section about" id="about"><div class="wrap">
+    <div class="about-grid">
+      <div>
+        <div class="kicker">Обо мне</div>
+        <h2 id="aboutTitle"></h2>
+        <p class="about-text" id="aboutText"></p>
+      </div>
+      <a class="office" id="office" target="_blank" rel="noopener">
+        <!--LOGO:office-->
+        <div class="office-label">Офис продаж</div>
+        <div class="office-addr" id="officeAddr"></div>
+        <div class="office-link" id="officeLinkText">Открыть в 2ГИС →</div>
+      </a>
+    </div>
+    <div class="stats" id="stats"></div>
   </div></section>
 
   <!-- 5. Отзывы -->

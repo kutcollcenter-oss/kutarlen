@@ -156,6 +156,57 @@
   document.querySelectorAll('.section').forEach(s => (io ? io.observe(s) : s.classList.add('in')));
   RS.reveal();
 
+  // ---------- Подсказка «рука с пальцем» на ползунке ----------
+  // Ползунок с атрибутом data-hint: когда он впервые появляется на экране, рука «берёт» бегунок
+  // и проводит его в сторону и обратно. Один раз за сессию; исчезает сразу, как только клиент тронет ползунок.
+  const HAND = '<svg viewBox="0 0 72 80" aria-hidden="true"><path d="M24 44V10a6 6 0 0 1 12 0v22a5 5 0 0 1 10 0v2a5 5 0 0 1 10 0v3a5 5 0 0 1 10 0v21c0 11-8 18-19 18h-6c-7 0-12-3-16-9L5 54a5.5 5.5 0 0 1 8.5-7L24 56Z" fill="#fff" stroke="#252f23" stroke-width="2.6" stroke-linejoin="round"/><path d="M36 33v11M46 34v10M56 37v8" stroke="#252f23" stroke-width="2" stroke-linecap="round" opacity=".35"/></svg>';
+  function handHint(input) {
+    const key = 'hint:' + location.pathname;
+    try { if (sessionStorage.getItem(key)) return; } catch (e) {}
+    const host = input.parentElement;
+    if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
+    let hand = null, tip = null, timer = null;
+    const remove = () => {
+      clearTimeout(timer);
+      [hand, tip].forEach(el => { if (el) { el.classList.add('out'); setTimeout(() => el.remove(), 400); } });
+      hand = tip = null;
+    };
+    const show = () => {
+      try { sessionStorage.setItem(key, '1'); } catch (e) {}
+      const thumb = 26;
+      const p = (input.value - input.min) / ((input.max - input.min) || 1);
+      const x = input.offsetLeft + thumb / 2 + p * (input.offsetWidth - thumb);
+      const y = input.offsetTop + input.offsetHeight / 2;
+      const dx = Math.round(input.offsetWidth * 0.35) * (p > 0.5 ? -1 : 1); // тянем в сторону, где есть место
+      hand = document.createElement('div');
+      hand.className = 'hand-hint';
+      hand.style.left = `${x}px`;
+      hand.style.top = `${y}px`;
+      hand.style.setProperty('--dx', `${dx}px`);
+      hand.innerHTML = `<span class="hand-dot"></span>${HAND}`;
+      host.appendChild(hand);
+      // Подпись стоит на месте по центру под ползунком — не уезжает за край экрана вместе с рукой
+      if (input.dataset.hint) {
+        tip = document.createElement('div');
+        tip.className = 'hand-tip';
+        tip.style.top = `${y + 62}px`;
+        tip.textContent = input.dataset.hint;
+        host.appendChild(tip);
+      }
+      timer = setTimeout(remove, 6400);
+    };
+    ['pointerdown', 'touchstart', 'input', 'keydown'].forEach(t => input.addEventListener(t, remove, { passive: true }));
+    if (!('IntersectionObserver' in window) || calm) return;
+    const io2 = new IntersectionObserver(entries => {
+      if (!entries[0].isIntersecting) return;
+      io2.disconnect();
+      setTimeout(() => { if (input.offsetWidth) show(); }, 700);
+    }, { threshold: 1, rootMargin: '0px 0px -20% 0px' });
+    io2.observe(input);
+  }
+  // Ползунки могут появиться после отрисовки фильтра — ждём загрузки страницы
+  window.addEventListener('load', () => document.querySelectorAll('input[type=range][data-hint]').forEach(handHint), { once: true });
+
   // Нижнее меню: на главной подсвечиваем раздел, который сейчас на экране
   const tabs = [...document.querySelectorAll('.tabbar [data-tab]')];
   const targets = { catalog: document.getElementById('catalog'), reviews: document.getElementById('reviews-sec') };

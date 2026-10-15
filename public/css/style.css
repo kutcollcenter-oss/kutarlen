@@ -654,3 +654,31 @@ input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 1px sol
 .plain-box.soon h1 { font-size: clamp(26px, 6vw, 34px); }
 .plain-box.soon p + p { margin-top: 12px; }
 .soon-note { font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted) !important; }
+
+/* ===== Подсказка «рука с пальцем» на ползунке ===== */
+/* Якорь — центр бегунка; кончик пальца касается бегунка, рука под ним. */
+.hand-hint { position: absolute; z-index: 20; width: 0; height: 0; pointer-events: none;
+  animation: handMove 3.6s cubic-bezier(.45, 0, .25, 1) .1s both; transition: opacity .35s; }
+.hand-hint.out, .hand-tip.out { opacity: 0 !important; }
+.hand-hint svg { position: absolute; left: -19px; top: 4px; width: 46px; height: 51px;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .25)); transform-origin: 19px 2px; animation: handPress 3.6s ease .1s both; }
+.hand-dot { position: absolute; left: -14px; top: -14px; width: 28px; height: 28px; border-radius: 50% !important;
+  background: rgba(124, 144, 118, .35); animation: handDot 1.2s ease-out .5s 3; opacity: 0; }
+.hand-tip { position: absolute; z-index: 21; left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100% - 12px); text-align: center; pointer-events: none; transition: opacity .35s;
+  background: var(--ink, #252f23); color: #fff; font-size: 12px; line-height: 1.2; padding: 7px 10px; border-radius: 8px !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .2) !important; animation: handTip .4s ease .5s both; }
+@keyframes handMove {
+  0% { opacity: 0; transform: translate(0, 18px); }
+  8% { opacity: 1; transform: translate(0, 0); }
+  30% { transform: translate(var(--dx), 0); }
+  50% { transform: translate(0, 0); }
+  72% { transform: translate(var(--dx), 0); }
+  92%, 100% { opacity: 1; transform: translate(0, 0); }
+}
+@keyframes handPress { 0%, 8% { transform: scale(1); } 12%, 88% { transform: scale(.9); } 96%, 100% { transform: scale(1); } }
+@keyframes handDot { 0% { opacity: .9; transform: scale(.4); } 100% { opacity: 0; transform: scale(1.6); } }
+@keyframes handTip { from { opacity: 0; transform: translate(-50%, 6px); } }
+/* На тёмной странице сервиса — облачко золотое */
+.lx .hand-tip { background: #d9b45a; color: #1b1407; }
+.lx .hand-dot { background: rgba(217, 180, 90, .4); }
+@media (prefers-reduced-motion: reduce) { .hand-hint { display: none; } }

@@ -230,3 +230,10 @@ p.warn { margin: -6px 0 10px; }
 @keyframes authFade { to { opacity: 1; } }
 @keyframes authShine { 0% { transform: translateX(-160%) skewX(-18deg); } 28%, 100% { transform: translateX(330%) skewX(-18deg); } }
 @media (prefers-reduced-motion: reduce) { .auth *, .auth *::before, .auth *::after { animation: none !important; } .auth-sky path { stroke-dashoffset: 0; } .auth-sky path.win { opacity: 1; } }
+/* Карточки отзывов в «Мой сайт» */
+.rev-list { display: grid; gap: 10px; margin: 6px 0 10px; }
+.rev { border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: #fafafa; }
+.rev .f { margin-bottom: 8px; }
+.rev .rev-del { min-height: 36px; padding: 6px 12px; font-size: 14px; }
+.rev input { width: 100%; min-height: 44px; border: 1px solid #d1d5db; border-radius: 10px; padding: 8px 10px; font: inherit; background: #fff; }
+.rev textarea { min-height: 84px; }
