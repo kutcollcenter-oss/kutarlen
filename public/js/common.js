@@ -4,30 +4,78 @@
   const S = D.settings || {};
   const nf = new Intl.NumberFormat('ru-RU');
 
+  // ---------- Посетитель, источник, устройство (для аналитики кабинета) ----------
+  const store = (kind, key, make) => {
+    try { let v = window[kind].getItem(key); if (!v) { v = make(); window[kind].setItem(key, v); } return v; } catch (e) { return make(); }
+  };
+  // Анонимный id посетителя — чтобы считать людей, а не просмотры. Никаких личных данных.
+  const visitor = store('localStorage', 'rv', () => Math.random().toString(36).slice(2, 12).padEnd(10, '0'));
+  // Источник визита: метка ?src= / utm_source в ссылке, иначе — откуда пришли (или приложение, в котором открыли)
+  function detectSource() {
+    const q = new URLSearchParams(location.search);
+    const tag = (q.get('src') || q.get('utm_source') || '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 30);
+    if (tag) return tag;
+    const ua = navigator.userAgent;
+    if (/Instagram/i.test(ua)) return 'instagram';
+    if (/FBAN|FBAV|FB_IAB/i.test(ua)) return 'facebook';
+    if (/musical_ly|TikTok|BytedanceWebview/i.test(ua)) return 'tiktok';
+    if (/Telegram/i.test(ua)) return 'telegram';
+    let host = '';
+    try { host = document.referrer ? new URL(document.referrer).hostname : ''; } catch (e) {}
+    if (!host || host === location.hostname) return 'direct';
+    const map = [[/instagram/, 'instagram'], [/whatsapp|^wa\.me$/, 'whatsapp'], [/^t\.me$|telegram/, 'telegram'], [/facebook|^fb\./, 'facebook'],
+      [/tiktok/, 'tiktok'], [/google\./, 'google'], [/yandex|^ya\.ru$/, 'yandex'], [/youtube|^youtu\.be$/, 'youtube']];
+    for (const [re, name] of map) if (re.test(host)) return name;
+    return 'other';
+  }
+  // Источник запоминаем на всю сессию: при переходах по сайту referrer уже свой.
+  // Метка в ссылке (?src=) важнее запомненного — клиент мог прийти по новой ссылке.
+  const urlTag = /[?&](src|utm_source)=/.test(location.search);
+  const source = urlTag ? detectSource() : store('sessionStorage', 'rs', detectSource);
+  if (urlTag) { try { sessionStorage.setItem('rs', source); } catch (e) {} }
+  const device = window.matchMedia('(min-width: 1024px)').matches ? 'd' : 'm';
+
+
   const RS = {
     S,
     money: (n, cur) => (n == null ? '—' : `${nf.format(Math.round(n))} ${cur || ''}`.trim()),
     esc: s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])),
     wa: text => `https://wa.me/${String(S.whatsapp || '').replace(/\D/g, '')}?text=${encodeURIComponent(text)}`,
-    track(type, id) {
-      const body = JSON.stringify({ type, id });
+    // Событие аналитики кабинета: view | filter | calc | cash | wa
+    event(e, extra = {}) {
+      if (!D.slug) return;
+      const body = JSON.stringify({ slug: D.slug, e, p: D.page, v: visitor, s: source, d: device, ...extra });
       try {
         if (!navigator.sendBeacon || !navigator.sendBeacon('/api/track', new Blob([body], { type: 'application/json' }))) {
           fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, keepalive: true });
         }
-      } catch (e) {}
-      // Цель аналитики: нажатие кнопки WhatsApp
-      try { window.gtag && gtag('event', 'whatsapp_click', { place: type, apartment_id: id || '' }); } catch (e) {}
-      try { window.ym && window.YM_ID && ym(window.YM_ID, 'reachGoal', 'whatsapp_click', { place: type }); } catch (e) {}
+      } catch (err) {}
+    },
+    // Нажатие WhatsApp — главная цель: в аналитику кабинета и во внешние счётчики, если подключены
+    track(place, id) {
+      RS.event('wa', { pl: place, a: id || null });
+      try { window.gtag && gtag('event', 'whatsapp_click', { place, apartment_id: id || '' }); } catch (e) {}
+      try { window.ym && window.YM_ID && ym(window.YM_ID, 'reachGoal', 'whatsapp_click', { place }); } catch (e) {}
       try { window.fbq && fbq('track', 'Contact'); } catch (e) {}
+    },
+    // Отправить событие один раз за страницу (например, «пользовался фильтром»)
+    once(e, extra) {
+      const k = e + (extra && extra.a ? ':' + extra.a : '');
+      if (sent.has(k)) return;
+      sent.add(k);
+      RS.event(e, extra);
     },
   };
   window.RS = RS;
+  const sent = new Set();
 
   document.addEventListener('click', e => {
     const a = e.target.closest('[data-wa]');
     if (a) RS.track(a.dataset.wa, a.dataset.id || null);
   });
+
+  // Просмотр страницы
+  RS.event('view', { a: D.apartment ? D.apartment.id : null });
 
   // ---------- Анимации ----------
   // Заставка с логотипом (только на главной, один раз за сессию) → затем html.ready запускает анимацию первого экрана.

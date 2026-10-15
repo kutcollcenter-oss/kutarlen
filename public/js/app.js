@@ -172,6 +172,8 @@
   });
   $('fReset').addEventListener('click', () => { reset(); syncInputs(); update(); });
   $('sort').addEventListener('change', update);
+  // Аналитика: посетитель пользовался фильтром (один раз за визит страницы)
+  ['input', 'click'].forEach(t => $('filter').addEventListener(t, () => window.RS.once('filter')));
 
   function match(a) {
     if (a.price < st.price[0] || a.price > st.price[1]) return false;

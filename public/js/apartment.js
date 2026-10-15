@@ -35,6 +35,7 @@
     // Взноса хватает на покупку за наличные — подсвечиваем выгоду и предлагаем купить дешевле
     const cash = a.cash;
     const hit = !!cash && d >= cash.price;
+    if (hit && from) window.RS.once('cash', { a: a.id });
     if (cash) {
       $('cashOffer').classList.toggle('hit', hit);
       $('coHint').textContent = hit
@@ -57,8 +58,11 @@
     history.replaceState(null, '', q);
   }
 
-  range.addEventListener('input', () => set(+range.value, 'range'));
+  // Аналитика: клиент сам менял взнос / взноса хватило на покупку за наличные (по разу на страницу)
+  const used = () => window.RS.once('calc', { a: a.id });
+  range.addEventListener('input', () => { used(); set(+range.value, 'range'); });
   input.addEventListener('input', () => {
+    used();
     const raw = +input.value.replace(/\D/g, '');
     if (raw >= min) set(raw, 'input');
   });

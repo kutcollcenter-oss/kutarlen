@@ -620,3 +620,30 @@ input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 1px sol
 .card:nth-child(3n+2) .btn-wa::after { animation-delay: .35s; }
 .card:nth-child(3n+3) .btn-wa::after { animation-delay: .7s; }
 .btn-wa:hover::after { animation-play-state: paused; }
+
+/* ===== Продукт: заглушки и страница продукта ===== */
+/* Заставка у риелтора без логотипа — имя вместо логотипа */
+.pl-name { font-size: 28px; text-transform: uppercase; letter-spacing: .04em; opacity: 0; transform: translateY(14px); filter: blur(6px);
+  animation: plLogo 1s var(--ease-out) .15s forwards; }
+
+/* «Ссылка недействительна», «Сайт временно недоступен» */
+.plain-page { padding-bottom: 0; }
+.plain { min-height: 100vh; display: grid; place-items: center; padding-top: 40px; padding-bottom: 40px; }
+.plain-box { max-width: 560px; border: 1px solid var(--line); background: var(--card); padding: 36px 28px; }
+.plain-box h1 { font-size: clamp(28px, 6vw, 40px); margin-bottom: 12px; }
+.plain-box p { color: var(--text); margin: 0; }
+
+/* Страница продукта для риелторов */
+.landing { padding-bottom: 0; }
+.landing .tabbar { display: none; }
+.landing .topbar .wrap { justify-content: space-between; }
+.landing .nav { display: none; }
+@media (min-width: 1024px) { .landing .nav { display: flex; } }
+.landing-hero { max-width: 860px; padding: 40px 0 24px; }
+.landing-price { font-family: var(--mono); font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--primary); margin: 22px 0 0; }
+.landing-feats { grid-template-columns: 1fr; }
+@media (min-width: 700px) { .landing-feats { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1000px) { .landing-feats { grid-template-columns: repeat(3, 1fr); } }
+.landing-feats li b { display: block; font-weight: 500; text-transform: uppercase; letter-spacing: .02em; margin-bottom: 6px; color: var(--ink); }
+.landing-feats li span { font-weight: 400; }
+#how .btn { margin-top: 8px; }
