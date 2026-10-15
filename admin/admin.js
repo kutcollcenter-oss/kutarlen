@@ -42,12 +42,13 @@
   function renderLogin() {
     app.innerHTML = `<form class="login" id="lf">
       <h1>Вход в кабинет</h1>
-      <label class="f"><span>Логин</span><input type="text" id="lg" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
+      <label class="f"><span>Логин</span><input type="text" id="lg" autocomplete="username" autocapitalize="none" spellcheck="false" required value="${esc(new URLSearchParams(location.search).get('u') || '')}"></label>
       <label class="f"><span>Пароль</span><input type="password" id="pw" autocomplete="current-password" required></label>
       <div class="err" id="le"></div>
       <button class="btn btn-primary btn-block">Войти</button>
       <p class="hint" style="text-align:center;margin-top:14px">Нет доступа? Логин и пароль выдаёт владелец сервиса.</p>
     </form>`;
+    if (document.getElementById('lg').value) document.getElementById('pw').focus();
     document.getElementById('lf').onsubmit = async e => {
       e.preventDefault();
       try {
@@ -78,6 +79,7 @@
         <div class="linkrow"><code>${esc(r.url)}</code>
           <button class="btn" data-copy="${esc(r.url)}">Копировать</button>
           <a class="btn" href="${esc(r.url)}" target="_blank">Открыть ↗</a></div>
+        <div class="hint" style="margin-top:6px">Вход в кабинет с телефона: <b>${esc(r.url)}/admin</b></div>
       </div></div>`;
   }
 
@@ -503,7 +505,7 @@
   };
 
   function credentialsText(r, login, password) {
-    return `Здравствуйте! Ваш кабинет готов.\n\nВход: ${location.origin}/admin\nЛогин: ${login}\nПароль: ${password}\n\nВаша ссылка для клиентов: ${r.url}\n\nВ кабинете добавьте свой WhatsApp, фото и квартиры. Пароль можно сменить в разделе «Мой сайт».`;
+    return `Здравствуйте! Ваш кабинет готов.\n\nВаш сайт для клиентов: ${r.url}\nВход в кабинет: ${r.url}/admin\nЛогин: ${login}\nПароль: ${password}\n\nКак добавить квартиру: «Квартиры» → «+ Добавить» — она сразу появится на вашем сайте. В «Мой сайт» добавьте свой WhatsApp, фото и смените пароль.`;
   }
 
   function showCredentials(r, login, password, title) {
@@ -543,13 +545,14 @@
             <label class="f"><span>Логин</span><input name="login" required autocapitalize="none" spellcheck="false" placeholder="aidana"></label>
             <label class="f"><span>Пароль</span><input name="password" placeholder="придумаем сами"></label>
           </div>
+          <label class="f"><span>Адрес сайта</span><div class="slug-in"><span>${esc(location.host)}/</span><input name="slug" autocapitalize="none" spellcheck="false" placeholder="из имени, например aydana"></div></label>
           <label class="f"><span>WhatsApp риелтора</span><input name="whatsapp" type="tel" placeholder="+996 …"></label>
           <div class="grid2">
             <label class="f"><span>Оплачено до</span><input name="paidUntil" type="date" value="${inMonth}"></label>
             <label class="f"><span>Лимит квартир</span><input name="maxApartments" inputmode="numeric" value="30"></label>
           </div>
           <label class="f"><span>Заметка (видите только вы)</span><input name="note" placeholder="Тариф, сумма, контакт…"></label>
-          <div class="hint" style="margin:-4px 0 10px">Пустой пароль — сгенерируем надёжный. Лимит 0 — без ограничения.</div>
+          <div class="hint" style="margin:-4px 0 10px">Пустой адрес — возьмём имя латиницей. Пустой пароль — сгенерируем надёжный. Лимит 0 — без ограничения.</div>
           <div class="err" id="nfErr"></div>
           <button class="btn btn-primary btn-block">Создать кабинет</button>
         </form>
@@ -574,7 +577,7 @@
             <button class="btn" data-act="stats">Аналитика</button>
             ${x.role === 'owner' ? '' : `<button class="btn" data-act="block">${x.blocked ? 'Разблокировать' : 'Заблокировать'}</button>`}
             <button class="btn" data-act="pass">Новый пароль</button>
-            <button class="btn" data-act="relink">Новая ссылка</button>
+            <button class="btn" data-act="slug">Адрес…</button>
             ${x.role === 'owner' ? '' : '<button class="btn btn-danger" data-act="del">Удалить</button>'}
           </div>
         </div>`).join('')}</div>
@@ -642,11 +645,13 @@
             showCredentials(x, x.login, r.password, `Новый пароль для «${x.name}»`);
             return;
           }
-          case 'relink':
-            if (!confirm(`Сделать «${x.name}» новую ссылку? Старая ссылка, которую уже отправили клиентам, перестанет работать.`)) return;
-            await api('POST', `/api/owner/realtors/${x.id}/relink`);
+          case 'slug': {
+            const v = prompt(`Адрес сайта «${x.name}» (латиница, цифры, дефис). Сейчас: ${x.slug}. Старый адрес продолжит работать и будет вести на новый.`, x.slug);
+            if (v === null || v.trim() === x.slug) return;
+            await put({ slug: v.trim() });
             if (x.role === 'owner') me = await api('GET', '/api/admin/me');
-            toast('Новая ссылка готова'); break;
+            toast('Адрес изменён'); break;
+          }
           case 'del':
             if (prompt(`Удалить «${x.name}» вместе со всеми квартирами? Это не отменить. Напишите УДАЛИТЬ:`) !== 'УДАЛИТЬ') return;
             await api('DELETE', `/api/owner/realtors/${x.id}`); toast('Удалено'); break;
@@ -672,6 +677,9 @@
   async function start() {
     try {
       me = await api('GET', '/api/admin/me');
+      // Пришли по ссылке «/имя/admin» другого риелтора — показываем вход, а не текущий кабинет
+      const want = new URLSearchParams(location.search).get('u');
+      if (want && want !== me.login) { renderLogin(); return; }
       settings = await api('GET', '/api/admin/settings');
       window.onhashchange = route;
       route();

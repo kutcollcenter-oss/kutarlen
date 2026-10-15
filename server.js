@@ -36,6 +36,7 @@ const base = req => `${req.protocol}://${req.get('host')}`;
 const realtorById = id => D().realtors.find(r => r.id === id);
 const realtorBySlug = slug => D().realtors.find(r => r.slug === slug);
 const userOf = r => D().users.find(u => u.realtorId === r.id);
+const slugTaken = (slug, except) => D().realtors.some(r => r !== except && (r.slug === slug || (r.oldSlugs || []).includes(slug)));
 const aptsOf = rid => D().apartments.filter(a => a.realtorId === rid);
 const findApt = (rid, id) => D().apartments.find(a => a.id === id && a.realtorId === rid);
 const isVisible = isListed; // статусов нет: на сайте все квартиры с ценой; проданную удаляют
@@ -140,9 +141,18 @@ app.get('/privacy', (req, res) => res.redirect(302, '/'));
 app.get('/robots.txt', (req, res) => res.type('text/plain').send('User-agent: *\nDisallow: /admin\nDisallow: /api/\n'));
 
 // Сайт риелтора. Неизвестная ссылка → «Ссылка недействительна»; не оплачен → «временно недоступен».
+// Адрес, который риелтору поменяли (или старый, с кодом), переадресуется на новый — отправленные ссылки не ломаются.
 function siteOf(req, res) {
-  const r = tenants.SLUG_RE.test(req.params.slug) && realtorBySlug(req.params.slug);
-  if (!r) { res.status(404).send(pages.renderInvalid(D().product, base(req))); return null; }
+  const slug = req.params.slug;
+  const go = to => { res.redirect(301, req.originalUrl.replace(`/${slug}`, `/${to}`)); return null; };
+  if (slug !== slug.toLowerCase()) return go(slug.toLowerCase());
+  const r = tenants.SLUG_RE.test(slug) && realtorBySlug(slug);
+  if (!r) {
+    const moved = D().realtors.find(x => (x.oldSlugs || []).includes(slug));
+    if (moved) return go(moved.slug);
+    res.status(404).send(pages.renderInvalid(D().product, base(req)));
+    return null;
+  }
   if (!tenants.status(r).active) { res.status(403).send(pages.renderUnavailable(ctxOf(r, req), D().product)); return null; }
   return r;
 }
@@ -159,6 +169,14 @@ app.get('/:slug/kvartira/:id', (req, res) => {
   const a = findApt(r.id, req.params.id);
   if (!a || !isVisible(a)) return res.status(404).send(pages.renderGone(ctxOf(r, req), similarTo(r, null, req)));
   res.send(pages.renderApartment(ctxOf(r, req), pub(r, a, req), similarTo(r, a, req)));
+});
+
+// /имя/admin — вход в кабинет этого риелтора (логин подставляется сам)
+app.get('/:slug/admin', (req, res) => {
+  const slug = req.params.slug.toLowerCase();
+  const r = realtorBySlug(slug) || D().realtors.find(x => (x.oldSlugs || []).includes(slug));
+  const u = r && userOf(r);
+  res.redirect(302, u ? `/admin/?u=${encodeURIComponent(u.login)}` : '/admin/');
 });
 
 app.get('/:slug/privacy', (req, res) => {
@@ -451,8 +469,11 @@ app.post('/api/owner/realtors', requireAuth, ownerOnly, (req, res) => {
   if (!LOGIN_RE.test(login)) return res.status(400).json({ error: 'Логин: 3–32 символа, латиница, цифры, точка, дефис' });
   if (D().users.some(u => u.login === login)) return res.status(400).json({ error: 'Такой логин уже занят' });
   const password = b.password && String(b.password).length >= 8 ? String(b.password) : auth.generatePassword();
+  const slug = b.slug ? String(b.slug).trim().toLowerCase() : tenants.makeSlug(name, slugTaken);
+  const slugErr = b.slug ? tenants.slugError(slug) || (slugTaken(slug) ? 'Этот адрес уже занят другим риелтором' : '') : '';
+  if (slugErr) return res.status(400).json({ error: slugErr });
   const r = {
-    id: db.newId(), slug: tenants.makeSlug(name, s => !!realtorBySlug(s)),
+    id: db.newId(), slug,
     settings: tenants.defaultSettings(name),
     plan: { paidUntil: DATE_RE.test(b.paidUntil || '') ? b.paidUntil : '', maxApartments: Math.max(0, parseInt(b.maxApartments) || 0) },
     blocked: false, note: String(b.note || '').slice(0, 300), createdAt: new Date().toISOString(),
@@ -478,6 +499,16 @@ app.put('/api/owner/realtors/:id', requireAuth, ownerOnly, (req, res) => {
   if ('maxApartments' in b) r.plan.maxApartments = Math.max(0, parseInt(b.maxApartments) || 0);
   if ('blocked' in b && !isOwn) r.blocked = !!b.blocked;
   if ('note' in b) r.note = String(b.note || '').slice(0, 300);
+  if ('slug' in b) {
+    const slug = String(b.slug || '').trim().toLowerCase();
+    if (slug !== r.slug) {
+      const err = tenants.slugError(slug) || (slugTaken(slug, r) ? 'Этот адрес уже занят другим риелтором' : '');
+      if (err) return res.status(400).json({ error: err });
+      // старый адрес запоминаем: ссылки, которые уже разосланы клиентам, будут вести на новый
+      r.oldSlugs = [...new Set([...(r.oldSlugs || []), r.slug])].filter(x => x !== slug);
+      r.slug = slug;
+    }
+  }
   if ('login' in b) {
     const login = String(b.login || '').trim().toLowerCase();
     const u = userOf(r);
@@ -498,14 +529,6 @@ app.post('/api/owner/realtors/:id/password', requireAuth, ownerOnly, (req, res) 
   Object.assign(u, auth.hashPassword(password), { defaultPassword: false });
   db.save();
   res.json({ password });
-});
-
-// Новая ссылка: старая перестаёт работать (если ссылку нужно «отозвать»)
-app.post('/api/owner/realtors/:id/relink', requireAuth, ownerOnly, (req, res) => {
-  const r = ownedRealtor(req, res); if (!r) return;
-  r.slug = tenants.makeSlug(r.settings.name, s => !!realtorBySlug(s));
-  db.save();
-  res.json({ slug: r.slug, url: siteUrl(req, r) });
 });
 
 app.delete('/api/owner/realtors/:id', requireAuth, ownerOnly, (req, res) => {
@@ -542,6 +565,10 @@ app.use((req, res) => res.status(404).send(pages.renderInvalid(D().product, base
     db.save();
     if (m.oldEvents.length) analytics.appendMany(m.oldEvents);
     console.log(`База перенесена в кабинеты. Ваш сайт: /${m.realtor.slug}. Вход в кабинет: логин admin`);
+  }
+  if (tenants.plainSlugs(D())) {
+    db.save();
+    console.log('Адреса сайтов переведены на простые имена: ' + D().realtors.map(r => '/' + r.slug).join(', '));
   }
   analytics.prune();
   db.scheduleBackups();

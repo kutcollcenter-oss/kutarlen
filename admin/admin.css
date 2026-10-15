@@ -133,3 +133,9 @@ pre { white-space: pre-wrap; background: #f3f4f6; padding: 12px; border-radius: 
 .st-ending { background: #fef3c7; color: #92400e; }
 .st-expired, .st-blocked { background: #fee2e2; color: #991b1b; }
 .wrap-banner { padding-bottom: 0; }
+.slug-in { display: flex; align-items: center; border: 1px solid #d1d5db; border-radius: 10px; background: #fff; overflow: hidden; }
+.slug-in span { padding: 0 2px 0 12px; color: var(--muted); font-size: 14px; white-space: nowrap; }
+.slug-in input { border: 0 !important; padding-left: 2px !important; min-width: 0; }
+.slug-in { display: flex; align-items: center; border: 1px solid #d1d5db; border-radius: 10px; background: #fff; overflow: hidden; }
+.slug-in span { padding: 0 2px 0 12px; color: var(--muted); font-size: 14px; white-space: nowrap; }
+.slug-in input { border: 0 !important; padding-left: 2px !important; min-width: 0; }
