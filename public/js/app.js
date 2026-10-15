@@ -178,7 +178,8 @@
   function match(a) {
     if (a.price < st.price[0] || a.price > st.price[1]) return false;
     if (a.area < st.area[0] || a.area > st.area[1]) return false;
-    if (st.rooms.size && !st.rooms.has(a.rooms >= 4 ? '4' : String(a.rooms))) return false;
+    // Отдельной кнопки «Студия» нет: студии показываются вместе с однокомнатными
+    if (st.rooms.size && !st.rooms.has(a.rooms >= 4 ? '4' : a.rooms <= 1 ? '1' : String(a.rooms))) return false;
     return true;
   }
 
@@ -252,7 +253,7 @@
       const budget = [
         st.down != null && `взнос до ${money(st.down, c)}`,
         st.monthly != null && `платёж до ${money(st.monthly, c)} в месяц`,
-        st.rooms.size && `комнат: ${[...st.rooms].map(r => (r === '0' ? 'студия' : r === '4' ? '4+' : r)).join(', ')}`,
+        st.rooms.size && `комнат: ${[...st.rooms].map(r => (r === '1' ? '1 или студия' : r === '4' ? '4+' : r)).join(', ')}`,
       ].filter(Boolean).join(', ');
       const kind = st.type === 'cash' ? 'за наличные' : 'в рассрочку';
       const text = `Здравствуйте! Подберите, пожалуйста, квартиру ${kind}${budget ? `: ${budget}` : ''}.`;

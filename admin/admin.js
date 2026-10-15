@@ -146,38 +146,43 @@
   const NAV = [
     ['list', 'Квартиры', svg('<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>')],
     ['analytics', 'Аналитика', svg('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>')],
-    ['settings', 'Мой сайт', svg('<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>')],
+    ['site', 'Сайт', svg('<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>'), false, true],
+    ['settings', 'Профиль', svg('<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>')],
     ['realtors', 'Риелторы', svg('<circle cx="9" cy="8" r="3.5"/><path d="M2 20c1-3.5 3.6-5.5 7-5.5s6 2 7 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18.5 14.8c1.7.9 2.9 2.6 3.5 5.2"/>'), true],
   ];
 
   // Верхнее меню — на ноутбуке; на телефоне и планшете — нижнее меню (как на сайте)
   function nav(active) {
     const items = NAV.filter(([, , , ownerOnly]) => !ownerOnly || isOwner());
-    const top = items.map(([h, label]) => `<a href="#${h}" class="tl${active === h ? ' on' : ''}">${label}</a>`).join('');
-    const bottom = items.map(([h, label, icon]) => `<a href="#${h}" class="${active === h ? 'on' : ''}">${icon}<span>${label}</span></a>`).join('');
+    // «Сайт» открывает свой сайт для клиентов в новой вкладке, остальные пункты — разделы кабинета
+    const href = (h, ext) => (ext ? `href="${esc(me.realtor.url)}" target="_blank" rel="noopener"` : `href="#${h}"`);
+    const top = items.map(([h, label, , , ext]) => `<a ${href(h, ext)} class="tl${active === h ? ' on' : ''}${ext ? ' ext' : ''}">${label}${ext ? ' ↗' : ''}</a>`).join('');
+    const bottom = items.map(([h, label, icon, , ext]) => `<a ${href(h, ext)} class="${active === h ? 'on' : ''}${ext ? ' ext' : ''}">${icon}<span>${label}</span></a>`).join('');
     return `<div class="top"><div class="wrap">
       <span class="top-title">${esc(me.realtor.name)}</span>
       ${top}
       <span class="sp"></span>
       <button id="logout">Выйти</button>
-    </div></div>${banner()}
+    </div></div>${banner(active)}
     <nav class="atab" aria-label="Меню кабинета">${bottom}</nav>`;
   }
 
   // Ссылка для клиентов и предупреждения: оплата, пароль по умолчанию
-  function banner() {
+  function banner(active) {
     const r = me.realtor, st = r.status;
     const warn = [];
     if (!st.active) warn.push(`<div class="warn bad">${esc(st.label)}. Сайт для клиентов отключён — ${me.product.whatsapp ? `<a href="https://wa.me/${esc(me.product.whatsapp.replace(/\D/g, ''))}" target="_blank">напишите владельцу сервиса</a>` : 'свяжитесь с владельцем сервиса'}, чтобы продлить.</div>`);
     else if (st.code === 'ending') warn.push(`<div class="warn">Оплата заканчивается через ${st.daysLeft} дн. (${esc(r.plan.paidUntil)}). Продлите, чтобы сайт не отключился.</div>`);
     if (me.defaultPassword) warn.push(`<div class="warn bad">У вас пароль по умолчанию. <a href="#settings">Смените его</a> — иначе в кабинет может войти кто угодно.</div>`);
-    return `<div class="wrap wrap-banner">${warn.join('')}
+    // Ссылку для клиентов показываем только на «Квартирах» — на остальных страницах есть кнопка «Сайт ↗»
+    const link = active === 'list' && !location.hash.startsWith('#edit') ? `
       <div class="linkbox"><span>Ваша ссылка для клиентов</span>
         <div class="linkrow"><code>${esc(r.url)}</code>
-          <button class="btn" data-copy="${esc(r.url)}">Копировать</button>
-          <a class="btn" href="${esc(r.url)}" target="_blank">Открыть ↗</a></div>
+          <button class="btn" data-copy="${esc(r.url)}">Копировать</button></div>
         <div class="hint" style="margin-top:6px">Вход в кабинет с телефона: <b>${esc(r.url)}/admin</b></div>
-      </div></div>`;
+      </div>` : '';
+    if (!warn.length && !link) return '';
+    return `<div class="wrap wrap-banner">${warn.join('')}${link}</div>`;
   }
 
   function bindNav() {
@@ -253,8 +258,8 @@
         <div class="s">${rooms(a.rooms)}, ${a.area} м² · от ${a.floorFrom || '—'} эт.</div>
         <div class="s">${line}</div></div>
       <div class="acts">
-        <button class="btn" data-act="edit">✏️ Изменить</button>
-        <button class="btn" data-act="dup">⧉ Дублировать</button>
+        <button class="btn" data-act="edit">Изменить</button>
+        <button class="btn" data-act="dup">Дублировать</button>
         ${c.price ? `<a class="btn" href="${esc(c.url)}" target="_blank">Открыть ↗</a>` : ''}
         <button class="btn btn-danger" data-act="del">Удалить</button>
       </div>
@@ -291,7 +296,7 @@
         <div class="card">
           <h2 style="margin-top:0">Фото</h2>
           <div class="photos" id="photos"></div>
-          <label class="upload"><input type="file" id="files" accept="image/*" multiple>📷 Загрузить фото (можно несколько)</label>
+          <label class="upload"><input type="file" id="files" accept="image/*" multiple>+ Загрузить фото (можно несколько)</label>
           <div class="hint">Первое фото — главное. Фото автоматически сжимаются.</div>
         </div>
         <div class="card">
@@ -469,18 +474,18 @@
     return () => buildReviews(list);
   }
 
-  // ---------- Мой сайт (настройки) ----------
+  // ---------- Профиль (настройки сайта) ----------
   async function renderSettings() {
     settings = await api('GET', '/api/admin/settings');
     const s = settings;
     const f = (k, label, type = 'text', hint = '') => `<label class="f"><span>${label}</span><input type="${type}" name="${k}" value="${esc(s[k])}">${hint ? `<div class="hint">${hint}</div>` : ''}</label>`;
     const t = (k, label, hint = '') => `<label class="f"><span>${label}</span><textarea name="${k}" rows="6">${esc(s[k])}</textarea>${hint ? `<div class="hint">${hint}</div>` : ''}</label>`;
-    app.innerHTML = `${nav('settings')}<div class="wrap"><h1>Мой сайт</h1>
+    app.innerHTML = `${nav('settings')}<div class="wrap"><h1>Профиль</h1>
       <form id="sf">
         <div class="card"><h2 style="margin-top:0">Риелтор</h2>
           <div class="row" style="margin-bottom:12px">
             ${s.photo ? `<img src="${esc(s.photo)}" style="width:72px;height:90px;object-fit:cover;border-radius:10px">` : ''}
-            <label class="upload" style="flex:1"><input type="file" id="pf" accept="image/*">📷 ${s.photo ? 'Заменить фото' : 'Загрузить своё фото'}</label>
+            <label class="upload" style="flex:1"><input type="file" id="pf" accept="image/*">+ ${s.photo ? 'Заменить фото' : 'Загрузить своё фото'}</label>
           </div>
           ${f('name', 'Имя')}
           ${f('role', 'Кем работаете', 'text', 'Например: Риелтор строительной компании «Кут»')}
@@ -494,7 +499,7 @@
           ${f('company', 'Компания', 'text', 'Например: Строительная компания «Кут». Можно оставить пустым.')}
           <div class="row" style="margin-bottom:6px">
             ${s.logo ? `<div class="logo-prev"><img src="${esc(s.logo)}" alt=""></div>` : ''}
-            <label class="upload" style="flex:1"><input type="file" id="lf2" accept="image/*">🏷 ${s.logo ? 'Заменить логотип' : 'Загрузить логотип'}</label>
+            <label class="upload" style="flex:1"><input type="file" id="lf2" accept="image/*">+ ${s.logo ? 'Заменить логотип' : 'Загрузить логотип'}</label>
             ${s.logo ? '<button type="button" class="btn btn-danger" id="logoDel">Убрать</button>' : ''}
           </div>
           <div class="hint">Лучше PNG с прозрачным фоном. Без логотипа на сайте показывается только имя.</div>
@@ -608,7 +613,7 @@
         <div class="filters" id="days">${[7, 30, 90].map(d => `<button data-d="${d}" class="${anDays === d ? 'on' : ''}">${d} дней</button>`).join('')}</div>
       </div>
       ${isOwner() ? `<label class="f"><span>Чья аналитика</span><select id="anR">
-        <option value="">Мой сайт</option><option value="all" ${anRealtor === 'all' ? 'selected' : ''}>Все риелторы вместе</option>
+        <option value="">Мои квартиры</option><option value="all" ${anRealtor === 'all' ? 'selected' : ''}>Все риелторы вместе</option>
         ${realtors.filter(x => x.role !== 'owner').map(x => `<option value="${x.id}" ${anRealtor === x.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}
       </select></label>` : ''}
 
@@ -679,7 +684,7 @@
   };
 
   function credentialsText(r, login, password) {
-    return `Здравствуйте! Ваш кабинет готов.\n\nВаш сайт для клиентов: ${r.url}\nВход в кабинет: ${r.url}/admin\nЛогин: ${login}\nПароль: ${password}\n\nКак добавить квартиру: «Квартиры» → «+ Добавить» — она сразу появится на вашем сайте. В «Мой сайт» добавьте свой WhatsApp, фото и смените пароль.`;
+    return `Здравствуйте! Ваш кабинет готов.\n\nВаш сайт для клиентов: ${r.url}\nВход в кабинет: ${r.url}/admin\nЛогин: ${login}\nПароль: ${password}\n\nКак добавить квартиру: «Квартиры» → «+ Добавить» — она сразу появится на вашем сайте. В «Профиль» добавьте свой WhatsApp, фото и смените пароль.`;
   }
 
   function showCredentials(r, login, password, title) {
@@ -753,7 +758,7 @@
             <button class="btn" data-act="limit">Лимит…</button>`}
             <button class="btn" data-act="stats">Аналитика</button>
             ${x.role === 'owner' ? '' : x.blocked
-              ? '<button class="btn btn-danger-fill" data-act="block">🔒 Заблокирован · Разблокировать</button>'
+              ? '<button class="btn btn-danger-fill" data-act="block">Заблокирован · Разблокировать</button>'
               : '<button class="btn" data-act="block">Заблокировать</button>'}
             <button class="btn" data-act="pass">Новый пароль</button>
             <button class="btn" data-act="login">Логин…</button>
@@ -887,6 +892,7 @@
       // Пришли по ссылке «/имя/admin» другого риелтора — показываем вход, а не текущий кабинет
       const want = new URLSearchParams(location.search).get('u');
       if (want && want !== me.login) { renderLogin(); return; }
+      if (want) history.replaceState(null, '', '/admin/' + location.hash);
       settings = await api('GET', '/api/admin/settings');
       window.onhashchange = route;
       route();

@@ -620,6 +620,6 @@ app.use((req, res) => res.status(404).send(pages.renderInvalid(D().product, base
     const own = owner && realtorById(owner.realtorId);
     console.log(`Сайт:    http://localhost:${PORT}${own ? '/' + own.slug : ''}`);
     console.log(`Кабинет: http://localhost:${PORT}/admin  (логин ${owner ? owner.login : 'admin'})`);
-    if (owner && owner.defaultPassword) console.log('ВНИМАНИЕ: смените пароль владельца в кабинете (Мой сайт → Пароль)');
+    if (owner && owner.defaultPassword) console.log('ВНИМАНИЕ: смените пароль владельца в кабинете (Профиль → Пароль)');
   });
 })();
