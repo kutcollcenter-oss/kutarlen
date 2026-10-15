@@ -568,3 +568,15 @@ input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 1px sol
 .calc-hint.hit { color: var(--primary); font-family: var(--sans); font-size: 14px; text-transform: none; letter-spacing: 0; }
 .calc-hint.hit a { color: var(--primary); text-decoration: none; }
 .calc-hint.hit b { font-weight: 500; }
+
+/* «Вы сэкономите …» — жёлтая линия под текстом, чтобы зацепить взгляд.
+   Прорисовывается слева направо, когда блок появляется на экране. */
+.co-save { font-size: 17px; margin-top: 12px; }
+.co-mark {
+  --mark: #f6c400;
+  padding-bottom: 3px;
+  background: linear-gradient(var(--mark), var(--mark)) no-repeat 0 100% / 100% 4px;
+  -webkit-box-decoration-break: clone; box-decoration-break: clone;
+}
+.js .co-mark { background-size: 0% 4px; transition: background-size 1s var(--ease-out) .35s; }
+.js .in .co-mark, .js .cash-offer.hit .co-mark { background-size: 100% 4px; }
