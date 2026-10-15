@@ -165,7 +165,7 @@ function siteOf(req, res) {
     res.status(404).send(pages.renderInvalid(D().product, base(req)));
     return null;
   }
-  if (!statusOf(r).active) { res.status(403).send(pages.renderUnavailable(ctxOf(r, req), D().product)); return null; }
+  if (!statusOf(r).active) { res.status(503).set('Retry-After', '86400').send(pages.renderUnavailable(ctxOf(r, req))); return null; }
   return r;
 }
 
@@ -494,9 +494,25 @@ app.post('/api/owner/realtors', requireAuth, ownerOnly, (req, res) => {
   if (b.whatsapp) r.settings.whatsapp = String(b.whatsapp).slice(0, 30);
   D().realtors.push(r);
   D().users.push({ id: db.newId(), login, role: 'realtor', realtorId: r.id, ...auth.hashPassword(password), createdAt: new Date().toISOString() });
+  const copied = b.copyApartments === false ? 0 : copyOwnerApartments(req.realtor, r);
   db.save();
-  res.json({ realtor: realtorRow(r, req, {}), password }); // пароль показывается один раз
+  res.json({ realtor: realtorRow(r, req, {}), password, copied }); // пароль показывается один раз
 });
+
+// Стартовый набор новому риелтору: копии квартир владельца в рассрочку (наличные не копируются).
+// Копий не больше лимита тарифа. Фото общие — файлы не дублируются, удаление копии их не трогает.
+function copyOwnerApartments(owner, r) {
+  const max = Number(r.plan.maxApartments) || Infinity;
+  const src = aptsOf(owner.id).filter(a => isVisible(a) && typeOf(a) === 'installment').slice(0, max);
+  for (const a of src) {
+    D().apartments.push({
+      ...a, id: db.newId(), realtorId: r.id,
+      photos: [...(a.photos || [])], tags: [...(a.tags || [])],
+      ...(a.map ? { map: { ...a.map } } : {}),
+    });
+  }
+  return src.length;
+}
 
 function ownedRealtor(req, res) {
   const r = realtorById(req.params.id);

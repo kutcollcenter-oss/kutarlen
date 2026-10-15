@@ -598,7 +598,9 @@
 
   async function renderRealtors() {
     if (!isOwner()) { location.hash = '#list'; return; }
-    const [list, product] = await Promise.all([api('GET', '/api/owner/realtors'), api('GET', '/api/owner/product')]);
+    const [list, product, mine] = await Promise.all([api('GET', '/api/owner/realtors'), api('GET', '/api/owner/product'), api('GET', '/api/admin/apartments')]);
+    // Сколько квартир в рассрочку скопируется новому риелтору (наличные не копируются)
+    const myInstallment = mine.filter(a => a.computed.installment || (typeOf(a) === 'installment' && a.computed.price)).length;
     const others = list.filter(x => x.role !== 'owner');
     const paying = others.filter(x => x.status.active && !x.blocked).length;
     const inMonth = addMonths('', 1);
@@ -628,13 +630,14 @@
           </div>
           <label class="f"><span>Заметка (видите только вы)</span><input name="note" placeholder="Тариф, сумма, контакт…"></label>
           <div class="hint" style="margin:-4px 0 10px">Пустой адрес — возьмём имя латиницей. Пустой пароль — сгенерируем надёжный. Лимит 0 — без ограничения.</div>
+          ${myInstallment ? `<label class="check"><input type="checkbox" name="copyApartments" checked> Скопировать мои квартиры в рассрочку (${flats(myInstallment)}) — риелтору не придётся начинать с нуля</label>` : ''}
           <div class="err" id="nfErr"></div>
           <button class="btn btn-primary btn-block">Создать кабинет</button>
         </form>
       </details>
 
       <div id="rl">${list.map(x => `
-        <div class="item rt" data-id="${x.id}">
+        <div class="item rt${x.blocked ? ' is-blocked' : ''}" data-id="${x.id}">
           <div class="rt-head"><div><div class="t">${esc(x.name)} ${x.role === 'owner' ? '<span class="badge badge-installment">Вы</span>' : ''}</div>
             <div class="s">логин: ${esc(x.login)}${x.note ? ` · ${esc(x.note)}` : ''}</div></div>${badge(x)}</div>
           <div class="rt-stats">
@@ -650,7 +653,9 @@
             <button class="btn" data-act="date">Дата…</button>
             <button class="btn" data-act="limit">Лимит…</button>`}
             <button class="btn" data-act="stats">Аналитика</button>
-            ${x.role === 'owner' ? '' : `<button class="btn" data-act="block">${x.blocked ? 'Разблокировать' : 'Заблокировать'}</button>`}
+            ${x.role === 'owner' ? '' : x.blocked
+              ? '<button class="btn btn-danger-fill" data-act="block">🔒 Заблокирован · Разблокировать</button>'
+              : '<button class="btn" data-act="block">Заблокировать</button>'}
             <button class="btn" data-act="pass">Новый пароль</button>
             <button class="btn" data-act="login">Логин…</button>
             <button class="btn" data-act="slug">Адрес…</button>
@@ -678,10 +683,11 @@
     document.getElementById('nf').onsubmit = async e => {
       e.preventDefault();
       const d = Object.fromEntries(new FormData(e.target));
+      d.copyApartments = !!e.target.copyApartments && e.target.copyApartments.checked;
       try {
         const res = await api('POST', '/api/owner/realtors', d);
         await renderRealtors();
-        showCredentials(res.realtor, res.realtor.login, res.password, `Кабинет для «${res.realtor.name}» создан`);
+        showCredentials(res.realtor, res.realtor.login, res.password, `Кабинет для «${res.realtor.name}» создан${res.copied ? ` · скопировано ${flats(res.copied)}` : ''}`);
       } catch (err) { document.getElementById('nfErr').textContent = err.message; }
     };
 

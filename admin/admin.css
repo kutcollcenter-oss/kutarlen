@@ -177,3 +177,6 @@ pre { white-space: pre-wrap; background: #f3f4f6; padding: 12px; border-radius: 
 p.warn { margin: -6px 0 10px; }
 @keyframes mFade { from { opacity: 0; } }
 @keyframes mUp { from { transform: translateY(20px); opacity: 0; } }
+/* Заблокированный риелтор — красная полоса и красная кнопка */
+.item.rt.is-blocked { border-left: 4px solid var(--bad); background: #fff7f7; }
+.item.rt.is-blocked .t { color: #991b1b; }
