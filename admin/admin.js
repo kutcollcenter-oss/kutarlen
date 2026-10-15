@@ -83,16 +83,53 @@
   }
 
   // ---------- Вход ----------
-  function renderLogin() {
-    app.innerHTML = `<form class="login" id="lf">
-      <h1>Вход в кабинет</h1>
-      <label class="f"><span>Логин</span><input type="text" id="lg" autocomplete="username" autocapitalize="none" spellcheck="false" required value="${esc(new URLSearchParams(location.search).get('u') || '')}"></label>
-      <label class="f"><span>Пароль</span><input type="password" id="pw" autocomplete="current-password" required></label>
-      <div class="err" id="le"></div>
-      <button class="btn btn-primary btn-block">Войти</button>
-      <p class="hint" style="text-align:center;margin-top:14px">Нет доступа? Логин и пароль выдаёт владелец сервиса.</p>
-    </form>`;
+  // Обложка входа: зачем кабинет риелтору + форма входа + связь с владельцем сервиса (новый кабинет, техподдержка)
+  const WA_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.7-1.4.1-.2 0-.3 0-.5l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2c0 1.3.9 2.5 1.1 2.7.1.2 1.8 2.8 4.4 3.9 1.6.7 2.3.8 3.1.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3Z"/></svg>';
+  const SKYLINE = '<svg class="auth-sky" viewBox="0 0 600 220" preserveAspectRatio="xMidYMax slice" aria-hidden="true"><path d="M0 220V150h40v-40h30v40h20V90h50v130M140 220V120h28V70h34v50h22v100M224 220V40h60v180M284 220V100h44v-30h30v150M358 220V130h40v-50h46v140M444 220V60h56v160M500 220V140h36v-30h34v110h30" /><path class="win" d="M236 60h8M256 60h8M236 84h8M256 84h8M236 108h8M256 108h8M456 82h8M476 82h8M456 106h8M476 106h8M180 92h8M108 112h8M376 102h8" /></svg>';
+  const fmtPhone = p => String(p || '').replace(/\D/g, '').replace(/^(\d{3})(\d{3})(\d{3})(\d{3})$/, '+$1 $2 $3 $4');
+  const waTo = (p, text) => `https://wa.me/${String(p).replace(/\D/g, '')}?text=${encodeURIComponent(text)}`;
+
+  async function renderLogin() {
+    const preLogin = esc(new URLSearchParams(location.search).get('u') || '');
+    app.innerHTML = `<div class="auth">
+      <section class="auth-cover">
+        ${SKYLINE}
+        <div class="auth-cover-in">
+          <div class="auth-kicker">Кабинет риелтора</div>
+          <h1>Ваш сайт продаёт квартиры, <em>пока вы на показах</em></h1>
+          <ul class="auth-points">
+            <li><b>Клиент подбирает сам</b> по взносу и платежу в месяц — без звонков «а что есть?»</li>
+            <li><b>Заявки сразу в WhatsApp</b> — с квартирой, взносом и платежом в сообщении</li>
+            <li><b>Видно, что работает</b> — откуда клиенты и какие квартиры смотрят</li>
+          </ul>
+        </div>
+      </section>
+      <section class="auth-side">
+        <form class="login" id="lf">
+          <h2>Вход в кабинет</h2>
+          <label class="f"><span>Логин</span><input type="text" id="lg" autocomplete="username" autocapitalize="none" spellcheck="false" required value="${preLogin}"></label>
+          <label class="f"><span>Пароль</span><input type="password" id="pw" autocomplete="current-password" required></label>
+          <div class="err" id="le"></div>
+          <button class="btn btn-primary btn-block">Войти</button>
+        </form>
+        <div class="auth-help" id="authHelp" hidden></div>
+      </section>
+    </div>`;
     if (document.getElementById('lg').value) document.getElementById('pw').focus();
+    // Номер владельца сервиса — из настроек «Главная страница сервиса»
+    api('GET', '/api/public/product').then(p => {
+      if (!p || !p.whatsapp) return;
+      const box = document.getElementById('authHelp');
+      if (!box) return;
+      box.hidden = false;
+      box.innerHTML = `<p class="auth-help-q">Хотите открыть себе кабинет или нужна техподдержка?</p>
+        <p class="auth-help-a">Напишите в WhatsApp — ответим и поможем</p>
+        <div class="auth-help-btns">
+          <a class="auth-wa" href="${esc(waTo(p.whatsapp, 'Здравствуйте! Хочу открыть себе кабинет риелтора.'))}" target="_blank" rel="noopener">${WA_SVG}Открыть кабинет</a>
+          <a class="auth-wa ghost" href="${esc(waTo(p.whatsapp, 'Здравствуйте! Нужна техподдержка по кабинету риелтора.'))}" target="_blank" rel="noopener">Техподдержка</a>
+        </div>
+        <a class="auth-phone" href="${esc(waTo(p.whatsapp, 'Здравствуйте!'))}" target="_blank" rel="noopener">WhatsApp ${esc(fmtPhone(p.whatsapp))}</a>`;
+    }).catch(() => {});
     document.getElementById('lf').onsubmit = async e => {
       e.preventDefault();
       try {

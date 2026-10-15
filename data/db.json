@@ -284,12 +284,136 @@
         "lng": 74.665552,
         "name": ""
       }
+    },
+    {
+      "id": "mva4xpnij7wd",
+      "type": "installment",
+      "title": "ЖК «Восток»",
+      "rooms": 2,
+      "area": 65,
+      "pricePerM2": 88000,
+      "down": 1700000,
+      "months": 36,
+      "price": 0,
+      "floorFrom": 5,
+      "floors": 12,
+      "address": "Бишкек, ул. Ахунбаева 120",
+      "tags": [
+        "Скидка"
+      ],
+      "photos": [
+        "92221c5f0414bed7",
+        "0ceed1671796e706",
+        "6ee96e421998ea5f"
+      ],
+      "details": "Монолитный каркас, панорамные окна, черновая отделка. Закрытый двор, детская площадка, подземный паркинг. Сдача дома — IV квартал 2027.",
+      "createdAt": "2026-10-14T03:53:29.495Z",
+      "cashDiscount": 7000,
+      "realtorId": "mva4xpmjvv4j"
+    },
+    {
+      "id": "mva4xpniw4rh",
+      "type": "installment",
+      "title": "ЖК «Ала-Тоо Резиденс»",
+      "rooms": 0,
+      "area": 28,
+      "pricePerM2": 98000,
+      "down": 800000,
+      "months": 24,
+      "price": 0,
+      "floorFrom": 2,
+      "floors": 9,
+      "address": "Бишкек, ул. Токтогула 200",
+      "tags": [],
+      "photos": [
+        "4f7770d2cd6d53a9",
+        "dcee8e2c0173c6aa",
+        "5d1288222c1f29a8"
+      ],
+      "details": "Монолитный каркас, панорамные окна, черновая отделка. Закрытый двор, детская площадка, подземный паркинг. Сдача дома — IV квартал 2027.",
+      "createdAt": "2026-10-14T02:53:29.495Z",
+      "cashDiscount": 8000,
+      "realtorId": "mva4xpmjvv4j"
+    },
+    {
+      "id": "mva4xpnib0um",
+      "type": "installment",
+      "title": "ЖК «Парк Сити»",
+      "rooms": 3,
+      "area": 92,
+      "pricePerM2": 90000,
+      "down": 2500000,
+      "months": 36,
+      "price": 0,
+      "floorFrom": 7,
+      "floors": 16,
+      "address": "Бишкек, ул. Раззакова 50",
+      "tags": [],
+      "photos": [
+        "01c911cf8627a900",
+        "98e2d3fedacac1ea",
+        "ddfa84d95d35b1e0"
+      ],
+      "details": "Монолитный каркас, панорамные окна, черновая отделка. Закрытый двор, детская площадка, подземный паркинг. Сдача дома — IV квартал 2027.",
+      "createdAt": "2026-10-14T01:53:29.495Z",
+      "cashDiscount": 7000,
+      "realtorId": "mva4xpmjvv4j"
+    },
+    {
+      "id": "mva4xpnii15c",
+      "type": "installment",
+      "title": "ЖК «Южный»",
+      "rooms": 4,
+      "area": 125,
+      "pricePerM2": 85000,
+      "down": 3200000,
+      "months": 36,
+      "price": 0,
+      "floorFrom": 3,
+      "floors": 10,
+      "address": "Бишкек, ул. Ахунбаева 98",
+      "tags": [
+        "Скидка"
+      ],
+      "photos": [
+        "32d582aecd8efbdd",
+        "6c3a2ebb611a9f25",
+        "0c40dda95f081f50"
+      ],
+      "details": "Монолитный каркас, панорамные окна, черновая отделка. Закрытый двор, детская площадка, подземный паркинг. Сдача дома — IV квартал 2027.",
+      "createdAt": "2026-10-14T00:53:29.495Z",
+      "cashDiscount": 7000,
+      "realtorId": "mva4xpmjvv4j"
+    },
+    {
+      "id": "mva4xpnis39v",
+      "type": "installment",
+      "title": "ЖК «Ала-Тоо Резиденс»",
+      "rooms": 1,
+      "area": 38,
+      "pricePerM2": 95000,
+      "down": 1000000,
+      "months": 24,
+      "price": 0,
+      "floorFrom": 6,
+      "floors": 9,
+      "address": "Бишкек, ул. Токтогула 200",
+      "tags": [],
+      "photos": [
+        "435cf8c797ebd51b",
+        "45bf24398a4adea3",
+        "68c11c2bfd16958a"
+      ],
+      "details": "Монолитный каркас, панорамные окна, черновая отделка. Закрытый двор, детская площадка, подземный паркинг. Сдача дома — IV квартал 2027.",
+      "createdAt": "2026-10-13T23:53:29.495Z",
+      "cashDiscount": 8000,
+      "realtorId": "mva4xpmjvv4j"
     }
   ],
   "product": {
     "name": "Сайт для риелтора",
     "tagline": "Личный сайт с подбором квартир и калькулятором рассрочки — заявки приходят прямо в WhatsApp",
-    "whatsapp": "",
+    "whatsapp": "+996550022508",
     "priceText": "",
     "rootRealtorId": ""
   },
@@ -313,6 +437,15 @@
       "hash": "6267128eefce2a6a3f00953148e249134bca13f76c0e36d3a702dd6afad371cd62e0445a0d3742546b27a744b676a496286547aacd116390f8d4da9ec4722921",
       "createdAt": "2026-10-15T21:44:30.087Z",
       "defaultPassword": false
+    },
+    {
+      "id": "mva4xpmkql9s",
+      "login": "abdurahman",
+      "role": "realtor",
+      "realtorId": "mva4xpmjvv4j",
+      "salt": "b86b2b6910962bc8ca29821ded2e254a",
+      "hash": "e8ecc8ab3fc2382d66356f0fecefd98c6516100c98cbe5f2c1fd70d23078de9754ebd0cc935737743b88d94f25dffa4bb1ffe269b5cbe35c71456ca7f46ce79a",
+      "createdAt": "2026-10-15T22:53:35.646Z"
     }
   ],
   "realtors": [
@@ -404,6 +537,47 @@
         "ernazar-gb8x9u",
         "ernazar-kg"
       ]
+    },
+    {
+      "id": "mva4xpmjvv4j",
+      "slug": "abdurahman",
+      "settings": {
+        "name": "Абдурахман",
+        "role": "Риелтор",
+        "company": "",
+        "logo": "",
+        "photo": "",
+        "tagline": "Подберу квартиру в рассрочку без банка",
+        "heroKicker": "Квартиры от застройщика",
+        "heroPoints": "Рассрочка без банка\nПодбор бесплатно\nПокупка из-за рубежа",
+        "about": "Помогаю подобрать квартиру под ваш бюджет: первоначальный взнос и комфортный платёж в месяц. Объясняю условия рассрочки и сопровождаю до получения ключей.",
+        "stats": "",
+        "whatsapp": "559708515",
+        "instagram": "",
+        "officeAddress": "",
+        "officeLink": "",
+        "currencyInstallment": "сом",
+        "currencyCash": "$",
+        "ctaTitle": "Подберу квартиру под ваш бюджет за 12 часов — бесплатно",
+        "ctaText": "Напишите бюджет — взнос и комфортный платёж в месяц. Пришлю подходящие варианты в WhatsApp.",
+        "steps": "Пишете в WhatsApp и рассказываете бюджет: взнос и комфортный платёж\nПодбираю варианты и показываю квартиры — вживую или по видеосвязи\nБронь и договор рассрочки напрямую с застройщиком\nЕжемесячные платежи без банка — и ключи после сдачи дома",
+        "documents": "Паспорт\nИНН (если есть)",
+        "reviews": "",
+        "faq": "Нужен ли банк?\nНет. Рассрочка оформляется напрямую с застройщиком, без банка.\n\nСколько стоит подбор?\nДля покупателя подбор бесплатный.",
+        "privacy": "Мы не собираем персональные данные через формы на сайте. Сайт использует веб-аналитику для подсчёта посещений и нажатий. Переписка в WhatsApp регулируется политикой WhatsApp.",
+        "gaId": "",
+        "ymId": "",
+        "pixelId": "",
+        "tgToken": "",
+        "tgChat": ""
+      },
+      "plan": {
+        "paidUntil": "2026-11-15",
+        "maxApartments": 30
+      },
+      "blocked": false,
+      "note": "привет",
+      "createdAt": "2026-10-15T22:53:35.612Z"
     }
   ],
   "events": []

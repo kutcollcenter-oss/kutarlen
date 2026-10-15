@@ -264,6 +264,11 @@ app.post('/api/admin/login', async (req, res) => {
 
 app.post('/api/admin/logout', (req, res) => { setSession(req, res, null); res.json({ ok: true }); });
 
+// Для страницы входа: название сервиса и WhatsApp владельца («открыть кабинет», «техподдержка»)
+app.get('/api/public/product', (req, res) => {
+  res.json({ name: D().product.name, whatsapp: D().product.whatsapp });
+});
+
 app.get('/api/admin/me', requireAuth, (req, res) => {
   const r = req.realtor;
   res.json({
