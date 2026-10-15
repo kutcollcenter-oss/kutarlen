@@ -580,3 +580,43 @@ input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 1px sol
 }
 .js .co-mark { background-size: 0% 4px; transition: background-size 1s var(--ease-out) .35s; }
 .js .in .co-mark, .js .cash-offer.hit .co-mark { background-size: 100% 4px; }
+
+/* ===== Блок «Оплата наличными» — выделен уже по умолчанию ===== */
+.cash-offer {
+  position: relative; margin: 4px 16px 18px; padding: 22px 18px 18px 22px;
+  background: var(--primary-soft); border: 1px solid var(--primary); border-left-width: 5px;
+}
+.co-badge {
+  position: absolute; top: -11px; left: 14px; padding: 3px 10px;
+  background: #f6c400; color: var(--ink);
+  font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .1em;
+}
+.co-head { flex-direction: column; align-items: flex-start; gap: 2px; }
+.co-head b { font-size: clamp(28px, 7.5vw, 34px); line-height: 1.1; color: var(--ink); }
+.co-line { color: var(--text); }
+.co-btn { margin-top: 4px; }
+/* Взноса хватает на покупку за наличные — блок заливается цветом */
+.cash-offer.hit { background: var(--primary); border-color: var(--primary); border-left-color: #f6c400; }
+.cash-offer.hit .co-head b { color: #fff; }
+
+/* ===== Кнопки WhatsApp: раз в 3 секунды по кнопке проходит блик ===== */
+.btn-wa { position: relative; overflow: hidden; isolation: isolate; }
+.btn-wa::after {
+  content: ""; position: absolute; top: -20%; bottom: -20%; left: 0; width: 45%;
+  background: linear-gradient(100deg, transparent 0%, rgba(255,255,255,.08) 25%, rgba(255,255,255,.55) 50%, rgba(255,255,255,.08) 75%, transparent 100%);
+  transform: translateX(-160%) skewX(-18deg); pointer-events: none; z-index: 1;
+  animation: waShine 3s var(--ease) infinite;
+}
+/* Контурные кнопки в карточках — блик фирменного цвета, иначе на светлом фоне его не видно */
+.card-actions .btn-wa::after {
+  background: linear-gradient(100deg, transparent 0%, rgba(124,144,118,.1) 25%, rgba(124,144,118,.45) 50%, rgba(124,144,118,.1) 75%, transparent 100%);
+}
+@keyframes waShine {
+  0%   { transform: translateX(-160%) skewX(-18deg); }
+  28%  { transform: translateX(330%) skewX(-18deg); } /* пробег ~0,8 с */
+  100% { transform: translateX(330%) skewX(-18deg); } /* пауза до следующего блика */
+}
+/* Карточки бликуют не все разом, а волной */
+.card:nth-child(3n+2) .btn-wa::after { animation-delay: .35s; }
+.card:nth-child(3n+3) .btn-wa::after { animation-delay: .7s; }
+.btn-wa:hover::after { animation-play-state: paused; }
