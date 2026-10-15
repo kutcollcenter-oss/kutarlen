@@ -36,6 +36,9 @@ const base = req => `${req.protocol}://${req.get('host')}`;
 const realtorById = id => D().realtors.find(r => r.id === id);
 const realtorBySlug = slug => D().realtors.find(r => r.slug === slug);
 const userOf = r => D().users.find(u => u.realtorId === r.id);
+// Владелец сервиса себе не платит: его сайт работает всегда, без срока и лимита
+const isOwnerRealtor = r => D().users.some(u => u.role === 'owner' && u.realtorId === r.id);
+const statusOf = r => (isOwnerRealtor(r) ? { active: true, code: 'unlimited', label: 'Владелец — без ограничений' } : tenants.status(r));
 const slugTaken = (slug, except) => D().realtors.some(r => r !== except && (r.slug === slug || (r.oldSlugs || []).includes(slug)));
 const aptsOf = rid => D().apartments.filter(a => a.realtorId === rid);
 const findApt = (rid, id) => D().apartments.find(a => a.id === id && a.realtorId === rid);
@@ -117,6 +120,15 @@ const failDelay = ip => Math.min(((fails.get(ip) || {}).n || 0) * 700, 5000);
 
 // ---------- Статика (раньше страниц риелторов, чтобы /admin не принимался за ссылку) ----------
 app.use('/uploads', express.static(UPLOAD_DIR, { maxAge: '30d', immutable: true }));
+// Страница кабинета: к файлам скрипта и стилей добавляется версия, чтобы после обновления не открывалась старая копия из кэша
+const ADMIN_DIR = path.join(__dirname, 'admin');
+app.get(['/admin/', '/admin/index.html'], (req, res) => {
+  const v = f => Math.round(fs.statSync(path.join(ADMIN_DIR, f)).mtimeMs).toString(36);
+  const html = fs.readFileSync(path.join(ADMIN_DIR, 'index.html'), 'utf8')
+    .replace('/admin/admin.css', `/admin/admin.css?v=${v('admin.css')}`)
+    .replace('/admin/admin.js', `/admin/admin.js?v=${v('admin.js')}`);
+  res.set('Cache-Control', 'no-cache').type('html').send(html);
+});
 app.use('/admin', express.static(path.join(__dirname, 'admin')));
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1h' }));
 
@@ -124,9 +136,9 @@ app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1h' }));
 // Главная домена: страница продукта (или сайт выбранного риелтора — настраивается владельцем)
 app.get('/', (req, res) => {
   const root = realtorById(D().product.rootRealtorId);
-  if (root && tenants.status(root).active) return res.redirect(302, `/${root.slug}`);
+  if (root && statusOf(root).active) return res.redirect(302, `/${root.slug}`);
   const owner = realtorById((D().users.find(u => u.role === 'owner') || {}).realtorId);
-  const demo = owner && tenants.status(owner).active && aptsOf(owner.id).some(isVisible) ? `/${owner.slug}` : '';
+  const demo = owner && statusOf(owner).active && aptsOf(owner.id).some(isVisible) ? `/${owner.slug}` : '';
   res.send(pages.renderLanding(D().product, base(req), demo));
 });
 
@@ -153,7 +165,7 @@ function siteOf(req, res) {
     res.status(404).send(pages.renderInvalid(D().product, base(req)));
     return null;
   }
-  if (!tenants.status(r).active) { res.status(403).send(pages.renderUnavailable(ctxOf(r, req), D().product)); return null; }
+  if (!statusOf(r).active) { res.status(403).send(pages.renderUnavailable(ctxOf(r, req), D().product)); return null; }
   return r;
 }
 
@@ -260,7 +272,7 @@ app.get('/api/admin/me', requireAuth, (req, res) => {
     defaultPassword: !!req.user.defaultPassword,
     realtor: {
       id: r.id, slug: r.slug, url: siteUrl(req, r), name: r.settings.name,
-      status: tenants.status(r), plan: r.plan, count: aptsOf(r.id).length,
+      status: statusOf(r), plan: isOwnerRealtor(r) ? { paidUntil: '', maxApartments: 0 } : r.plan, count: aptsOf(r.id).length,
     },
     product: { name: D().product.name, whatsapp: D().product.whatsapp },
   });
@@ -315,6 +327,7 @@ function cleanPhotos(list) {
 
 // Лимит тарифа: maxApartments = 0 — без ограничения
 function overLimit(r) {
+  if (isOwnerRealtor(r)) return 0;
   const max = Number(r.plan && r.plan.maxApartments) || 0;
   return max && aptsOf(r.id).length >= max ? max : 0;
 }
@@ -451,7 +464,7 @@ function realtorRow(r, req, stats) {
   const st = stats[r.id] || { visitors: 0, wa: 0, last: '' };
   return {
     id: r.id, name: r.settings.name, slug: r.slug, url: siteUrl(req, r), login: u ? u.login : '',
-    role: u ? u.role : '', status: tenants.status(r), plan: r.plan, blocked: !!r.blocked, note: r.note || '',
+    role: u ? u.role : '', status: statusOf(r), plan: r.plan, blocked: !!r.blocked, note: r.note || '',
     createdAt: r.createdAt, apartments: aptsOf(r.id).length, visitors30: st.visitors, wa30: st.wa, lastActivity: st.last,
   };
 }

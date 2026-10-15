@@ -15,6 +15,9 @@
   const money = (n, c) => (n == null ? '—' : `${nf.format(Math.round(n))} ${c}`);
   const rooms = r => (+r === 0 ? 'Студия' : `${r}-комн.`);
   const isOwner = () => me && me.role === 'owner';
+  // 1 квартира, 2 квартиры, 5 квартир
+  const plural = (n, one, few, many) => { const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 10 || b >= 20) ? few : many; };
+  const flats = n => `${n} ${plural(n, 'квартира', 'квартиры', 'квартир')}`;
 
   function toast(msg) {
     const t = document.getElementById('toast');
@@ -22,9 +25,50 @@
     clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 2200);
   }
 
+  // Окно внутри страницы вместо confirm()/prompt(): системные окна заблокированы во многих браузерах
+  // (встроенные в Instagram/WhatsApp, панели приложений) — кнопки с ними просто «не работали».
+  // modal({ title, text, input, okText, danger }) → true/false, или введённое значение / null при отмене.
+  function modal({ title, text = '', html = '', input = null, okText = 'Готово', cancelText = 'Отмена', danger = false }) {
+    return new Promise(resolve => {
+      const wrap = document.createElement('div');
+      wrap.className = 'modal';
+      wrap.innerHTML = `<div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+        <h2 id="mTitle">${esc(title)}</h2>
+        ${text ? `<p>${esc(text)}</p>` : ''}${html}
+        ${input ? `<input class="modal-in" type="${input.type || 'text'}" value="${esc(input.value ?? '')}" placeholder="${esc(input.placeholder || '')}"${input.inputmode ? ` inputmode="${input.inputmode}"` : ''} autocapitalize="none" spellcheck="false">` : ''}
+        <div class="err modal-err"></div>
+        <div class="modal-acts">
+          ${cancelText ? `<button type="button" class="btn" data-no>${esc(cancelText)}</button>` : ''}
+          <button type="button" class="btn ${danger ? 'btn-danger-fill' : 'btn-primary'}" data-ok>${esc(okText)}</button>
+        </div></div>`;
+      document.body.appendChild(wrap);
+      const inp = wrap.querySelector('input.modal-in');
+      const close = v => { wrap.remove(); document.removeEventListener('keydown', key); resolve(v); };
+      const ok = () => {
+        const v = inp ? inp.value.trim() : true;
+        const err = input && input.validate ? input.validate(v) : '';
+        if (err) { wrap.querySelector('.modal-err').textContent = err; return; }
+        close(v);
+      };
+      const no = () => close(input ? null : false);
+      const key = e => { if (e.key === 'Escape') no(); if (e.key === 'Enter' && inp) ok(); };
+      document.addEventListener('keydown', key);
+      wrap.querySelector('[data-ok]').onclick = ok;
+      const nb = wrap.querySelector('[data-no]'); if (nb) nb.onclick = no;
+      wrap.onclick = e => { if (e.target === wrap) no(); };
+      (inp || wrap.querySelector('[data-ok]')).focus();
+      if (inp && inp.type !== 'date') inp.select();
+    });
+  }
+  const confirmBox = (title, text, okText = 'Да', danger = false) => modal({ title, text, okText, danger });
+
   async function copy(text, done = 'Ссылка скопирована') {
     try { await navigator.clipboard.writeText(text); toast(done); }
-    catch (e) { prompt('Скопируйте:', text); }
+    catch (e) {
+      // Буфер обмена недоступен — показываем текст, чтобы скопировать вручную
+      modal({ title: 'Скопируйте', html: `<textarea class="modal-in" rows="6" readonly>${esc(text)}</textarea>`, okText: 'Закрыть', cancelText: '' });
+      setTimeout(() => { const t = document.querySelector('.modal textarea'); if (t) t.select(); }, 50);
+    }
   }
 
   async function api(method, url, body) {
@@ -58,13 +102,26 @@
     };
   }
 
+  const svg = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+  const NAV = [
+    ['list', 'Квартиры', svg('<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>')],
+    ['analytics', 'Аналитика', svg('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>')],
+    ['settings', 'Мой сайт', svg('<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>')],
+    ['realtors', 'Риелторы', svg('<circle cx="9" cy="8" r="3.5"/><path d="M2 20c1-3.5 3.6-5.5 7-5.5s6 2 7 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18.5 14.8c1.7.9 2.9 2.6 3.5 5.2"/>'), true],
+  ];
+
+  // Верхнее меню — на ноутбуке; на телефоне и планшете — нижнее меню (как на сайте)
   function nav(active) {
-    const tab = (h, label) => `<a href="#${h}" class="${active === h ? 'on' : ''}">${label}</a>`;
+    const items = NAV.filter(([, , , ownerOnly]) => !ownerOnly || isOwner());
+    const top = items.map(([h, label]) => `<a href="#${h}" class="tl${active === h ? ' on' : ''}">${label}</a>`).join('');
+    const bottom = items.map(([h, label, icon]) => `<a href="#${h}" class="${active === h ? 'on' : ''}">${icon}<span>${label}</span></a>`).join('');
     return `<div class="top"><div class="wrap">
-      ${tab('list', 'Квартиры')}${tab('analytics', 'Аналитика')}${tab('settings', 'Мой сайт')}${isOwner() ? tab('realtors', 'Риелторы') : ''}
+      <span class="top-title">${esc(me.realtor.name)}</span>
+      ${top}
       <span class="sp"></span>
       <button id="logout">Выйти</button>
-    </div></div>${banner()}`;
+    </div></div>${banner()}
+    <nav class="atab" aria-label="Меню кабинета">${bottom}</nav>`;
   }
 
   // Ссылка для клиентов и предупреждения: оплата, пароль по умолчанию
@@ -88,14 +145,30 @@
     app.querySelectorAll('[data-copy]').forEach(b => { b.onclick = () => copy(b.dataset.copy); });
   }
 
+  // ---------- Лимит тарифа ----------
+  // Лимит исчерпан: добавить и дублировать нельзя, остальное работает как обычно —
+  // квартиры остаются на сайте, их можно менять и удалять (проданные удаляют — место освобождается).
+  let aptCount = 0;
+  const atLimit = () => !!(me.realtor.plan.maxApartments && aptCount >= me.realtor.plan.maxApartments);
+  function limitInfo() {
+    const wa = me.product.whatsapp ? `https://wa.me/${me.product.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Здравствуйте! Хочу расширить лимит квартир. Мой сайт: ${me.realtor.url}`)}` : '';
+    modal({
+      title: 'Лимит квартир исчерпан',
+      text: `По вашему тарифу можно ${flats(me.realtor.plan.maxApartments)}, сейчас ${aptCount}. Все квартиры остаются на сайте. Чтобы добавить новую — удалите проданную или расширьте тариф.`,
+      html: wa ? `<a class="btn btn-wa-admin" href="${wa}" target="_blank" rel="noopener">Написать о расширении тарифа</a>` : '',
+      okText: 'Понятно', cancelText: '',
+    });
+  }
+
   // ---------- Список квартир ----------
   async function renderList() {
     const apts = await api('GET', '/api/admin/apartments');
     const count = t => apts.filter(a => typeOf(a) === t).length;
+    aptCount = apts.length;
     const shown = listFilter === 'all' ? apts : apts.filter(a => typeOf(a) === listFilter);
     app.innerHTML = `${nav('list')}<div class="wrap">
-      <div class="row" style="justify-content:space-between"><h1>Квартиры</h1><a class="btn btn-primary" href="#edit/new">+ Добавить</a></div>
-      ${me.realtor.plan.maxApartments ? `<p class="hint" style="margin-top:-6px">Тариф: ${apts.length} из ${me.realtor.plan.maxApartments} квартир</p>` : ''}
+      <div class="row" style="justify-content:space-between"><h1>Квартиры</h1><a class="btn btn-primary" href="#edit/new" data-add>+ Добавить</a></div>
+      ${me.realtor.plan.maxApartments ? `<p class="${apts.length >= me.realtor.plan.maxApartments ? 'warn' : 'hint'}" style="margin-top:-6px">Тариф: ${apts.length} из ${flats(me.realtor.plan.maxApartments)}${apts.length >= me.realtor.plan.maxApartments ? ' — лимит исчерпан, новые добавить нельзя' : ''}</p>` : ''}
       <div class="filters" id="lf">
         <button data-f="all" class="${listFilter === 'all' ? 'on' : ''}">Все ${apts.length}</button>
         ${Object.entries(TYPES).map(([k, v]) => `<button data-f="${k}" class="${listFilter === k ? 'on' : ''}">${v} ${count(k)}</button>`).join('')}
@@ -107,18 +180,20 @@
       const b = e.target.closest('button'); if (!b) return;
       listFilter = b.dataset.f; renderList();
     };
+    document.querySelector('[data-add]').onclick = e => { if (atLimit()) { e.preventDefault(); limitInfo(); } };
     document.getElementById('items').onclick = async e => {
       const el = e.target.closest('[data-id]'); const act = e.target.closest('[data-act]');
       if (!el || !act) return;
       const id = el.dataset.id;
       if (act.dataset.act === 'edit') location.hash = `#edit/${id}`;
+      if (act.dataset.act === 'dup' && atLimit()) { limitInfo(); return; }
       if (act.dataset.act === 'dup') {
         const a = await api('POST', `/api/admin/apartments/${id}/duplicate`);
         toast('Копия создана');
         location.hash = `#edit/${a.id}`;
       }
       if (act.dataset.act === 'del') {
-        if (!confirm('Удалить квартиру с сайта? Например, если она продана.')) return;
+        if (!(await confirmBox('Удалить квартиру?', 'Она исчезнет с сайта. Например, если квартира продана.', 'Удалить', true))) return;
         await api('DELETE', `/api/admin/apartments/${id}`);
         toast('Удалено'); renderList();
       }
@@ -286,8 +361,8 @@
     const save = async () => {
       const d = readForm();
       const ok = type === 'cash' ? d.price > 0 && d.area > 0 : d.pricePerM2 > 0 && d.area > 0;
-      if (!ok && !confirm('Цена или площадь не указаны — квартира не появится на сайте. Сохранить?')) return;
-      if (ok && type === 'installment' && !(d.months > 0) && !confirm('Не указан срок рассрочки — на сайте будет только цена при 100% оплате. Сохранить?')) return;
+      if (!ok && !(await confirmBox('Сохранить без цены?', 'Цена или площадь не указаны — квартира не появится на сайте, пока их не заполните.', 'Сохранить'))) return;
+      if (ok && type === 'installment' && !(d.months > 0) && !(await confirmBox('Сохранить без срока?', 'Не указан срок рассрочки — на сайте будет только цена при 100% оплате.', 'Сохранить'))) return;
       const saved = isNewRecord
         ? await api('POST', '/api/admin/apartments', d)
         : await api('PUT', `/api/admin/apartments/${a.id}`, d);
@@ -563,20 +638,21 @@
           <div class="rt-head"><div><div class="t">${esc(x.name)} ${x.role === 'owner' ? '<span class="badge badge-installment">Вы</span>' : ''}</div>
             <div class="s">логин: ${esc(x.login)}${x.note ? ` · ${esc(x.note)}` : ''}</div></div>${badge(x)}</div>
           <div class="rt-stats">
-            <span><b>${x.apartments}</b>${x.plan.maxApartments ? ` / ${x.plan.maxApartments}` : ''} квартир</span>
+            <span><b>${x.apartments}</b>${x.plan.maxApartments ? ` / ${x.plan.maxApartments}` : ''} квартир${x.plan.maxApartments && x.apartments >= x.plan.maxApartments ? ' <span class="st st-ending">лимит исчерпан</span>' : ''}</span>
             <span><b>${fmt(x.visitors30)}</b> посетит.</span>
             <span><b>${fmt(x.wa30)}</b> заявок</span>
             <span>${x.lastActivity ? `посл. визит ${esc(x.lastActivity.slice(0, 10))}` : 'визитов не было'}</span>
           </div>
           <div class="linkrow"><code>${esc(x.url)}</code><button class="btn" data-copy="${esc(x.url)}">Копировать</button><a class="btn" href="${esc(x.url)}" target="_blank">↗</a></div>
           <div class="acts">
-            <button class="btn" data-act="m1">+1 мес</button>
+            ${x.role === 'owner' ? '' : `<button class="btn" data-act="m1">+1 мес</button>
             <button class="btn" data-act="m3">+3 мес</button>
             <button class="btn" data-act="date">Дата…</button>
-            <button class="btn" data-act="limit">Лимит…</button>
+            <button class="btn" data-act="limit">Лимит…</button>`}
             <button class="btn" data-act="stats">Аналитика</button>
             ${x.role === 'owner' ? '' : `<button class="btn" data-act="block">${x.blocked ? 'Разблокировать' : 'Заблокировать'}</button>`}
             <button class="btn" data-act="pass">Новый пароль</button>
+            <button class="btn" data-act="login">Логин…</button>
             <button class="btn" data-act="slug">Адрес…</button>
             ${x.role === 'owner' ? '' : '<button class="btn btn-danger" data-act="del">Удалить</button>'}
           </div>
@@ -625,35 +701,61 @@
           case 'm1': await put({ paidUntil: addMonths(x.plan.paidUntil, 1) }); toast('Продлено на месяц'); break;
           case 'm3': await put({ paidUntil: addMonths(x.plan.paidUntil, 3) }); toast('Продлено на 3 месяца'); break;
           case 'date': {
-            const v = prompt('Оплачено до (ГГГГ-ММ-ДД). Пусто — без ограничения срока:', x.plan.paidUntil || '');
+            const v = await modal({
+              title: `Оплачено до — ${x.name}`, text: 'Сайт работает до этой даты включительно. Очистите поле — будет без ограничения срока.',
+              input: { type: 'date', value: x.plan.paidUntil || '' }, okText: 'Сохранить',
+            });
             if (v === null) return;
-            await put({ paidUntil: v.trim() }); break;
+            await put({ paidUntil: v }); toast(v ? `Оплачено до ${v}` : 'Без ограничения срока'); break;
           }
           case 'limit': {
-            const v = prompt('Сколько квартир можно добавить? 0 — без ограничения:', x.plan.maxApartments || 0);
+            const v = await modal({
+              title: `Лимит квартир — ${x.name}`,
+              text: `Сейчас у риелтора ${x.apartments} квартир. 0 — без ограничения. Если поставить меньше, чем есть, квартиры не удалятся — просто нельзя будет добавлять новые.`,
+              input: { value: String(x.plan.maxApartments || 0), inputmode: 'numeric', validate: v => (/^[0-9]{1,4}$/.test(v) ? '' : 'Введите число, например 30') },
+              okText: 'Сохранить',
+            });
             if (v === null) return;
-            await put({ maxApartments: v }); break;
+            await put({ maxApartments: v }); toast(+v ? `Лимит: ${v} квартир` : 'Без ограничения'); break;
+          }
+          case 'login': {
+            const v = await modal({
+              title: `Логин — ${x.name}`, text: 'Латиница, цифры, точка или дефис, от 3 символов. Пароль не меняется.',
+              input: { value: x.login, validate: v => (/^[a-z0-9._-]{3,32}$/.test(v.toLowerCase()) ? '' : 'Только латиница, цифры, точка и дефис, от 3 до 32 символов') },
+              okText: 'Сохранить',
+            });
+            if (v === null || v.toLowerCase() === x.login) return;
+            await put({ login: v.toLowerCase() });
+            if (x.role === 'owner') me = await api('GET', '/api/admin/me');
+            toast('Логин изменён'); break;
           }
           case 'stats': anRealtor = x.role === 'owner' ? '' : x.id; location.hash = '#analytics'; return;
           case 'block':
-            if (!x.blocked && !confirm(`Заблокировать «${x.name}»? Его сайт для клиентов сразу отключится.`)) return;
+            if (!x.blocked && !(await confirmBox(`Заблокировать «${x.name}»?`, 'Его сайт для клиентов сразу отключится, а в кабинете он увидит, что доступ закрыт. Разблокировать можно в любой момент.', 'Заблокировать', true))) return;
             await put({ blocked: !x.blocked }); break;
           case 'pass': {
-            if (!confirm(`Выдать «${x.name}» новый пароль? Старый перестанет работать.`)) return;
+            if (!(await confirmBox(`Новый пароль для «${x.name}»?`, 'Старый пароль перестанет работать, и риелтор выйдет из кабинета на всех устройствах. Новый пароль покажем один раз.', 'Выдать пароль'))) return;
             const r = await api('POST', `/api/owner/realtors/${x.id}/password`);
             await renderRealtors();
             showCredentials(x, x.login, r.password, `Новый пароль для «${x.name}»`);
             return;
           }
           case 'slug': {
-            const v = prompt(`Адрес сайта «${x.name}» (латиница, цифры, дефис). Сейчас: ${x.slug}. Старый адрес продолжит работать и будет вести на новый.`, x.slug);
-            if (v === null || v.trim() === x.slug) return;
-            await put({ slug: v.trim() });
+            const v = await modal({
+              title: `Адрес сайта — ${x.name}`, text: `Латиница, цифры, дефис. Старый адрес (${location.host}/${x.slug}) продолжит работать и будет вести на новый.`,
+              input: { value: x.slug, validate: v => (/^[a-z0-9](?:[a-z0-9-]{0,28}[a-z0-9])?$/.test(v.toLowerCase()) ? '' : 'Только латиница, цифры и дефис') },
+              okText: 'Сохранить',
+            });
+            if (v === null || v.toLowerCase() === x.slug) return;
+            await put({ slug: v.toLowerCase() });
             if (x.role === 'owner') me = await api('GET', '/api/admin/me');
             toast('Адрес изменён'); break;
           }
           case 'del':
-            if (prompt(`Удалить «${x.name}» вместе со всеми квартирами? Это не отменить. Напишите УДАЛИТЬ:`) !== 'УДАЛИТЬ') return;
+            if ((await modal({
+              title: `Удалить «${x.name}»?`, text: `Удалятся кабинет, сайт и все квартиры (${x.apartments}). Это не отменить. Чтобы подтвердить, напишите УДАЛИТЬ.`,
+              input: { placeholder: 'УДАЛИТЬ', validate: v => (v.toUpperCase() === 'УДАЛИТЬ' ? '' : 'Напишите слово УДАЛИТЬ') }, okText: 'Удалить навсегда', danger: true,
+            })) === null) return;
             await api('DELETE', `/api/owner/realtors/${x.id}`); toast('Удалено'); break;
         }
         renderRealtors();

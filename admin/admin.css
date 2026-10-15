@@ -139,3 +139,41 @@ pre { white-space: pre-wrap; background: #f3f4f6; padding: 12px; border-radius: 
 .slug-in { display: flex; align-items: center; border: 1px solid #d1d5db; border-radius: 10px; background: #fff; overflow: hidden; }
 .slug-in span { padding: 0 2px 0 12px; color: var(--muted); font-size: 14px; white-space: nowrap; }
 .slug-in input { border: 0 !important; padding-left: 2px !important; min-width: 0; }
+
+/* ===== Нижнее меню кабинета — телефон и планшет (до 1024 px) ===== */
+.top-title { display: none; font-weight: 700; padding: 8px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.atab {
+  position: fixed; z-index: 40; left: 0; right: 0; bottom: 0;
+  display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
+  background: #fff; border-top: 1px solid var(--line);
+  padding: 4px 0 calc(4px + env(safe-area-inset-bottom));
+}
+.atab a { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 54px; color: var(--muted); text-decoration: none; font-size: 11px; font-weight: 600; }
+.atab a svg { width: 24px; height: 24px; }
+.atab a.on { color: var(--primary); }
+@media (min-width: 600px) { .atab a { flex-direction: row; gap: 8px; font-size: 13px; } }
+@media (max-width: 1023px) {
+  .top .tl { display: none; }
+  .top-title { display: block; }
+  body { padding-bottom: calc(66px + env(safe-area-inset-bottom)); }
+  .savebar { bottom: calc(62px + env(safe-area-inset-bottom)); }
+  .toast { bottom: calc(80px + env(safe-area-inset-bottom)); }
+}
+@media (min-width: 1024px) { .atab { display: none; } }
+
+/* ===== Окна-диалоги (вместо системных confirm/prompt) ===== */
+.modal { position: fixed; inset: 0; z-index: 100; background: rgba(17, 24, 39, .45); display: grid; place-items: end center; padding: 12px; animation: mFade .15s ease; }
+@media (min-width: 600px) { .modal { place-items: center; } }
+.modal-box { width: 100%; max-width: 440px; background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 20px 50px rgba(0,0,0,.25); animation: mUp .2s ease; margin-bottom: env(safe-area-inset-bottom); }
+.modal-box h2 { margin: 0 0 8px; font-size: 19px; }
+.modal-box p { margin: 0 0 12px; color: #374151; font-size: 15px; }
+.modal-box .modal-in { width: 100%; min-height: 48px; border: 1px solid #d1d5db; border-radius: 10px; padding: 10px 12px; font: inherit; font-size: 17px; }
+.modal-box textarea.modal-in { font-size: 14px; }
+.modal-acts { display: flex; gap: 8px; margin-top: 12px; }
+.modal-acts .btn { flex: 1; }
+.modal-err:empty { display: none; }
+.btn-danger-fill { background: var(--bad); color: #fff; border-color: var(--bad); }
+.btn-wa-admin { width: 100%; background: #25d366; color: #fff; border-color: #25d366; margin-bottom: 4px; }
+p.warn { margin: -6px 0 10px; }
+@keyframes mFade { from { opacity: 0; } }
+@keyframes mUp { from { transform: translateY(20px); opacity: 0; } }
