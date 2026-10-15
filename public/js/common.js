@@ -77,6 +77,43 @@
   // Просмотр страницы
   RS.event('view', { a: D.apartment ? D.apartment.id : null });
 
+  // ---------- Чистый адрес ----------
+  // В адресной строке всегда только «сайт/имя» или «сайт/имя/kvartira/…»: без «#раздел»,
+  // меток источника (?src=) и служебных параметров (?down=). Метки уже прочитаны выше, параметры — в RS.params.
+  RS.params = new URLSearchParams(location.search);
+  const clean = new URL(location.href);
+  clean.hash = '';
+  if (clean.pathname.length > 1) clean.pathname = clean.pathname.replace(/\/+$/, '');
+  ['src', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'down'].forEach(k => clean.searchParams.delete(k));
+  let goto = location.hash.slice(1);
+  try { goto = sessionStorage.getItem('goto') || goto; sessionStorage.removeItem('goto'); } catch (e) {}
+  if (clean.href !== location.href) history.replaceState(null, '', clean.pathname + clean.search);
+
+  const scrollToId = id => {
+    const el = document.getElementById(id);
+    if (!el) return false;
+    const before = window.scrollY;
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Некоторые встроенные браузеры не умеют плавную прокрутку — тогда переходим сразу
+    setTimeout(() => {
+      if (Math.abs(window.scrollY - before) < 2 && Math.abs(el.getBoundingClientRect().top) > 120) el.scrollIntoView({ behavior: 'instant', block: 'start' });
+    }, 350);
+    return true;
+  };
+  // Переход к разделу: на этой же странице — плавная прокрутка; с другой страницы — переход и прокрутка после загрузки
+  document.addEventListener('click', e => {
+    const a = e.target.closest('a[href*="#"]');
+    if (!a || a.target === '_blank') return;
+    const url = new URL(a.getAttribute('href'), location.href);
+    if (url.origin !== location.origin || !url.hash) return;
+    const id = url.hash.slice(1);
+    e.preventDefault();
+    const here = p => p.replace(/\/+$/, '');
+    if (here(url.pathname) === here(location.pathname)) scrollToId(id);
+    else { try { sessionStorage.setItem('goto', id); } catch (err) {} location.href = here(url.pathname) || '/'; }
+  });
+  if (goto) window.addEventListener('load', () => setTimeout(() => scrollToId(goto), 60), { once: true });
+
   // ---------- Анимации ----------
   // Заставка с логотипом (только на главной, один раз за сессию) → затем html.ready запускает анимацию первого экрана.
   // Блоки с [data-reveal] проявляются при прокрутке; .section прорисовывает верхнюю линию.

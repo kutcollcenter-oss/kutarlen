@@ -19,6 +19,9 @@
   const plural = (n, one, few, many) => { const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 10 || b >= 20) ? few : many; };
   const flats = n => `${n} ${plural(n, 'квартира', 'квартиры', 'квартир')}`;
 
+  // Текст ошибки в элемент формы; если формы уже нет на экране (например, сессия истекла) — всплывающим сообщением
+  const showErr = (id, msg) => { const el = document.getElementById(id); if (el) el.textContent = msg; else if (msg && msg !== 'auth') toast(msg); };
+
   function toast(msg) {
     const t = document.getElementById('toast');
     t.textContent = msg; t.classList.add('show');
@@ -135,7 +138,7 @@
       try {
         await api('POST', '/api/admin/login', { login: document.getElementById('lg').value, password: document.getElementById('pw').value });
         start();
-      } catch (err) { document.getElementById('le').textContent = err.message; }
+      } catch (err) { showErr('le', err.message); }
     };
   }
 
@@ -407,7 +410,7 @@
         // Квартира сохранена, но ссылку на карту распознать не удалось — остаёмся и показываем почему
         toast('Сохранено, но ссылка на карту не распознана');
         if (isNewRecord) location.hash = `#edit/${saved.id}`;
-        else document.getElementById('mapErr').textContent = saved.map.error;
+        else showErr('mapErr', saved.map.error);
         return;
       }
       toast('Сохранено');
@@ -505,9 +508,9 @@
       try {
         await api('POST', '/api/admin/password', d);
         me.defaultPassword = false;
-        e.target.reset(); document.getElementById('pwErr').textContent = '';
+        e.target.reset(); showErr('pwErr', '');
         toast('Пароль изменён');
-      } catch (err) { document.getElementById('pwErr').textContent = err.message; }
+      } catch (err) { showErr('pwErr', err.message); }
     };
   }
 
@@ -725,7 +728,7 @@
         const res = await api('POST', '/api/owner/realtors', d);
         await renderRealtors();
         showCredentials(res.realtor, res.realtor.login, res.password, `Кабинет для «${res.realtor.name}» создан${res.copied ? ` · скопировано ${flats(res.copied)}` : ''}`);
-      } catch (err) { document.getElementById('nfErr').textContent = err.message; }
+      } catch (err) { showErr('nfErr', err.message); }
     };
 
     document.getElementById('pfm').onsubmit = async e => {

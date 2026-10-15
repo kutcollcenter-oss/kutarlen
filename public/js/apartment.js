@@ -53,9 +53,6 @@
     $('aptWa').href = link;
     $('aptWa').lastChild.textContent = hit ? 'Хочу купить за наличные' : 'Хочу эту квартиру';
     const tab = $('tabWa'); if (tab) tab.href = link;
-
-    const q = d === min ? a.url : `${a.url}?down=${d}`;
-    history.replaceState(null, '', q);
   }
 
   // Аналитика: клиент сам менял взнос / взноса хватило на покупку за наличные (по разу на страницу)
@@ -69,6 +66,7 @@
   input.addEventListener('blur', () => set(+input.value.replace(/\D/g, ''))); // поправить до допустимого
   input.addEventListener('focus', () => input.select());
 
-  const start = +new URLSearchParams(location.search).get('down');
+  // Взнос из карточки на главной (?down=) — адрес уже очищен в common.js, значение сохранено в RS.params
+  const start = +((window.RS.params || new URLSearchParams(location.search)).get('down'));
   set(start || min);
 })();

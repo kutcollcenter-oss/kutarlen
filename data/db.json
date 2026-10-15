@@ -258,34 +258,6 @@
       "realtorId": "mva25g8qkkkc"
     },
     {
-      "id": "mva4c01tp0v3",
-      "realtorId": "mva2guvu5nbe",
-      "type": "installment",
-      "title": "ЖК Алтай плюс",
-      "rooms": 1,
-      "area": 75.5,
-      "pricePerM2": 88000,
-      "down": 700000,
-      "months": 71,
-      "price": 0,
-      "floorFrom": 13,
-      "floors": 16,
-      "address": "Тунгуч",
-      "details": "ПСО",
-      "tags": [],
-      "photos": [
-        "afc7a5effcfb394b"
-      ],
-      "createdAt": "2026-10-15T22:36:42.690Z",
-      "cashDiscount": 8800,
-      "map": {
-        "link": "https://maps.app.goo.gl/Uvu9Qg9BD71QT9NE7",
-        "lat": 42.86209,
-        "lng": 74.665552,
-        "name": ""
-      }
-    },
-    {
       "id": "mva4xpnij7wd",
       "type": "installment",
       "title": "ЖК «Восток»",
@@ -408,6 +380,29 @@
       "createdAt": "2026-10-13T23:53:29.495Z",
       "cashDiscount": 8000,
       "realtorId": "mva4xpmjvv4j"
+    },
+    {
+      "id": "mva5bfci4qv5",
+      "type": "cash",
+      "title": "Сталинка в центре",
+      "rooms": 3,
+      "area": 80,
+      "pricePerM2": 0,
+      "down": 0,
+      "months": 0,
+      "price": 85000,
+      "floorFrom": 2,
+      "floors": 4,
+      "address": "Бишкек, ул. Киевская",
+      "tags": [],
+      "photos": [
+        "39be37fa7cfecc03",
+        "6fd6c8437f05b620",
+        "1db2ae512bd56402"
+      ],
+      "details": "Квартира на вторичном рынке, оплата наличными.",
+      "createdAt": "2026-10-15T23:04:15.474Z",
+      "realtorId": "mva25g8qkkkc"
     }
   ],
   "product": {
@@ -427,16 +422,6 @@
       "hash": "3fbe67225c2b86bf621a9fe96f8ed29a10966c1afe31fd18d8f1eacd7933bd03d4d5a7af7d659dd2658001f27b681983822c3179eb6e6c60d284d08c9c7f831f",
       "defaultPassword": false,
       "createdAt": "2026-10-15T21:35:37.961Z"
-    },
-    {
-      "id": "mva2guvvmb1z",
-      "login": "rnazar",
-      "role": "realtor",
-      "realtorId": "mva2guvu5nbe",
-      "salt": "919fafa440be44907b952425ec853a75",
-      "hash": "6267128eefce2a6a3f00953148e249134bca13f76c0e36d3a702dd6afad371cd62e0445a0d3742546b27a744b676a496286547aacd116390f8d4da9ec4722921",
-      "createdAt": "2026-10-15T21:44:30.087Z",
-      "defaultPassword": false
     },
     {
       "id": "mva4xpmkql9s",
@@ -491,51 +476,6 @@
       "createdAt": "2026-10-15T21:35:37.963Z",
       "oldSlugs": [
         "arlen-wte9yc"
-      ]
-    },
-    {
-      "id": "mva2guvu5nbe",
-      "slug": "ernazar",
-      "settings": {
-        "name": "Эрназар",
-        "role": "Риелтор",
-        "company": "",
-        "logo": "/uploads/ccf5e032c4df85ca.webp",
-        "photo": "/uploads/d2295bba8d1cecaf.webp",
-        "tagline": "Подберу квартиру в рассрочку без банка",
-        "heroKicker": "Квартиры от застройщика",
-        "heroPoints": "Рассрочка без банка\nПодбор бесплатно\nПокупка из-за рубежа",
-        "about": "Помогаю подобрать квартиру под ваш бюджет: первоначальный взнос и комфортный платёж в месяц. Объясняю условия рассрочки и сопровождаю до получения ключей.",
-        "stats": "",
-        "whatsapp": "550022508",
-        "instagram": "",
-        "officeAddress": "",
-        "officeLink": "",
-        "currencyInstallment": "сом",
-        "currencyCash": "$",
-        "ctaTitle": "Подберу квартиру под ваш бюджет за 12 часов — бесплатно",
-        "ctaText": "Напишите бюджет — взнос и комфортный платёж в месяц. Пришлю подходящие варианты в WhatsApp.",
-        "steps": "Пишете в WhatsApp и рассказываете бюджет: взнос и комфортный платёж\nПодбираю варианты и показываю квартиры — вживую или по видеосвязи\nБронь и договор рассрочки напрямую с застройщиком\nЕжемесячные платежи без банка — и ключи после сдачи дома",
-        "documents": "Паспорт\nИНН (если есть)",
-        "reviews": "кыйын бала",
-        "faq": "Нужен ли банк?\nНет. Рассрочка оформляется напрямую с застройщиком, без банка.\n\nСколько стоит подбор?\nДля покупателя подбор бесплатный.",
-        "privacy": "Мы не собираем персональные данные через формы на сайте. Сайт использует веб-аналитику для подсчёта посещений и нажатий. Переписка в WhatsApp регулируется политикой WhatsApp.",
-        "gaId": "",
-        "ymId": "",
-        "pixelId": "",
-        "tgToken": "",
-        "tgChat": ""
-      },
-      "plan": {
-        "paidUntil": "2026-11-15",
-        "maxApartments": 30
-      },
-      "blocked": false,
-      "note": "900",
-      "createdAt": "2026-10-15T21:44:30.043Z",
-      "oldSlugs": [
-        "ernazar-gb8x9u",
-        "ernazar-kg"
       ]
     },
     {

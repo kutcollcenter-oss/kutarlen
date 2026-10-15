@@ -137,8 +137,17 @@ app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1h' }));
 app.get('/', (req, res) => {
   const root = realtorById(D().product.rootRealtorId);
   if (root && statusOf(root).active) return res.redirect(302, `/${root.slug}`);
+  // Пример для страницы продукта — сайт владельца: ссылка, фото, имя и одна квартира в рассрочку
   const owner = realtorById((D().users.find(u => u.role === 'owner') || {}).realtorId);
-  const demo = owner && statusOf(owner).active && aptsOf(owner.id).some(isVisible) ? `/${owner.slug}` : '';
+  const demo = {};
+  if (owner && statusOf(owner).active) {
+    const list = aptsOf(owner.id).filter(isVisible).map(a => pub(owner, a, req));
+    if (list.length) demo.url = `/${owner.slug}`;
+    demo.name = owner.settings.name;
+    demo.photo = owner.settings.photo;
+    const a = list.find(x => x.installment && x.photos.length) || list.find(x => x.installment);
+    if (a) demo.apt = { thumb: a.photos[0] && a.photos[0].thumb, title: `${a.roomsLabel}, ${a.area} м²`, monthly: a.monthly, currency: a.currency };
+  }
   res.send(pages.renderLanding(D().product, base(req), demo));
 });
 
