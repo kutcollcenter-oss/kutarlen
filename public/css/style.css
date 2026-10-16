@@ -622,7 +622,7 @@ input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 1px sol
 .btn-wa:hover::after { animation-play-state: paused; }
 
 /* ===== Продукт: заглушки и страница продукта ===== */
-/* Заставка у риелтора без логотипа — имя вместо логотипа */
+/* Заставка у менеджера без логотипа — имя вместо логотипа */
 .pl-name { font-size: 28px; text-transform: uppercase; letter-spacing: .04em; opacity: 0; transform: translateY(14px); filter: blur(6px);
   animation: plLogo 1s var(--ease-out) .15s forwards; }
 
@@ -633,7 +633,7 @@ input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 1px sol
 .plain-box h1 { font-size: clamp(28px, 6vw, 40px); margin-bottom: 12px; }
 .plain-box p { color: var(--text); margin: 0; }
 
-/* Страница продукта для риелторов */
+/* Страница продукта для менеджеров */
 .landing { padding-bottom: 0; }
 .landing .tabbar { display: none; }
 .landing .topbar .wrap { justify-content: space-between; }
@@ -648,7 +648,7 @@ input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 1px sol
 .landing-feats li span { font-weight: 400; }
 #how .btn { margin-top: 8px; }
 
-/* «Подборка обновляется» — отключённый сайт риелтора, спокойная страница для клиента */
+/* «Подборка обновляется» — отключённый сайт менеджера, спокойная страница для клиента */
 .plain-box.soon { text-align: center; }
 .soon-photo { width: 110px; height: 110px; object-fit: cover; object-position: 50% 20%; margin: 0 auto 18px; border-radius: 50% !important; border: 1px solid var(--line); }
 .plain-box.soon h1 { font-size: clamp(26px, 6vw, 34px); }

@@ -1,5 +1,5 @@
-// Сайт-продукт для риелторов: у каждого риелтора свой кабинет, свои квартиры и своя ссылка.
-// Владелец (role: owner) создаёт риелторам доступы, продлевает оплату и видит общую статистику.
+// Сайт-продукт для менеджеров: у каждого менеджера свой кабинет, свои квартиры и своя ссылка.
+// Владелец (role: owner) создаёт менеджерам доступы, продлевает оплату и видит общую статистику.
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
@@ -118,7 +118,7 @@ function setSession(req, res, user) {
 const fails = new Map();
 const failDelay = ip => Math.min(((fails.get(ip) || {}).n || 0) * 700, 5000);
 
-// ---------- Статика (раньше страниц риелторов, чтобы /admin не принимался за ссылку) ----------
+// ---------- Статика (раньше страниц менеджеров, чтобы /admin не принимался за ссылку) ----------
 app.use('/uploads', express.static(UPLOAD_DIR, { maxAge: '30d', immutable: true }));
 // Страница кабинета: к файлам скрипта и стилей добавляется версия, чтобы после обновления не открывалась старая копия из кэша
 const ADMIN_DIR = path.join(__dirname, 'admin');
@@ -133,12 +133,20 @@ app.use('/admin', express.static(path.join(__dirname, 'admin')));
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1h' }));
 
 // ---------- Публичная часть ----------
-// Главная домена: страница продукта (или сайт выбранного риелтора — настраивается владельцем)
+// Главная домена: страница продукта (или сайт выбранного менеджера — настраивается владельцем)
+// Главная домена — сайт менеджера, выбранного владельцем (по умолчанию — сайт самого владельца):
+// клиент, набравший просто домен, сразу попадает к квартирам. Страница сервиса для менеджеров — /partner.
+const PARTNER_PATH = '/partner';
+const ownerRealtor = () => realtorById((D().users.find(u => u.role === 'owner') || {}).realtorId);
 app.get('/', (req, res) => {
-  const root = realtorById(D().product.rootRealtorId);
+  const root = realtorById(D().product.rootRealtorId) || ownerRealtor();
   if (root && statusOf(root).active) return res.redirect(302, `/${root.slug}`);
+  res.redirect(302, PARTNER_PATH);
+});
+
+app.get(PARTNER_PATH, (req, res) => {
   // Пример для страницы продукта — сайт владельца: ссылка, фото, имя и одна квартира в рассрочку
-  const owner = realtorById((D().users.find(u => u.role === 'owner') || {}).realtorId);
+  const owner = ownerRealtor();
   const demo = {};
   if (owner && statusOf(owner).active) {
     const list = aptsOf(owner.id).filter(isVisible).map(a => pub(owner, a, req));
@@ -151,7 +159,7 @@ app.get('/', (req, res) => {
   res.send(pages.renderLanding(D().product, base(req), demo));
 });
 
-// Старые ссылки вида /kvartira/<id> (до кабинетов) ведут на сайт риелтора этой квартиры
+// Старые ссылки вида /kvartira/<id> (до кабинетов) ведут на сайт менеджера этой квартиры
 app.get('/kvartira/:id', (req, res) => {
   const a = D().apartments.find(x => x.id === req.params.id);
   const r = a && realtorById(a.realtorId);
@@ -161,8 +169,8 @@ app.get('/kvartira/:id', (req, res) => {
 app.get('/privacy', (req, res) => res.redirect(302, '/'));
 app.get('/robots.txt', (req, res) => res.type('text/plain').send('User-agent: *\nDisallow: /admin\nDisallow: /api/\n'));
 
-// Сайт риелтора. Неизвестная ссылка → «Ссылка недействительна»; не оплачен → «временно недоступен».
-// Адрес, который риелтору поменяли (или старый, с кодом), переадресуется на новый — отправленные ссылки не ломаются.
+// Сайт менеджера. Неизвестная ссылка → «Ссылка недействительна»; не оплачен → «временно недоступен».
+// Адрес, который менеджеру поменяли (или старый, с кодом), переадресуется на новый — отправленные ссылки не ломаются.
 function siteOf(req, res) {
   const slug = req.params.slug;
   const go = to => { res.redirect(301, req.originalUrl.replace(`/${slug}`, `/${to}`)); return null; };
@@ -192,7 +200,7 @@ app.get('/:slug/kvartira/:id', (req, res) => {
   res.send(pages.renderApartment(ctxOf(r, req), pub(r, a, req), similarTo(r, a, req)));
 });
 
-// /имя/admin — вход в кабинет этого риелтора (логин подставляется сам)
+// /имя/admin — вход в кабинет этого менеджера (логин подставляется сам)
 app.get('/:slug/admin', (req, res) => {
   const slug = req.params.slug.toLowerCase();
   const r = realtorBySlug(slug) || D().realtors.find(x => (x.oldSlugs || []).includes(slug));
@@ -463,13 +471,13 @@ app.delete('/api/admin/settings/logo', requireAuth, (req, res) => {
 app.get('/api/admin/analytics', requireAuth, (req, res) => {
   const days = [7, 30, 90].includes(+req.query.days) ? +req.query.days : 30;
   let rid = req.realtor.id;
-  // Владелец может смотреть аналитику любого риелтора или всех сразу
+  // Владелец может смотреть аналитику любого менеджера или всех сразу
   if (req.user.role === 'owner' && req.query.realtor) rid = req.query.realtor === 'all' ? null : req.query.realtor;
   const label = id => { const a = D().apartments.find(x => x.id === id); return a && aptLabel(a); };
   res.json(analytics.report(rid, days, label));
 });
 
-// ---------- Владелец: риелторы и подписки ----------
+// ---------- Владелец: менеджеры и подписки ----------
 const LOGIN_RE = /^[a-z0-9._-]{3,32}$/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -492,12 +500,12 @@ app.post('/api/owner/realtors', requireAuth, ownerOnly, (req, res) => {
   const b = req.body || {};
   const name = String(b.name || '').trim().slice(0, 80);
   const login = String(b.login || '').trim().toLowerCase();
-  if (!name) return res.status(400).json({ error: 'Укажите имя риелтора' });
+  if (!name) return res.status(400).json({ error: 'Укажите имя менеджера' });
   if (!LOGIN_RE.test(login)) return res.status(400).json({ error: 'Логин: 3–32 символа, латиница, цифры, точка, дефис' });
   if (D().users.some(u => u.login === login)) return res.status(400).json({ error: 'Такой логин уже занят' });
   const password = b.password && String(b.password).length >= 8 ? String(b.password) : auth.generatePassword();
   const slug = b.slug ? String(b.slug).trim().toLowerCase() : tenants.makeSlug(name, slugTaken);
-  const slugErr = b.slug ? tenants.slugError(slug) || (slugTaken(slug) ? 'Этот адрес уже занят другим риелтором' : '') : '';
+  const slugErr = b.slug ? tenants.slugError(slug) || (slugTaken(slug) ? 'Этот адрес уже занят другим менеджером' : '') : '';
   if (slugErr) return res.status(400).json({ error: slugErr });
   const r = {
     id: db.newId(), slug,
@@ -513,7 +521,7 @@ app.post('/api/owner/realtors', requireAuth, ownerOnly, (req, res) => {
   res.json({ realtor: realtorRow(r, req, {}), password, copied }); // пароль показывается один раз
 });
 
-// Стартовый набор новому риелтору: копии квартир владельца в рассрочку (наличные не копируются).
+// Стартовый набор новому менеджеру: копии квартир владельца в рассрочку (наличные не копируются).
 // Копий не больше лимита тарифа. Фото общие — файлы не дублируются, удаление копии их не трогает.
 function copyOwnerApartments(owner, r) {
   const max = Number(r.plan.maxApartments) || Infinity;
@@ -545,7 +553,7 @@ app.put('/api/owner/realtors/:id', requireAuth, ownerOnly, (req, res) => {
   if ('slug' in b) {
     const slug = String(b.slug || '').trim().toLowerCase();
     if (slug !== r.slug) {
-      const err = tenants.slugError(slug) || (slugTaken(slug, r) ? 'Этот адрес уже занят другим риелтором' : '');
+      const err = tenants.slugError(slug) || (slugTaken(slug, r) ? 'Этот адрес уже занят другим менеджером' : '');
       if (err) return res.status(400).json({ error: err });
       // старый адрес запоминаем: ссылки, которые уже разосланы клиентам, будут вести на новый
       r.oldSlugs = [...new Set([...(r.oldSlugs || []), r.slug])].filter(x => x !== slug);
@@ -563,7 +571,7 @@ app.put('/api/owner/realtors/:id', requireAuth, ownerOnly, (req, res) => {
   res.json(realtorRow(r, req, analytics.summary(30)));
 });
 
-// Новый пароль: старые сессии риелтора сразу закрываются
+// Новый пароль: старые сессии менеджера сразу закрываются
 app.post('/api/owner/realtors/:id/password', requireAuth, ownerOnly, (req, res) => {
   const r = ownedRealtor(req, res); if (!r) return;
   const u = userOf(r);
@@ -602,7 +610,7 @@ app.use((req, res) => res.status(404).send(pages.renderInvalid(D().product, base
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
   if (!db.exists()) await seed();
   db.load();
-  // База версии «один риелтор» → кабинеты (один раз, при первом запуске новой версии)
+  // База версии «один менеджер» → кабинеты (один раз, при первом запуске новой версии)
   const m = tenants.migrate(D(), db.newId, process.env.ADMIN_PASSWORD || 'admin');
   if (m.changed) {
     db.save();

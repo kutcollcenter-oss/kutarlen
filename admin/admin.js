@@ -1,5 +1,5 @@
-// Кабинет риелтора: квартиры, свой сайт, подробная аналитика.
-// Владелец сервиса (role: owner) дополнительно видит раздел «Риелторы»: доступы, оплата, лимиты.
+// Кабинет менеджера: квартиры, свой сайт, подробная аналитика.
+// Владелец сервиса (role: owner) дополнительно видит раздел «Менеджеры»: доступы, оплата, лимиты.
 // Рассчитан на телефон. Статусов у квартир нет: квартира либо на сайте, либо удалена.
 (function () {
   const app = document.getElementById('app');
@@ -86,7 +86,7 @@
   }
 
   // ---------- Вход ----------
-  // Обложка входа: зачем кабинет риелтору + форма входа + связь с владельцем сервиса (новый кабинет, техподдержка)
+  // Обложка входа: зачем кабинет менеджеру + форма входа + связь с владельцем сервиса (новый кабинет, техподдержка)
   const WA_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.7-1.4.1-.2 0-.3 0-.5l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2c0 1.3.9 2.5 1.1 2.7.1.2 1.8 2.8 4.4 3.9 1.6.7 2.3.8 3.1.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3Z"/></svg>';
   const SKYLINE = '<svg class="auth-sky" viewBox="0 0 600 220" preserveAspectRatio="xMidYMax slice" aria-hidden="true"><path d="M0 220V150h40v-40h30v40h20V90h50v130M140 220V120h28V70h34v50h22v100M224 220V40h60v180M284 220V100h44v-30h30v150M358 220V130h40v-50h46v140M444 220V60h56v160M500 220V140h36v-30h34v110h30" /><path class="win" d="M236 60h8M256 60h8M236 84h8M256 84h8M236 108h8M256 108h8M456 82h8M476 82h8M456 106h8M476 106h8M180 92h8M108 112h8M376 102h8" /></svg>';
   const fmtPhone = p => String(p || '').replace(/\D/g, '').replace(/^(\d{3})(\d{3})(\d{3})(\d{3})$/, '+$1 $2 $3 $4');
@@ -98,7 +98,7 @@
       <section class="auth-cover">
         ${SKYLINE}
         <div class="auth-cover-in">
-          <div class="auth-kicker">Кабинет риелтора</div>
+          <div class="auth-kicker">Кабинет менеджера</div>
           <h1>Ваш сайт продаёт квартиры, <em>пока вы на показах</em></h1>
           <ul class="auth-points">
             <li><b>Клиент подбирает сам</b> по взносу и платежу в месяц — без звонков «а что есть?»</li>
@@ -128,8 +128,8 @@
       box.innerHTML = `<p class="auth-help-q">Хотите открыть себе кабинет или нужна техподдержка?</p>
         <p class="auth-help-a">Напишите в WhatsApp — ответим и поможем</p>
         <div class="auth-help-btns">
-          <a class="auth-wa" href="${esc(waTo(p.whatsapp, 'Здравствуйте! Хочу открыть себе кабинет риелтора.'))}" target="_blank" rel="noopener">${WA_SVG}Открыть кабинет</a>
-          <a class="auth-wa ghost" href="${esc(waTo(p.whatsapp, 'Здравствуйте! Нужна техподдержка по кабинету риелтора.'))}" target="_blank" rel="noopener">Техподдержка</a>
+          <a class="auth-wa" href="${esc(waTo(p.whatsapp, 'Здравствуйте! Хочу открыть себе кабинет менеджера.'))}" target="_blank" rel="noopener">${WA_SVG}Открыть кабинет</a>
+          <a class="auth-wa ghost" href="${esc(waTo(p.whatsapp, 'Здравствуйте! Нужна техподдержка по кабинету менеджера.'))}" target="_blank" rel="noopener">Техподдержка</a>
         </div>
         <a class="auth-phone" href="${esc(waTo(p.whatsapp, 'Здравствуйте!'))}" target="_blank" rel="noopener">WhatsApp ${esc(fmtPhone(p.whatsapp))}</a>`;
     }).catch(() => {});
@@ -148,7 +148,7 @@
     ['analytics', 'Аналитика', svg('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>')],
     ['site', 'Сайт', svg('<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>'), false, true],
     ['settings', 'Профиль', svg('<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>')],
-    ['realtors', 'Риелторы', svg('<circle cx="9" cy="8" r="3.5"/><path d="M2 20c1-3.5 3.6-5.5 7-5.5s6 2 7 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18.5 14.8c1.7.9 2.9 2.6 3.5 5.2"/>'), true],
+    ['realtors', 'Менеджеры', svg('<circle cx="9" cy="8" r="3.5"/><path d="M2 20c1-3.5 3.6-5.5 7-5.5s6 2 7 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18.5 14.8c1.7.9 2.9 2.6 3.5 5.2"/>'), true],
   ];
 
   // Верхнее меню — на ноутбуке; на телефоне и планшете — нижнее меню (как на сайте)
@@ -482,13 +482,13 @@
     const t = (k, label, hint = '') => `<label class="f"><span>${label}</span><textarea name="${k}" rows="6">${esc(s[k])}</textarea>${hint ? `<div class="hint">${hint}</div>` : ''}</label>`;
     app.innerHTML = `${nav('settings')}<div class="wrap"><h1>Профиль</h1>
       <form id="sf">
-        <div class="card"><h2 style="margin-top:0">Риелтор</h2>
+        <div class="card"><h2 style="margin-top:0">Менеджер</h2>
           <div class="row" style="margin-bottom:12px">
             ${s.photo ? `<img src="${esc(s.photo)}" style="width:72px;height:90px;object-fit:cover;border-radius:10px">` : ''}
             <label class="upload" style="flex:1"><input type="file" id="pf" accept="image/*">+ ${s.photo ? 'Заменить фото' : 'Загрузить своё фото'}</label>
           </div>
           ${f('name', 'Имя')}
-          ${f('role', 'Кем работаете', 'text', 'Например: Риелтор строительной компании «Кут»')}
+          ${f('role', 'Кем работаете', 'text', 'Например: Менеджер строительной компании «Кут»')}
           ${f('heroKicker', 'Надпись над заголовком')}
           ${f('tagline', 'Заголовок первого экрана')}
           ${t('heroPoints', 'Пункты под кнопками', 'Каждый пункт с новой строки, лучше 2–3 коротких')}
@@ -582,7 +582,7 @@
   const fmt = n => nf.format(n || 0);
   const dayLabel = d => { const [, m, dd] = d.split('-'); return `${+dd}.${m}`; };
   let anDays = 30;
-  let anRealtor = ''; // для владельца: '' — свой кабинет, 'all' — все, или id риелтора
+  let anRealtor = ''; // для владельца: '' — свой кабинет, 'all' — все, или id менеджера
 
   function delta(cur, prev) {
     if (!prev && !cur) return '';
@@ -613,7 +613,7 @@
         <div class="filters" id="days">${[7, 30, 90].map(d => `<button data-d="${d}" class="${anDays === d ? 'on' : ''}">${d} дней</button>`).join('')}</div>
       </div>
       ${isOwner() ? `<label class="f"><span>Чья аналитика</span><select id="anR">
-        <option value="">Мои квартиры</option><option value="all" ${anRealtor === 'all' ? 'selected' : ''}>Все риелторы вместе</option>
+        <option value="">Мои квартиры</option><option value="all" ${anRealtor === 'all' ? 'selected' : ''}>Все менеджеры вместе</option>
         ${realtors.filter(x => x.role !== 'owner').map(x => `<option value="${x.id}" ${anRealtor === x.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}
       </select></label>` : ''}
 
@@ -675,7 +675,7 @@
     if (sel) sel.onchange = () => { anRealtor = sel.value; renderAnalytics(); };
   }
 
-  // ---------- Владелец: риелторы ----------
+  // ---------- Владелец: менеджеры ----------
   const addMonths = (from, n) => {
     const today = new Date().toISOString().slice(0, 10);
     const d = new Date(`${from && from >= today ? from : today}T00:00:00Z`);
@@ -692,7 +692,7 @@
     const box = document.getElementById('creds');
     box.hidden = false;
     box.innerHTML = `<h2 style="margin-top:0">${title}</h2>
-      <p class="hint">Пароль показывается только сейчас — скопируйте и отправьте риелтору.</p>
+      <p class="hint">Пароль показывается только сейчас — скопируйте и отправьте менеджеру.</p>
       <pre>${esc(text)}</pre>
       <div class="row"><button class="btn btn-primary" id="credCopy">Скопировать сообщение</button><button class="btn" id="credHide">Скрыть</button></div>`;
     document.getElementById('credCopy').onclick = () => copy(text, 'Сообщение скопировано');
@@ -703,7 +703,7 @@
   async function renderRealtors() {
     if (!isOwner()) { location.hash = '#list'; return; }
     const [list, product, mine] = await Promise.all([api('GET', '/api/owner/realtors'), api('GET', '/api/owner/product'), api('GET', '/api/admin/apartments')]);
-    // Сколько квартир в рассрочку скопируется новому риелтору (наличные не копируются)
+    // Сколько квартир в рассрочку скопируется новому менеджеру (наличные не копируются)
     const myInstallment = mine.filter(a => a.computed.installment || (typeOf(a) === 'installment' && a.computed.price)).length;
     const others = list.filter(x => x.role !== 'owner');
     const paying = others.filter(x => x.status.active && !x.blocked).length;
@@ -711,30 +711,30 @@
     const badge = x => `<span class="st st-${x.status.code}">${esc(x.status.label)}</span>`;
 
     app.innerHTML = `${nav('realtors')}<div class="wrap">
-      <h1>Риелторы</h1>
+      <h1>Менеджеры</h1>
       <div class="kpis">
-        <div class="kpi"><span>Риелторов</span><b>${others.length}</b><small>с доступом сейчас: ${paying}</small></div>
-        <div class="kpi"><span>Заявок за 30 дней</span><b>${fmt(others.reduce((s, x) => s + x.wa30, 0))}</b><small>у всех риелторов</small></div>
+        <div class="kpi"><span>Менеджеров</span><b>${others.length}</b><small>с доступом сейчас: ${paying}</small></div>
+        <div class="kpi"><span>Заявок за 30 дней</span><b>${fmt(others.reduce((s, x) => s + x.wa30, 0))}</b><small>у всех менеджеров</small></div>
       </div>
 
       <div class="card" id="creds" hidden></div>
 
-      <details class="card" ${others.length ? '' : 'open'}><summary><b>+ Добавить риелтора</b></summary>
+      <details class="card" ${others.length ? '' : 'open'}><summary><b>+ Добавить менеджера</b></summary>
         <form id="nf" style="margin-top:12px">
-          <label class="f"><span>Имя риелтора</span><input name="name" required placeholder="Айдана Асанова"></label>
+          <label class="f"><span>Имя менеджера</span><input name="name" required placeholder="Айдана Асанова"></label>
           <div class="grid2">
             <label class="f"><span>Логин</span><input name="login" required autocapitalize="none" spellcheck="false" placeholder="aidana"></label>
             <label class="f"><span>Пароль</span><input name="password" placeholder="придумаем сами"></label>
           </div>
           <label class="f"><span>Адрес сайта</span><div class="slug-in"><span>${esc(location.host)}/</span><input name="slug" autocapitalize="none" spellcheck="false" placeholder="из имени, например aydana"></div></label>
-          <label class="f"><span>WhatsApp риелтора</span><input name="whatsapp" type="tel" placeholder="+996 …"></label>
+          <label class="f"><span>WhatsApp менеджера</span><input name="whatsapp" type="tel" placeholder="+996 …"></label>
           <div class="grid2">
             <label class="f"><span>Оплачено до</span><input name="paidUntil" type="date" value="${inMonth}"></label>
             <label class="f"><span>Лимит квартир</span><input name="maxApartments" inputmode="numeric" value="30"></label>
           </div>
           <label class="f"><span>Заметка (видите только вы)</span><input name="note" placeholder="Тариф, сумма, контакт…"></label>
           <div class="hint" style="margin:-4px 0 10px">Пустой адрес — возьмём имя латиницей. Пустой пароль — сгенерируем надёжный. Лимит 0 — без ограничения.</div>
-          ${myInstallment ? `<label class="check"><input type="checkbox" name="copyApartments" checked> Скопировать мои квартиры в рассрочку (${flats(myInstallment)}) — риелтору не придётся начинать с нуля</label>` : ''}
+          ${myInstallment ? `<label class="check"><input type="checkbox" name="copyApartments" checked> Скопировать мои квартиры в рассрочку (${flats(myInstallment)}) — менеджеру не придётся начинать с нуля</label>` : ''}
           <div class="err" id="nfErr"></div>
           <button class="btn btn-primary btn-block">Создать кабинет</button>
         </form>
@@ -767,18 +767,18 @@
           </div>
         </div>`).join('')}</div>
 
-      <details class="card"><summary><b>Главная страница сервиса</b></summary>
+      <details class="card"><summary><b>Страница сервиса для менеджеров</b></summary>
         <form id="pfm" style="margin-top:12px">
-          <div class="hint" style="margin-bottom:10px">Это страница по адресу ${esc(location.origin)}/ — её видят риелторы, которых вы приглашаете.</div>
+          <div class="hint" style="margin-bottom:10px">Это страница по адресу <b>${esc(location.origin)}/partner</b> — её видят менеджеры, которых вы приглашаете.</div>
           <label class="f"><span>Название сервиса</span><input name="name" value="${esc(product.name)}"></label>
           <label class="f"><span>Описание</span><textarea name="tagline" rows="3">${esc(product.tagline)}</textarea></label>
-          <label class="f"><span>Ваш WhatsApp для заявок от риелторов</span><input name="whatsapp" type="tel" value="${esc(product.whatsapp)}"></label>
+          <label class="f"><span>Ваш WhatsApp для заявок от менеджеров</span><input name="whatsapp" type="tel" value="${esc(product.whatsapp)}"></label>
           <label class="f"><span>Цена (текст)</span><input name="priceText" value="${esc(product.priceText)}" placeholder="Например: 1 500 сом в месяц, первая неделя бесплатно"></label>
           <label class="f"><span>Что открывать по адресу ${esc(location.host)}/</span><select name="rootRealtorId">
-            <option value="">Страницу сервиса для риелторов</option>
-            ${list.map(x => `<option value="${x.id}" ${product.rootRealtorId === x.id ? 'selected' : ''}>Сайт риелтора: ${esc(x.name)}</option>`).join('')}
+            <option value="">Мой сайт (по умолчанию)</option>
+            ${list.map(x => `<option value="${x.id}" ${product.rootRealtorId === x.id ? 'selected' : ''}>Сайт менеджера: ${esc(x.name)}</option>`).join('')}
           </select></label>
-          <button class="btn btn-primary">Сохранить</button> <a class="btn" href="/" target="_blank">Открыть ↗</a>
+          <button class="btn btn-primary">Сохранить</button> <a class="btn" href="/partner" target="_blank">Открыть ↗</a>
         </form>
       </details>
     </div>`;
@@ -821,7 +821,7 @@
           case 'limit': {
             const v = await modal({
               title: `Лимит квартир — ${x.name}`,
-              text: `Сейчас у риелтора ${x.apartments} квартир. 0 — без ограничения. Если поставить меньше, чем есть, квартиры не удалятся — просто нельзя будет добавлять новые.`,
+              text: `Сейчас у менеджера ${x.apartments} квартир. 0 — без ограничения. Если поставить меньше, чем есть, квартиры не удалятся — просто нельзя будет добавлять новые.`,
               input: { value: String(x.plan.maxApartments || 0), inputmode: 'numeric', validate: v => (/^[0-9]{1,4}$/.test(v) ? '' : 'Введите число, например 30') },
               okText: 'Сохранить',
             });
@@ -844,7 +844,7 @@
             if (!x.blocked && !(await confirmBox(`Заблокировать «${x.name}»?`, 'Его сайт для клиентов сразу отключится, а в кабинете он увидит, что доступ закрыт. Разблокировать можно в любой момент.', 'Заблокировать', true))) return;
             await put({ blocked: !x.blocked }); break;
           case 'pass': {
-            if (!(await confirmBox(`Новый пароль для «${x.name}»?`, 'Старый пароль перестанет работать, и риелтор выйдет из кабинета на всех устройствах. Новый пароль покажем один раз.', 'Выдать пароль'))) return;
+            if (!(await confirmBox(`Новый пароль для «${x.name}»?`, 'Старый пароль перестанет работать, и менеджер выйдет из кабинета на всех устройствах. Новый пароль покажем один раз.', 'Выдать пароль'))) return;
             const r = await api('POST', `/api/owner/realtors/${x.id}/password`);
             await renderRealtors();
             showCredentials(x, x.login, r.password, `Новый пароль для «${x.name}»`);
@@ -889,7 +889,7 @@
   async function start() {
     try {
       me = await api('GET', '/api/admin/me');
-      // Пришли по ссылке «/имя/admin» другого риелтора — показываем вход, а не текущий кабинет
+      // Пришли по ссылке «/имя/admin» другого менеджера — показываем вход, а не текущий кабинет
       const want = new URLSearchParams(location.search).get('u');
       if (want && want !== me.login) { renderLogin(); return; }
       if (want) history.replaceState(null, '', '/admin/' + location.hash);

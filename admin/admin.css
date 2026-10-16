@@ -122,7 +122,7 @@ pre { white-space: pre-wrap; background: #f3f4f6; padding: 12px; border-radius: 
 .tagrow > span { flex: 0 0 100%; font-size: 13px; font-weight: 600; }
 @media (min-width: 720px) { .tagrow > span { flex: 0 0 200px; } }
 
-/* ===== Риелторы (владелец) ===== */
+/* ===== Менеджеры (владелец) ===== */
 .item.rt { display: block; }
 .rt-head { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
 .rt-stats { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--muted); margin: 8px 0; }
@@ -177,7 +177,7 @@ pre { white-space: pre-wrap; background: #f3f4f6; padding: 12px; border-radius: 
 p.warn { margin: -6px 0 10px; }
 @keyframes mFade { from { opacity: 0; } }
 @keyframes mUp { from { transform: translateY(20px); opacity: 0; } }
-/* Заблокированный риелтор — красная полоса и красная кнопка */
+/* Заблокированный менеджер — красная полоса и красная кнопка */
 .item.rt.is-blocked { border-left: 4px solid var(--bad); background: #fff7f7; }
 .item.rt.is-blocked .t { color: #991b1b; }
 
@@ -316,7 +316,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--i
 .dev { background: var(--ink); } .dev i { background: #d5ddd1; }
 .tbl th { font-family: var(--mono); font-weight: 400; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; }
 
-/* Риелторы */
+/* Менеджеры */
 .item.rt.is-blocked { border-left: 3px solid #b42318; background: #fffafa; }
 
 /* Нижнее меню */
