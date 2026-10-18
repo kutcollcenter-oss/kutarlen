@@ -617,7 +617,7 @@ app.delete('/api/owner/realtors/:id', requireAuth, ownerOnly, (req, res) => {
   res.json({ ok: true });
 });
 
-const PRODUCT_KEYS = ['name', 'tagline', 'whatsapp', 'priceText', 'priceMonth', 'price6', 'rootRealtorId'];
+const PRODUCT_KEYS = ['name', 'tagline', 'whatsapp', 'priceText', 'priceMonth', 'price3', 'price6', 'rootRealtorId'];
 app.get('/api/owner/product', requireAuth, ownerOnly, (req, res) => res.json(product()));
 app.put('/api/owner/product', requireAuth, ownerOnly, (req, res) => {
   for (const k of PRODUCT_KEYS) if (k in req.body) D().product[k] = String(req.body[k] ?? '').slice(0, 500);
