@@ -730,7 +730,7 @@
           <label class="f"><span>WhatsApp менеджера</span><input name="whatsapp" type="tel" placeholder="+996 …"></label>
           <div class="grid2">
             <label class="f"><span>Оплачено до</span><input name="paidUntil" type="date" value="${inMonth}"></label>
-            <label class="f"><span>Лимит квартир</span><input name="maxApartments" inputmode="numeric" value="30"></label>
+            <label class="f"><span>Лимит квартир</span><input name="maxApartments" inputmode="numeric" value="20"></label>
           </div>
           <label class="f"><span>Заметка (видите только вы)</span><input name="note" placeholder="Тариф, сумма, контакт…"></label>
           <div class="hint" style="margin:-4px 0 10px">Пустой адрес — возьмём имя латиницей. Пустой пароль — сгенерируем надёжный. Лимит 0 — без ограничения.</div>
