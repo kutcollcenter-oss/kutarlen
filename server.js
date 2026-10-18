@@ -516,25 +516,45 @@ app.post('/api/owner/realtors', requireAuth, ownerOnly, (req, res) => {
   if (b.whatsapp) r.settings.whatsapp = String(b.whatsapp).slice(0, 30);
   D().realtors.push(r);
   D().users.push({ id: db.newId(), login, role: 'realtor', realtorId: r.id, ...auth.hashPassword(password), createdAt: new Date().toISOString() });
-  const copied = b.copyApartments === false ? 0 : copyOwnerApartments(req.realtor, r);
+  // По умолчанию новый менеджер пустой; копии квартир владельца — только если отмечено при создании
+  const copied = b.copyApartments === true ? copyOwnerApartments(req.realtor, r).copied : 0;
   db.save();
   res.json({ realtor: realtorRow(r, req, {}), password, copied }); // пароль показывается один раз
 });
 
 // Стартовый набор новому менеджеру: копии квартир владельца в рассрочку (наличные не копируются).
 // Копий не больше лимита тарифа. Фото общие — файлы не дублируются, удаление копии их не трогает.
+// Копии квартир владельца в рассрочку (наличные не копируются).
+// Уже скопированные раньше не повторяются (по copiedFrom); копий не больше свободного места в лимите.
+// Фото общие — файлы не дублируются, удаление копии их не трогает.
 function copyOwnerApartments(owner, r) {
-  const max = Number(r.plan.maxApartments) || Infinity;
-  const src = aptsOf(owner.id).filter(a => isVisible(a) && typeOf(a) === 'installment').slice(0, max);
-  for (const a of src) {
+  const mine = aptsOf(r.id);
+  const already = new Set(mine.map(a => a.copiedFrom).filter(Boolean));
+  // Копии из прошлой версии без copiedFrom узнаём по названию, площади и главному фото
+  const sig = a => `${a.title}|${a.area}|${(a.photos || [])[0] || ''}`;
+  const mineSigs = new Set(mine.map(sig));
+  const src = aptsOf(owner.id).filter(a => isVisible(a) && typeOf(a) === 'installment' && !already.has(a.id) && !mineSigs.has(sig(a)));
+  const free = Number(r.plan.maxApartments) ? Math.max(0, Number(r.plan.maxApartments) - mine.length) : Infinity;
+  const take = src.slice(0, free);
+  for (const a of take) {
     D().apartments.push({
-      ...a, id: db.newId(), realtorId: r.id,
+      ...a, id: db.newId(), realtorId: r.id, copiedFrom: a.id, createdAt: new Date().toISOString(),
       photos: [...(a.photos || [])], tags: [...(a.tags || [])],
       ...(a.map ? { map: { ...a.map } } : {}),
     });
   }
-  return src.length;
+  return { copied: take.length, already: already.size, notFit: src.length - take.length };
 }
+
+// Кнопка «Скопировать мои квартиры» в карточке менеджера
+app.post('/api/owner/realtors/:id/copy-apartments', requireAuth, ownerOnly, (req, res) => {
+  const r = realtorById(req.params.id);
+  if (!r) return res.status(404).json({ error: 'not found' });
+  if (r.id === req.realtor.id) return res.status(400).json({ error: 'Это ваш собственный кабинет' });
+  const result = copyOwnerApartments(req.realtor, r);
+  db.save();
+  res.json({ ...result, apartments: aptsOf(r.id).length });
+});
 
 function ownedRealtor(req, res) {
   const r = realtorById(req.params.id);

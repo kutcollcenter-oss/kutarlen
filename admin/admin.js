@@ -734,7 +734,7 @@
           </div>
           <label class="f"><span>Заметка (видите только вы)</span><input name="note" placeholder="Тариф, сумма, контакт…"></label>
           <div class="hint" style="margin:-4px 0 10px">Пустой адрес — возьмём имя латиницей. Пустой пароль — сгенерируем надёжный. Лимит 0 — без ограничения.</div>
-          ${myInstallment ? `<label class="check"><input type="checkbox" name="copyApartments" checked> Скопировать мои квартиры в рассрочку (${flats(myInstallment)}) — менеджеру не придётся начинать с нуля</label>` : ''}
+          ${myInstallment ? `<label class="check"><input type="checkbox" name="copyApartments"> Скопировать мои квартиры в рассрочку (${flats(myInstallment)}) — менеджеру не придётся начинать с нуля</label>` : ''}
           <div class="err" id="nfErr"></div>
           <button class="btn btn-primary btn-block">Создать кабинет</button>
         </form>
@@ -756,6 +756,7 @@
             <button class="btn" data-act="m3">+3 мес</button>
             <button class="btn" data-act="date">Дата…</button>
             <button class="btn" data-act="limit">Лимит…</button>`}
+            ${x.role === 'owner' || !myInstallment ? '' : '<button class="btn" data-act="copy">Скопировать мои квартиры</button>'}
             <button class="btn" data-act="stats">Аналитика</button>
             ${x.role === 'owner' ? '' : x.blocked
               ? '<button class="btn btn-danger-fill" data-act="block">Заблокирован · Разблокировать</button>'
@@ -838,6 +839,17 @@
             await put({ login: v.toLowerCase() });
             if (x.role === 'owner') me = await api('GET', '/api/admin/me');
             toast('Логин изменён'); break;
+          }
+          case 'copy': {
+            const room = x.plan.maxApartments ? Math.max(0, x.plan.maxApartments - x.apartments) : null;
+            if (!(await confirmBox(`Скопировать ваши квартиры «${x.name}»?`,
+              `У менеджера появятся копии ваших квартир в рассрочку (${flats(myInstallment)}), наличные не копируются. Уже скопированные не повторятся.${room !== null ? ` Свободно мест по лимиту: ${room}.` : ''} Свои копии менеджер сможет менять и удалять — ваши квартиры не изменятся.`,
+              'Скопировать'))) return;
+            const r = await api('POST', `/api/owner/realtors/${x.id}/copy-apartments`);
+            toast(r.copied
+              ? `Скопировано: ${flats(r.copied)}${r.notFit ? `, не поместилось по лимиту: ${r.notFit}` : ''}`
+              : r.notFit ? 'Лимит менеджера заполнен — расширьте лимит' : 'Все ваши квартиры у менеджера уже есть');
+            break;
           }
           case 'stats': anRealtor = x.role === 'owner' ? '' : x.id; location.hash = '#analytics'; return;
           case 'block':

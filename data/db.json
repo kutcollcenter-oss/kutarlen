@@ -204,60 +204,6 @@
       "realtorId": "mva25g8qkkkc"
     },
     {
-      "id": "mv8ovjp6j2zg",
-      "type": "installment",
-      "title": "бак",
-      "rooms": 1,
-      "area": 23,
-      "pricePerM2": 80000,
-      "down": 500000,
-      "months": 59,
-      "price": 80000,
-      "floorFrom": 1,
-      "floors": 5,
-      "address": "пригород",
-      "details": "2028 берилет",
-      "tags": [
-        "наличкага алсаныз 100$ скаидка за м2"
-      ],
-      "photos": [
-        "f190e8d054ac2872"
-      ],
-      "createdAt": "2026-10-14T22:36:14.586Z",
-      "realtorId": "mva25g8qkkkc"
-    },
-    {
-      "id": "mv8pegbowhxv",
-      "type": "installment",
-      "title": "бк",
-      "rooms": 3,
-      "area": 95,
-      "pricePerM2": 101200,
-      "down": 200000,
-      "months": 59,
-      "price": 0,
-      "floorFrom": 2,
-      "floors": 4,
-      "address": "Беш к",
-      "details": "сдача 2029 3 квартал",
-      "tags": [
-        "что это"
-      ],
-      "photos": [
-        "bd2125a1127a02f9",
-        "e892a3ea286b0f4b"
-      ],
-      "createdAt": "2026-10-14T22:50:56.677Z",
-      "map": {
-        "link": "https://maps.app.goo.gl/DFuwVqcwyZUS29VQ6",
-        "lat": 42.783614,
-        "lng": 74.665152,
-        "name": ""
-      },
-      "cashDiscount": 8800,
-      "realtorId": "mva25g8qkkkc"
-    },
-    {
       "id": "mva4xpnij7wd",
       "type": "installment",
       "title": "ЖК «Восток»",
