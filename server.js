@@ -137,6 +137,8 @@ app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1h' }));
 // Главная домена — сайт менеджера, выбранного владельцем (по умолчанию — сайт самого владельца):
 // клиент, набравший просто домен, сразу попадает к квартирам. Страница сервиса для менеджеров — /partner.
 const PARTNER_PATH = '/partner';
+// Настройки сервиса; поля, которых нет в старой базе, берутся по умолчанию (например, цены)
+const product = () => ({ ...tenants.defaultProduct(), ...D().product });
 const ownerRealtor = () => realtorById((D().users.find(u => u.role === 'owner') || {}).realtorId);
 app.get('/', (req, res) => {
   const root = realtorById(D().product.rootRealtorId) || ownerRealtor();
@@ -156,7 +158,7 @@ app.get(PARTNER_PATH, (req, res) => {
     const a = list.find(x => x.installment && x.photos.length) || list.find(x => x.installment);
     if (a) demo.apt = { thumb: a.photos[0] && a.photos[0].thumb, title: `${a.roomsLabel}, ${a.area} м²`, monthly: a.monthly, currency: a.currency };
   }
-  res.send(pages.renderLanding(D().product, base(req), demo));
+  res.send(pages.renderLanding(product(), base(req), demo));
 });
 
 // Старые ссылки вида /kvartira/<id> (до кабинетов) ведут на сайт менеджера этой квартиры
@@ -615,13 +617,13 @@ app.delete('/api/owner/realtors/:id', requireAuth, ownerOnly, (req, res) => {
   res.json({ ok: true });
 });
 
-const PRODUCT_KEYS = ['name', 'tagline', 'whatsapp', 'priceText', 'rootRealtorId'];
-app.get('/api/owner/product', requireAuth, ownerOnly, (req, res) => res.json(D().product));
+const PRODUCT_KEYS = ['name', 'tagline', 'whatsapp', 'priceText', 'priceMonth', 'price6', 'rootRealtorId'];
+app.get('/api/owner/product', requireAuth, ownerOnly, (req, res) => res.json(product()));
 app.put('/api/owner/product', requireAuth, ownerOnly, (req, res) => {
   for (const k of PRODUCT_KEYS) if (k in req.body) D().product[k] = String(req.body[k] ?? '').slice(0, 500);
   if (D().product.rootRealtorId && !realtorById(D().product.rootRealtorId)) D().product.rootRealtorId = '';
   db.save();
-  res.json(D().product);
+  res.json(product());
 });
 
 app.use((req, res) => res.status(404).send(pages.renderInvalid(D().product, base(req))));

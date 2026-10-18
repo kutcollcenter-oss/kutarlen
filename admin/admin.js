@@ -774,7 +774,12 @@
           <label class="f"><span>Название сервиса</span><input name="name" value="${esc(product.name)}"></label>
           <label class="f"><span>Описание</span><textarea name="tagline" rows="3">${esc(product.tagline)}</textarea></label>
           <label class="f"><span>Ваш WhatsApp для заявок от менеджеров</span><input name="whatsapp" type="tel" value="${esc(product.whatsapp)}"></label>
-          <label class="f"><span>Цена (текст)</span><input name="priceText" value="${esc(product.priceText)}" placeholder="Например: 1 500 сом в месяц, первая неделя бесплатно"></label>
+          <div class="grid2">
+            <label class="f"><span>Цена за 1 месяц, сом</span><input name="priceMonth" inputmode="numeric" value="${esc(product.priceMonth)}"></label>
+            <label class="f"><span>Цена за 6 месяцев, сом</span><input name="price6" inputmode="numeric" value="${esc(product.price6)}"></label>
+          </div>
+          <div class="hint" style="margin:-6px 0 12px">Показываются на странице /partner. Пусто — блок цен скрыт.</div>
+          <label class="f"><span>Цена (текст, если цены выше пустые)</span><input name="priceText" value="${esc(product.priceText)}" placeholder="Например: 1 500 сом в месяц, первая неделя бесплатно"></label>
           <label class="f"><span>Что открывать по адресу ${esc(location.host)}/</span><select name="rootRealtorId">
             <option value="">Мой сайт (по умолчанию)</option>
             ${list.map(x => `<option value="${x.id}" ${product.rootRealtorId === x.id ? 'selected' : ''}>Сайт менеджера: ${esc(x.name)}</option>`).join('')}
