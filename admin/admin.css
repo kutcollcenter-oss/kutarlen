@@ -331,3 +331,19 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--i
 .modal-box { border-radius: 6px; }
 .modal-box h2 { font-weight: 500; }
 .toast { background: var(--ink); border-radius: 4px; font-weight: 500; }
+
+/* «Мой тариф» в кабинете менеджера */
+.tariff { background: #fff; border: 1px solid var(--line); border-left: 3px solid var(--sage); border-radius: 4px; padding: 14px 16px; margin-top: 12px; }
+.tariff.warn-t { border-left-color: #d97706; background: #fffbf2; }
+.tariff.bad { border-left-color: #b42318; background: #fffafa; }
+.tariff-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.tariff-head span { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.tariff-head small { color: var(--muted); font-size: 13px; }
+.tariff-left { font-size: 24px; line-height: 1.2; margin: 6px 0 10px; }
+.tariff.warn-t .tariff-left { color: #b45309; }
+.tariff.bad .tariff-left { color: #b42318; }
+.tariff-row { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.tariff-row span { color: var(--muted); }
+.tariff-row b { font-weight: 500; text-align: right; }
+.tariff-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.tariff-btns .btn { min-height: 42px; }

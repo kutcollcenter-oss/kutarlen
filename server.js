@@ -298,7 +298,7 @@ app.get('/api/admin/me', requireAuth, (req, res) => {
       id: r.id, slug: r.slug, url: siteUrl(req, r), name: r.settings.name,
       status: statusOf(r), plan: isOwnerRealtor(r) ? { paidUntil: '', maxApartments: 0 } : r.plan, count: aptsOf(r.id).length,
     },
-    product: { name: D().product.name, whatsapp: D().product.whatsapp },
+    product: (({ name, whatsapp, priceMonth, price3, price6, includedApartments, extraPrice }) => ({ name, whatsapp, priceMonth, price3, price6, includedApartments, extraPrice }))(product()),
   });
 });
 
@@ -617,7 +617,7 @@ app.delete('/api/owner/realtors/:id', requireAuth, ownerOnly, (req, res) => {
   res.json({ ok: true });
 });
 
-const PRODUCT_KEYS = ['name', 'tagline', 'whatsapp', 'priceText', 'priceMonth', 'price3', 'price6', 'rootRealtorId'];
+const PRODUCT_KEYS = ['name', 'tagline', 'whatsapp', 'priceText', 'priceMonth', 'price3', 'price6', 'includedApartments', 'extraPrice', 'rootRealtorId'];
 app.get('/api/owner/product', requireAuth, ownerOnly, (req, res) => res.json(product()));
 app.put('/api/owner/product', requireAuth, ownerOnly, (req, res) => {
   for (const k of PRODUCT_KEYS) if (k in req.body) D().product[k] = String(req.body[k] ?? '').slice(0, 500);

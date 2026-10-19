@@ -172,7 +172,6 @@
     const r = me.realtor, st = r.status;
     const warn = [];
     if (!st.active) warn.push(`<div class="warn bad">${esc(st.label)}. Сайт для клиентов отключён — ${me.product.whatsapp ? `<a href="https://wa.me/${esc(me.product.whatsapp.replace(/\D/g, ''))}" target="_blank">напишите владельцу сервиса</a>` : 'свяжитесь с владельцем сервиса'}, чтобы продлить.</div>`);
-    else if (st.code === 'ending') warn.push(`<div class="warn">Оплата заканчивается через ${st.daysLeft} дн. (${esc(r.plan.paidUntil)}). Продлите, чтобы сайт не отключился.</div>`);
     if (me.defaultPassword) warn.push(`<div class="warn bad">У вас пароль по умолчанию. <a href="#settings">Смените его</a> — иначе в кабинет может войти кто угодно.</div>`);
     // Ссылку для клиентов показываем только на «Квартирах» — на остальных страницах есть кнопка «Сайт ↗»
     const link = active === 'list' && !location.hash.startsWith('#edit') ? `
@@ -181,8 +180,9 @@
           <button class="btn" data-copy="${esc(r.url)}">Копировать</button></div>
         <div class="hint" style="margin-top:6px">Вход в кабинет с телефона: <b>${esc(r.url)}/admin</b></div>
       </div>` : '';
-    if (!warn.length && !link) return '';
-    return `<div class="wrap wrap-banner">${warn.join('')}${link}</div>`;
+    const plan = active === 'list' || active === 'settings' ? tariffBox() : '';
+    if (!warn.length && !link && !plan) return '';
+    return `<div class="wrap wrap-banner">${warn.join('')}${plan}${link}</div>`;
   }
 
   function bindNav() {
@@ -193,13 +193,42 @@
   // ---------- Лимит тарифа ----------
   // Лимит исчерпан: добавить и дублировать нельзя, остальное работает как обычно —
   // квартиры остаются на сайте, их можно менять и удалять (проданные удаляют — место освобождается).
+  // «Мой тариф» для менеджера: до какой даты оплачено, сколько дней осталось, квартиры из лимита, продление
+  const fmtDate = d => (d ? d.split('-').reverse().join('.') : '');
+  const daysWord = n => plural(Math.abs(n), 'день', 'дня', 'дней');
+  const waOwner = text => (me.product.whatsapp ? `https://wa.me/${me.product.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`${text} Мой сайт: ${me.realtor.url}`)}` : '');
+  function tariffBox() {
+    if (isOwner()) return '';
+    const r = me.realtor, plan = r.plan || {};
+    const until = plan.paidUntil;
+    const days = until ? Math.round((Date.parse(until) - Date.parse(new Date().toISOString().slice(0, 10))) / 864e5) : null;
+    const tone = days === null ? '' : days < 0 ? ' bad' : days <= 5 ? ' warn-t' : '';
+    const left = days === null ? 'Без ограничения срока'
+      : days < 0 ? `Оплата закончилась ${fmtDate(until)}`
+      : days === 0 ? 'Последний день оплаты' : `Осталось ${days} ${daysWord(days)}`;
+    const max = Number(plan.maxApartments) || 0;
+    const count = aptCount || r.count || 0;
+    const extra = Number(me.product.extraPrice) || 0;
+    const renew = waOwner(`Здравствуйте! Хочу продлить кабинет${until ? ` (оплачено до ${fmtDate(until)})` : ''}.`);
+    const more = waOwner(`Здравствуйте! Хочу добавить квартиры к лимиту${extra ? ` (${extra} сом за квартиру)` : ''}.`);
+    const prices = [me.product.priceMonth && `1 мес — ${nf.format(me.product.priceMonth)} сом`, me.product.price3 && `3 мес — ${nf.format(me.product.price3)} сом`, me.product.price6 && `6 мес — ${nf.format(me.product.price6)} сом`].filter(Boolean).join(' · ');
+    return `<div class="tariff${tone}">
+      <div class="tariff-head"><span>Мой тариф</span>${until ? `<small>оплачено до ${fmtDate(until)}</small>` : ''}</div>
+      <div class="tariff-left">${left}</div>
+      <div class="tariff-row"><span>Квартир</span><b>${max ? `${count} из ${max}` : `${count} · без ограничения`}</b></div>
+      ${prices ? `<div class="tariff-row"><span>Продление</span><b>${prices}</b></div>` : ''}
+      ${extra ? `<div class="tariff-row"><span>Доп. квартира</span><b>${nf.format(extra)} сом в месяц</b></div>` : ''}
+      ${renew ? `<div class="tariff-btns"><a class="btn btn-primary" href="${renew}" target="_blank" rel="noopener">Продлить</a><a class="btn" href="${more}" target="_blank" rel="noopener">Добавить квартиры</a></div>` : ''}
+    </div>`;
+  }
+
   let aptCount = 0;
   const atLimit = () => !!(me.realtor.plan.maxApartments && aptCount >= me.realtor.plan.maxApartments);
   function limitInfo() {
     const wa = me.product.whatsapp ? `https://wa.me/${me.product.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Здравствуйте! Хочу расширить лимит квартир. Мой сайт: ${me.realtor.url}`)}` : '';
     modal({
       title: 'Лимит квартир исчерпан',
-      text: `По вашему тарифу можно ${flats(me.realtor.plan.maxApartments)}, сейчас ${aptCount}. Все квартиры остаются на сайте. Чтобы добавить новую — удалите проданную или расширьте тариф.`,
+      text: `По вашему тарифу можно ${flats(me.realtor.plan.maxApartments)}, сейчас ${aptCount}. Все квартиры остаются на сайте. Чтобы добавить новую — удалите проданную или докупите места${Number(me.product.extraPrice) ? ` (${nf.format(me.product.extraPrice)} сом за квартиру в месяц)` : ''}.`,
       html: wa ? `<a class="btn btn-wa-admin" href="${wa}" target="_blank" rel="noopener">Написать о расширении тарифа</a>` : '',
       okText: 'Понятно', cancelText: '',
     });
@@ -730,7 +759,7 @@
           <label class="f"><span>WhatsApp менеджера</span><input name="whatsapp" type="tel" placeholder="+996 …"></label>
           <div class="grid2">
             <label class="f"><span>Оплачено до</span><input name="paidUntil" type="date" value="${inMonth}"></label>
-            <label class="f"><span>Лимит квартир</span><input name="maxApartments" inputmode="numeric" value="20"></label>
+            <label class="f"><span>Лимит квартир</span><input name="maxApartments" inputmode="numeric" value="${esc(product.includedApartments || 20)}"></label>
           </div>
           <label class="f"><span>Заметка (видите только вы)</span><input name="note" placeholder="Тариф, сумма, контакт…"></label>
           <div class="hint" style="margin:-4px 0 10px">Пустой адрес — возьмём имя латиницей. Пустой пароль — сгенерируем надёжный. Лимит 0 — без ограничения.</div>
@@ -779,7 +808,11 @@
             <label class="f"><span>Цена за 3 месяца, сом</span><input name="price3" inputmode="numeric" value="${esc(product.price3)}"></label>
             <label class="f"><span>Цена за 6 месяцев, сом</span><input name="price6" inputmode="numeric" value="${esc(product.price6)}"></label>
           </div>
-          <div class="hint" style="margin:-6px 0 12px">Показываются на странице /partner. Пусто — блок цен скрыт.</div>
+          <div class="grid2">
+            <label class="f"><span>Квартир в тарифе</span><input name="includedApartments" inputmode="numeric" value="${esc(product.includedApartments)}"></label>
+            <label class="f"><span>Доп. квартира, сом/мес</span><input name="extraPrice" inputmode="numeric" value="${esc(product.extraPrice)}"></label>
+          </div>
+          <div class="hint" style="margin:-6px 0 12px">Показываются на странице /partner и в кабинете менеджеров. «Квартир в тарифе» — лимит нового менеджера по умолчанию. Пустые цены — блок цен скрыт.</div>
           <label class="f"><span>Цена (текст, если цены выше пустые)</span><input name="priceText" value="${esc(product.priceText)}" placeholder="Например: 1 500 сом в месяц, первая неделя бесплатно"></label>
           <label class="f"><span>Что открывать по адресу ${esc(location.host)}/</span><select name="rootRealtorId">
             <option value="">Мой сайт (по умолчанию)</option>
