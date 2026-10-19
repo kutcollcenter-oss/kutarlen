@@ -1,0 +1,18 @@
+[Unit]
+Description=kvartiry.asia — сайт менеджеров
+After=network.target
+
+[Service]
+Type=simple
+User=kvartiry
+WorkingDirectory=/var/www/kvartiry
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=HOST=127.0.0.1
+ExecStart=/usr/bin/node server.js
+# Упал — поднимется сам через 3 секунды
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

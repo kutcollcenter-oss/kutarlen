@@ -1,0 +1,4 @@
+# Скрипты для сервера (Linux) — всегда с переносами строк LF
+*.sh text eol=lf
+*.service text eol=lf
+deploy/nginx.conf text eol=lf

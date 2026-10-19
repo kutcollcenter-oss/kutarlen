@@ -67,4 +67,4 @@ C:\Users\arlen\realtor-site\publish.cmd "что изменилось"
 
 ## На сервере (VPS)
 
-Запускать через pm2 или systemd за nginx с HTTPS (Let's Encrypt). Резервные копии `data/` и `uploads/` стоит дополнительно копировать за пределы сервера.
+Пошаговая установка — [deploy/README.md](deploy/README.md) (systemd + nginx + HTTPS). База `data/` и фото `uploads/` в GitHub не хранятся: они переносятся на сервер один раз и дальше живут только там.

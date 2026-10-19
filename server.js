@@ -645,7 +645,8 @@ app.use((req, res) => res.status(404).send(pages.renderInvalid(D().product, base
   }
   analytics.prune();
   db.scheduleBackups();
-  app.listen(PORT, () => {
+  // На сервере HOST=127.0.0.1: сайт доступен только через nginx (HTTPS), напрямую порт закрыт
+  app.listen(PORT, process.env.HOST || '0.0.0.0', () => {
     const owner = D().users.find(u => u.role === 'owner');
     const own = owner && realtorById(owner.realtorId);
     console.log(`Сайт:    http://localhost:${PORT}${own ? '/' + own.slug : ''}`);
