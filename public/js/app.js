@@ -207,7 +207,7 @@
           <div><span>Цена</span><b>${money(a.price, c)}</b></div>
         </div>`
       : '';
-    const text = a.installment ? a.waText.replace(/взнос [^,]+, [^,]+ в месяц на \d+ мес\./, `взнос ${money(a.o.down, c)}, ${money(a.o.monthly, c)} в месяц на ${a.months} мес.`).replace(a.url, url) : a.waText;
+    const text = a.installment ? a.waText.replace(/Взнос: [^\n]*\nВ месяц: [^\n]*/, `Взнос: ${money(a.o.down, c)}\nВ месяц: ${money(a.o.monthly, c)} на ${a.months} мес.`).replace(a.url, url) : a.waText;
     return `<article class="card">
       <a class="card-link" href="${url}">
         <div class="card-photo">${photo}<div class="tags">${a.tags.map(t => `<span class="tag${tagCls(t)}">${esc(t)}</span>`).join('')}</div></div>

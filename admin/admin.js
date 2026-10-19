@@ -280,7 +280,7 @@
     const k = c.currency;
     const line = c.installment
       ? `${money(c.price, k)} · ${money(c.monthly, k)}/мес · ${c.months} мес.`
-      : c.price ? money(c.price, k) : '<span style="color:#dc2626">Цена не указана — на сайте не видна</span>';
+      : c.price ? money(c.price, k) : '<span style="color:var(--bad)">Цена не указана — на сайте не видна</span>';
     return `<div class="item" data-id="${a.id}">
       ${img}
       <div><div class="t">${esc(a.title || 'Без названия')} <span class="badge badge-${c.type}">${TYPES[c.type]}</span></div>

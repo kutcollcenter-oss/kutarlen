@@ -347,3 +347,155 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--i
 .tariff-row b { font-weight: 500; text-align: right; }
 .tariff-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
 .tariff-btns .btn { min-height: 42px; }
+
+/* =====================================================================
+   Тёмная тема в стиле payloadcms.com: чёрный фон, белый текст, тонкие
+   светлые линии сетки, белая главная кнопка, моно-подписи, синий акцент.
+   ===================================================================== */
+:root {
+  --bg: #000; --s1: #0d0d0d; --s2: #161616; --s3: #1f1f1f;
+  --ink: #fff; --muted: rgba(255,255,255,.55); --line: rgba(255,255,255,.12); --line2: rgba(255,255,255,.24);
+  --primary: #fff; --accent: #33a0c8; --accent-l: rgba(51,160,200,.14);
+  --ok: #4cc38a; --warn: #f5a524; --bad: #ff5a4f; --sage: var(--accent); --sage-l: var(--accent-l);
+  --font: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--ink); font-family: var(--font); letter-spacing: -.005em; }
+::selection { background: var(--accent); color: #fff; }
+
+/* Вертикальные линии сетки по краям контента, как на payloadcms.com */
+@media (min-width: 1024px) {
+  body::before { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background: linear-gradient(var(--line), var(--line)) calc(50% - 460px) 0 / 1px 100% no-repeat,
+                linear-gradient(var(--line), var(--line)) calc(50% + 460px) 0 / 1px 100% no-repeat; }
+  #app { position: relative; z-index: 1; }
+}
+
+/* Шапка */
+.top { background: rgba(0,0,0,.82); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: var(--ink); border-bottom: 1px solid var(--line); }
+.top a, .top button { color: var(--muted); }
+.top a:hover, .top button:hover, .top .on { color: var(--ink); }
+.top .on::after { background: var(--ink); }
+.top .ext { color: var(--accent); }
+.top-title { color: var(--ink); }
+
+/* Заголовки */
+h1 { font-weight: 500; text-transform: none; letter-spacing: -.035em; font-size: clamp(28px, 5.5vw, 40px); }
+h2 { color: var(--ink); }
+.card > h2:first-child, details.card > summary b { color: var(--muted); }
+
+/* Блоки */
+.card, .item, .kpi, .linkbox, .stat-grid div, .rev, .tariff, table { background: var(--s1); border: 1px solid var(--line); border-radius: 4px; color: var(--ink); }
+.item:hover { border-color: var(--line2); }
+.item img, .item .noimg, .photo { background: var(--s3); }
+.item .s, .hint, .rt-stats { color: var(--muted); }
+.rt-stats b { color: var(--ink); }
+.linkrow code, .tagrow code, pre { background: var(--s2); color: var(--ink); border: 1px solid var(--line); }
+td, .tbl td, .tagrow { border-top-color: var(--line); }
+.logo-prev { border-color: var(--line); }
+
+/* Кнопки: главная — белая, остальные — контур */
+.btn { background: transparent; color: var(--ink); border: 1px solid var(--line2); }
+.btn:hover { border-color: var(--ink); background: rgba(255,255,255,.04); }
+.btn-primary { background: #fff; color: #000; border-color: #fff; }
+.btn-primary:hover { background: rgba(255,255,255,.85); border-color: rgba(255,255,255,.85); color: #000; }
+.btn-danger { color: var(--bad); border-color: rgba(255,90,79,.35); }
+.btn-danger:hover { border-color: var(--bad); background: rgba(255,90,79,.08); }
+.btn-danger-fill { background: var(--bad); border-color: var(--bad); color: #fff; }
+.btn-wa-admin { background: #25d366; border-color: #25d366; color: #fff; }
+.filters button { background: transparent; color: var(--muted); border-color: var(--line2); border-radius: 4px; }
+.filters button.on { background: #fff; color: #000; border-color: #fff; }
+
+/* Поля ввода */
+label.f > span, .f > span { color: var(--muted); }
+input[type=text], input[type=number], input[type=password], input[type=tel], input[type=date], select, textarea, .rev input, .modal-box .modal-in {
+  background: var(--s2); color: var(--ink); border: 1px solid var(--line); }
+input::placeholder, textarea::placeholder { color: rgba(255,255,255,.3); }
+input:focus, select:focus, textarea:focus { border-color: var(--accent) !important; background: var(--s3) !important; box-shadow: 0 0 0 3px var(--accent-l); }
+select option { background: var(--s2); color: var(--ink); }
+.slug-in { background: var(--s2); border-color: var(--line); }
+.slug-in input { background: transparent !important; box-shadow: none !important; }
+.slug-in:focus-within { border-color: var(--accent); }
+.upload { background: var(--accent-l); border: 1px dashed var(--accent); color: var(--ink); }
+.calcbox { background: var(--accent-l); color: var(--ink); border: 1px solid rgba(51,160,200,.3); }
+.seg button { background: var(--s1); color: var(--ink); border-color: var(--line2); }
+.seg button small { color: var(--muted); }
+.seg button.on { background: #fff; color: #000; border-color: #fff; }
+.seg button.on small { color: rgba(0,0,0,.6); }
+.check input { accent-color: var(--accent); }
+.photo .main { background: var(--accent); }
+.photo .pa button { background: rgba(0,0,0,.75); border: 1px solid var(--line2); }
+.savebar { background: linear-gradient(transparent, var(--bg) 35%); }
+
+/* Метки и статусы */
+.badge-new, .badge-installment { background: var(--accent-l); color: #7cc8e6; }
+.badge-resale, .badge-cash { background: rgba(245,165,36,.14); color: #f5c06b; }
+.st-active, .st-unlimited { background: rgba(76,195,138,.14); color: #6fdcaa; }
+.st-ending { background: rgba(245,165,36,.14); color: #f5c06b; }
+.st-expired, .st-blocked { background: rgba(255,90,79,.14); color: #ff8a82; }
+.warn { background: rgba(245,165,36,.1); color: #f5c06b; border: 1px solid rgba(245,165,36,.3); }
+.warn.bad { background: rgba(255,90,79,.1); color: #ff8a82; border-color: rgba(255,90,79,.3); }
+.up { color: var(--ok); } .down { color: var(--bad); } .err { color: var(--bad); }
+.item.rt.is-blocked { background: rgba(255,90,79,.05); border-left: 3px solid var(--bad); }
+.item.rt.is-blocked .t { color: #ff8a82; }
+
+/* Тариф */
+.tariff { border-left: 3px solid var(--accent); }
+.tariff.warn-t { background: rgba(245,165,36,.06); border-left-color: var(--warn); }
+.tariff.bad { background: rgba(255,90,79,.06); border-left-color: var(--bad); }
+.tariff.warn-t .tariff-left { color: #f5c06b; }
+.tariff.bad .tariff-left { color: #ff8a82; }
+.tariff-row { border-top-color: var(--line); }
+
+/* Аналитика */
+.kpi b { font-weight: 500; letter-spacing: -.03em; }
+.chart { border-bottom-color: var(--line); }
+.chart .bar, .lv { background: rgba(255,255,255,.14); }
+.chart .bar i, .lw { background: var(--accent); }
+.fn-bar, .mini-bar { background: var(--s3); }
+.fn-bar i, .mini-bar i { background: var(--accent); }
+.dev { background: var(--accent); } .dev i { background: rgba(255,255,255,.18); }
+
+/* Нижнее меню телефона */
+.atab { background: rgba(0,0,0,.9); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid var(--line); }
+.atab a { color: var(--muted); }
+.atab a.on { color: var(--ink); }
+.atab a.on::before { background: var(--ink); }
+.atab a.ext { color: var(--accent); }
+
+/* Окна и сообщения */
+.modal { background: rgba(0,0,0,.7); backdrop-filter: blur(4px); }
+.modal-box { background: var(--s1); border: 1px solid var(--line2); color: var(--ink); box-shadow: 0 30px 80px rgba(0,0,0,.6); }
+.modal-box p { color: var(--muted); }
+.toast { background: #fff; color: #000; }
+
+/* ===== Обложка входа ===== */
+.auth { --ink2: #fff; --sage: var(--accent); --sage-d: #7cc8e6; background: #000; color: #fff; font-family: var(--font); }
+.auth-cover { background:
+    radial-gradient(120% 80% at 85% -10%, rgba(51,160,200,.35), transparent 55%),
+    linear-gradient(115deg, transparent 35%, rgba(70,110,170,.18) 45%, transparent 55%),
+    linear-gradient(115deg, transparent 55%, rgba(70,110,170,.12) 62%, transparent 70%),
+    #000;
+  border-right: 1px solid var(--line); }
+.auth-cover::before { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 80px 80px; mask-image: linear-gradient(to bottom, #000, transparent 85%); -webkit-mask-image: linear-gradient(to bottom, #000, transparent 85%); opacity: .5; }
+.auth-cover h1 { text-transform: none; font-weight: 500; letter-spacing: -.04em; }
+.auth-cover h1 em { color: rgba(255,255,255,.5); }
+.auth-points li { color: rgba(255,255,255,.7); }
+.auth-points li::before { background: var(--accent); }
+.auth-sky { opacity: .3; }
+.auth-sky path.win { stroke: var(--accent); }
+.auth-side { background: #000; }
+.auth .login { background: var(--s1); border: 1px solid var(--line); border-radius: 4px; }
+.auth .login h2 { text-transform: none; font-weight: 500; letter-spacing: -.02em; }
+.auth .login label.f > span { color: var(--muted); }
+.auth .login input { background: var(--s2); border-color: var(--line); border-radius: 4px; color: #fff; }
+.auth .login input:focus { outline: none; border-color: var(--accent); background: var(--s3); }
+.auth .login .btn-primary { background: #fff; color: #000; border-color: #fff; border-radius: 4px; }
+.auth .login .btn-primary:hover { background: rgba(255,255,255,.85); border-color: rgba(255,255,255,.85); color: #000; }
+.auth-help { background: var(--s1); border: 1px solid var(--line); border-radius: 4px; }
+.auth-help-a { color: var(--muted); }
+.auth-wa { border-radius: 4px; }
+.auth-wa.ghost { color: #fff; border-color: var(--line2); }
+.auth-phone { color: var(--muted); }

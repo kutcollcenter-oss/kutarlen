@@ -30,8 +30,8 @@
     // Готовое сообщение в WhatsApp — с выбранным взносом
     const url = `${D.base}${a.url}`;
     const pay = m
-      ? `взнос ${money(d, cur)}, ${money(m, cur)} в месяц на ${a.months} мес.`
-      : `полная оплата ${money(a.price, cur)}`;
+      ? `Взнос: ${money(d, cur)}\nВ месяц: ${money(m, cur)} на ${a.months} мес.`
+      : `Взнос: ${money(a.price, cur)} (полная оплата)`;
     // Взноса хватает на покупку за наличные — подсвечиваем выгоду и предлагаем купить дешевле
     const cash = a.cash;
     const hit = !!cash && d >= cash.price;
@@ -48,7 +48,7 @@
         : 'Внесите больше — платёж в месяц станет меньше';
     }
 
-    const text = hit ? cash.waText : a.waText.replace(/взнос [^,]+, [^,]+ в месяц на \d+ мес\./, pay);
+    const text = hit ? cash.waText : a.waText.replace(/Взнос: [^\n]*\nВ месяц: [^\n]*/, pay);
     const link = wa(text);
     $('aptWa').href = link;
     $('aptWa').lastChild.textContent = hit ? 'Хочу купить за наличные' : 'Хочу эту квартиру';
