@@ -3,8 +3,8 @@
 // Рассчитан на телефон. Статусов у квартир нет: квартира либо на сайте, либо удалена.
 (function () {
   const app = document.getElementById('app');
-  const TYPES = { installment: 'Рассрочка', cash: 'Наличные' };
-  const typeOf = a => (a.type === 'cash' || a.type === 'resale' ? 'cash' : 'installment');
+  const TYPES = { installment: 'Рассрочка', commercial: 'Коммерция', cash: 'Наличные' };
+  const typeOf = a => (a.type === 'cash' || a.type === 'resale' ? 'cash' : a.type === 'commercial' ? 'commercial' : 'installment');
   const nf = new Intl.NumberFormat('ru-RU');
   let settings = null;
   let me = null; // { login, role, defaultPassword, realtor: { url, status, plan, count }, product }
@@ -319,6 +319,7 @@
         <div class="card">
           <div class="seg" id="type">
             <button type="button" data-v="installment">Рассрочка<small>цены в ${esc(cur('installment'))}</small></button>
+            <button type="button" data-v="commercial">Коммерция<small>рассрочка, ${esc(cur('installment'))}</small></button>
             <button type="button" data-v="cash">Наличные<small>цены в ${esc(cur('cash'))}</small></button>
           </div>
         </div>
@@ -331,10 +332,10 @@
         <div class="card">
           ${f('title', 'Название (ЖК / дом)')}
           <div class="grid2">
-            <label class="f"><span>Комнаты</span><select name="rooms">${[0, 1, 2, 3, 4, 5, 6].map(r => `<option value="${r}" ${+a.rooms === r ? 'selected' : ''}>${r === 0 ? 'Студия' : r}</option>`).join('')}</select></label>
+            <label class="f" data-for="installment cash"><span>Комнаты</span><select name="rooms">${[0, 1, 2, 3, 4, 5, 6].map(r => `<option value="${r}" ${+a.rooms === r ? 'selected' : ''}>${r === 0 ? 'Студия' : r}</option>`).join('')}</select></label>
             ${n('area', 'Площадь, м²')}
           </div>
-          <div data-for="installment">
+          <div data-for="installment commercial">
             ${n('pricePerM2', `Цена за м², ${esc(cur('installment'))}`)}
             <div class="grid2">
               ${n('down', `Мин. взнос, ${esc(cur('installment'))}`)}
@@ -379,7 +380,7 @@
     function setType(t) {
       type = t;
       form.querySelectorAll('#type button').forEach(b => b.classList.toggle('on', b.dataset.v === t));
-      form.querySelectorAll('[data-for]').forEach(el => { el.hidden = el.dataset.for !== t; });
+      form.querySelectorAll('[data-for]').forEach(el => { el.hidden = !el.dataset.for.split(' ').includes(t); });
       updCalc();
     }
     // Платёж в месяц не вводится — считается: (цена за м² × м² − взнос) / срок
@@ -436,7 +437,7 @@
       const d = readForm();
       const ok = type === 'cash' ? d.price > 0 && d.area > 0 : d.pricePerM2 > 0 && d.area > 0;
       if (!ok && !(await confirmBox('Сохранить без цены?', 'Цена или площадь не указаны — квартира не появится на сайте, пока их не заполните.', 'Сохранить'))) return;
-      if (ok && type === 'installment' && !(d.months > 0) && !(await confirmBox('Сохранить без срока?', 'Не указан срок рассрочки — на сайте будет только цена при 100% оплате.', 'Сохранить'))) return;
+      if (ok && type !== 'cash' && !(d.months > 0) && !(await confirmBox('Сохранить без срока?', 'Не указан срок рассрочки — на сайте будет только цена при 100% оплате.', 'Сохранить'))) return;
       const saved = isNewRecord
         ? await api('POST', '/api/admin/apartments', d)
         : await api('PUT', `/api/admin/apartments/${a.id}`, d);
@@ -733,7 +734,7 @@
     if (!isOwner()) { location.hash = '#list'; return; }
     const [list, product, mine] = await Promise.all([api('GET', '/api/owner/realtors'), api('GET', '/api/owner/product'), api('GET', '/api/admin/apartments')]);
     // Сколько квартир в рассрочку скопируется новому менеджеру (наличные не копируются)
-    const myInstallment = mine.filter(a => a.computed.installment || (typeOf(a) === 'installment' && a.computed.price)).length;
+    const myInstallment = mine.filter(a => a.computed.installment || (typeOf(a) !== 'cash' && a.computed.price)).length;
     const others = list.filter(x => x.role !== 'owner');
     const paying = others.filter(x => x.status.active && !x.blocked).length;
     const inMonth = addMonths('', 1);

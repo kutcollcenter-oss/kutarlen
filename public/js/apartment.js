@@ -40,7 +40,7 @@
       $('cashOffer').classList.toggle('hit', hit);
       $('coHint').textContent = hit
         ? `Этой суммы хватает, чтобы купить за наличные — вы сэкономите ${money(cash.savings, cur)}`
-        : `Если внести ${money(cash.price, cur)} сразу — квартира ваша без рассрочки и дешевле`;
+        : `Если внести ${money(cash.price, cur)} сразу — ${a.type === 'commercial' ? 'помещение ваше' : 'квартира ваша'} без рассрочки и дешевле`;
       const hint = $('cHint');
       hint.classList.toggle('hit', hit);
       hint.innerHTML = hit
@@ -51,7 +51,7 @@
     const text = hit ? cash.waText : a.waText.replace(/Взнос: [^\n]*\nВ месяц: [^\n]*/, pay);
     const link = wa(text);
     $('aptWa').href = link;
-    $('aptWa').lastChild.textContent = hit ? 'Хочу купить за наличные' : 'Хочу эту квартиру';
+    $('aptWa').lastChild.textContent = hit ? 'Хочу купить за наличные' : a.type === 'commercial' ? 'Хочу это помещение' : 'Хочу эту квартиру';
     const tab = $('tabWa'); if (tab) tab.href = link;
   }
 

@@ -8,7 +8,7 @@ const multer = require('multer');
 const sharp = require('sharp');
 const db = require('./lib/db');
 const seed = require('./lib/seed');
-const { publicApt, roomsLabel, money, isListed, typeOf, TYPES } = require('./lib/calc');
+const { publicApt, kindLabel, money, isListed, typeOf, TYPES } = require('./lib/calc');
 const { resolveMap } = require('./lib/maps');
 const pages = require('./lib/pages');
 const auth = require('./lib/auth');
@@ -46,7 +46,7 @@ const isVisible = isListed; // статусов нет: на сайте все �
 const siteUrl = (req, r) => `${base(req)}/${r.slug}`;
 const ctxOf = (r, req) => ({ s: r.settings, base: base(req), prefix: `/${r.slug}`, slug: r.slug });
 const pub = (r, a, req) => publicApt(a, r.settings, base(req), `/${r.slug}`);
-const aptLabel = a => `${a.title ? a.title + ' · ' : ''}${roomsLabel(a.rooms)}, ${a.area} м²`;
+const aptLabel = a => `${a.title ? a.title + ' · ' : ''}${kindLabel(a)}, ${a.area} м²`;
 
 function similarTo(r, a, req, limit = 4) {
   const ref = a ? pub(r, a, req) : null;
@@ -321,7 +321,7 @@ app.get('/api/admin/apartments', requireAuth, (req, res) => {
 });
 
 const FIELDS = {
-  type: v => (v === 'cash' || v === 'resale' ? 'cash' : 'installment'),
+  type: v => typeOf({ type: v }),
   title: v => String(v || '').trim().slice(0, 120),
   rooms: v => Math.max(0, Math.min(10, parseInt(v) || 0)),
   area: v => Math.max(0, Number(v) || 0),
@@ -535,7 +535,7 @@ function copyOwnerApartments(owner, r) {
   // Копии из прошлой версии без copiedFrom узнаём по названию, площади и главному фото
   const sig = a => `${a.title}|${a.area}|${(a.photos || [])[0] || ''}`;
   const mineSigs = new Set(mine.map(sig));
-  const src = aptsOf(owner.id).filter(a => isVisible(a) && typeOf(a) === 'installment' && !already.has(a.id) && !mineSigs.has(sig(a)));
+  const src = aptsOf(owner.id).filter(a => isVisible(a) && typeOf(a) !== 'cash' && !already.has(a.id) && !mineSigs.has(sig(a)));
   const free = Number(r.plan.maxApartments) ? Math.max(0, Number(r.plan.maxApartments) - mine.length) : Infinity;
   const take = src.slice(0, free);
   for (const a of take) {

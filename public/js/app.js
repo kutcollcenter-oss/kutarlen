@@ -139,9 +139,11 @@
     setupRange(aLo, B.area, st.area[0]); setupRange(aHi, B.area, st.area[1]);
     $('fType').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === st.type));
     $('fRooms').querySelectorAll('button').forEach(b => b.classList.toggle('on', st.rooms.has(b.dataset.v)));
-    const isNew = st.type === 'installment';
+    // Коммерция считается как рассрочка: те же ползунки взноса и платежа, только без комнат
+    const isNew = st.type !== 'cash';
     $('fDownWrap').hidden = !isNew;
     $('fMonthlyWrap').hidden = !isNew;
+    $('fRoomsWrap').hidden = st.type === 'commercial';
   }
 
   fDown.addEventListener('input', () => { st.down = +fDown.value >= B.down.max ? null : +fDown.value; update(); });
@@ -217,7 +219,7 @@
           ${a.address ? `<div class="card-addr">${I.pin}${esc(a.address)}</div>` : ''}
           ${pay}
           <div class="feats">
-            <span>${I.bed}${a.roomsLabel}</span><span>${I.area}${a.area} м²</span>
+            ${a.type === 'commercial' ? '' : `<span>${I.bed}${a.roomsLabel}</span>`}<span>${I.area}${a.area} м²</span>
             ${a.floorFrom ? `<span>${I.floor}от ${a.floorFrom} эт.</span>` : ''}
             <span class="feats-ppm">${money(a.pricePerM2, c)}/м²</span>
           </div>
@@ -246,7 +248,9 @@
       .map(a => ({ ...a, o: offer(a) }))
       .filter(a => a.o)
       .sort(SORTS[$('sort').value]);
-    $('count').textContent = `Найдено: ${list.length} ${plural(list.length, 'квартира', 'квартиры', 'квартир')}`;
+    $('count').textContent = st.type === 'commercial'
+      ? `Найдено: ${list.length} ${plural(list.length, 'помещение', 'помещения', 'помещений')}`
+      : `Найдено: ${list.length} ${plural(list.length, 'квартира', 'квартиры', 'квартир')}`;
     if (list.length) {
       $('cards').innerHTML = list.map(card).join('');
     } else {
@@ -255,8 +259,8 @@
         st.monthly != null && `платёж до ${money(st.monthly, c)} в месяц`,
         st.rooms.size && `комнат: ${[...st.rooms].map(r => (r === '1' ? '1 или студия' : r === '4' ? '4+' : r)).join(', ')}`,
       ].filter(Boolean).join(', ');
-      const kind = st.type === 'cash' ? 'за наличные' : 'в рассрочку';
-      const text = `Здравствуйте! Подберите, пожалуйста, квартиру ${kind}${budget ? `: ${budget}` : ''}.`;
+      const kind = st.type === 'cash' ? 'квартиру за наличные' : st.type === 'commercial' ? 'коммерческое помещение в рассрочку' : 'квартиру в рассрочку';
+      const text = `Здравствуйте! Подберите, пожалуйста, ${kind}${budget ? `: ${budget}` : ''}.`;
       $('cards').innerHTML = `<div class="empty">
         <p><b>Под эти условия сейчас нет квартир на сайте.</b><br>Напишите — подберу вручную.</p>
         <a class="btn btn-wa btn-lg" href="${esc(wa(text))}" data-wa="empty" target="_blank" rel="noopener">${D.waIcon}Подберу вручную</a>
@@ -264,8 +268,11 @@
     }
   }
 
-  // Если вторички нет — вкладку не показываем
-  if (!APTS.some(a => a.type === 'cash')) $('fType').hidden = true;
+  // Вкладки только тех категорий, что есть на сайте; если категория одна — вкладок нет
+  const has = t => APTS.some(a => a.type === t);
+  $('fType').querySelectorAll('button').forEach(b => { b.hidden = !has(b.dataset.v); });
+  if (['installment', 'commercial', 'cash'].filter(has).length < 2) $('fType').hidden = true;
+  if (!has(st.type)) st.type = ['installment', 'commercial', 'cash'].find(has) || 'installment';
   reset();
   syncInputs();
   update();

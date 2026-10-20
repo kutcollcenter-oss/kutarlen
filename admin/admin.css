@@ -499,3 +499,7 @@ select option { background: var(--s2); color: var(--ink); }
 .auth-wa { border-radius: 4px; }
 .auth-wa.ghost { color: #fff; border-color: var(--line2); }
 .auth-phone { color: var(--muted); }
+
+/* Коммерческое помещение — третья категория */
+#type.seg { grid-template-columns: repeat(3, 1fr); }
+.badge-commercial { background: rgba(167,139,250,.16); color: #c4b5fd; }
