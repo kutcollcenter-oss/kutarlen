@@ -177,6 +177,20 @@
   // Аналитика: посетитель пользовался фильтром (один раз за визит страницы)
   ['input', 'click'].forEach(t => $('filter').addEventListener(t, () => window.RS.once('filter')));
 
+  // Нажатие на фото в карточке — просмотр всех фото на весь экран (остальная карточка ведёт на страницу квартиры)
+  $('cards').addEventListener('click', e => {
+    const ph = e.target.closest('.card-photo');
+    if (!ph || !ph.querySelector('img')) return;
+    e.preventDefault();
+    const a = APTS.find(x => String(x.id) === ph.dataset.id);
+    if (!a) return;
+    const link = ph.closest('.card-link');
+    window.RS.lightbox(a.photos.map(p => p.src), +(ph.dataset.i || 0), {
+      href: link && link.getAttribute('href'),
+      label: a.type === 'commercial' ? 'Подробнее о помещении' : 'Подробнее о квартире',
+    });
+  });
+
   function match(a) {
     if (a.price < st.price[0] || a.price > st.price[1]) return false;
     if (a.area < st.area[0] || a.area > st.area[1]) return false;
@@ -197,7 +211,11 @@
 
   function card(a) {
     const c = a.currency;
-    const photo = a.photos[0] ? `<img src="${a.photos[0].thumb}" alt="" loading="lazy">` : '<div class="ph"></div>';
+    // Все фото квартиры в карточке: листаются сами, по нажатию открываются на весь экран
+    const photo = a.photos.length
+      ? `<div class="cp-track">${a.photos.map(p => `<img src="${p.thumb}" alt="" loading="lazy">`).join('')}</div>
+         ${a.photos.length > 1 ? `<div class="cp-dots">${a.photos.map((p, i) => `<i${i ? '' : ' class="on"'}></i>`).join('')}</div>` : ''}`
+      : '<div class="ph"></div>';
     const url = a.installment && a.o.down !== a.down ? `${a.url}?down=${a.o.down}` : a.url;
     const main = a.installment
       ? `<div class="card-price"><b>${money(a.o.monthly, c)}</b><span>/ мес</span></div>`
@@ -212,7 +230,7 @@
     const text = a.installment ? a.waText.replace(/Взнос: [^\n]*\nВ месяц: [^\n]*/, `Взнос: ${money(a.o.down, c)}\nВ месяц: ${money(a.o.monthly, c)} на ${a.months} мес.`).replace(a.url, url) : a.waText;
     return `<article class="card">
       <a class="card-link" href="${url}">
-        <div class="card-photo">${photo}<div class="tags">${a.tags.map(t => `<span class="tag${tagCls(t)}">${esc(t)}</span>`).join('')}</div></div>
+        <div class="card-photo" data-id="${a.id}">${photo}<div class="tags">${a.tags.map(t => `<span class="tag${tagCls(t)}">${esc(t)}</span>`).join('')}</div></div>
         <div class="card-body">
           ${main}
           <div class="card-title">${a.roomsLabel}, ${a.area} м²${a.title ? ` · ${esc(a.title)}` : ''}</div>
@@ -253,6 +271,7 @@
       : `Найдено: ${list.length} ${plural(list.length, 'квартира', 'квартиры', 'квартир')}`;
     if (list.length) {
       $('cards').innerHTML = list.map(card).join('');
+      window.RS.slides($('cards').querySelectorAll('.card-photo'));
     } else {
       const budget = [
         st.down != null && `взнос до ${money(st.down, c)}`,

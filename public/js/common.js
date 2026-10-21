@@ -232,14 +232,125 @@
     setActive();
   }
 
-  // Галерея на странице квартиры
+  // ---------- Фото: автолистание каждые 2 секунды и просмотр на весь экран ----------
+  const SLIDE_MS = 2000;
+  const lbOpen = () => document.documentElement.classList.contains('lb-on');
+
+  // Карточки квартир: листаем только те, что видны на экране и не под курсором
+  const shown = new Set();
+  const slideIo = 'IntersectionObserver' in window
+    ? new IntersectionObserver(es => es.forEach(e => (e.isIntersecting ? shown.add(e.target) : shown.delete(e.target))), { threshold: 0.4 })
+    : null;
+  function showSlide(el, i) {
+    const imgs = el.querySelectorAll('.cp-track img');
+    el.dataset.i = i;
+    el.querySelector('.cp-track').style.transform = `translateX(-${i * 100}%)`;
+    el.querySelectorAll('.cp-dots i').forEach((d, k) => d.classList.toggle('on', k === i));
+    // Следующее фото подгружаем заранее, чтобы при перелистывании не было пустого кадра
+    const next = imgs[(i + 1) % imgs.length];
+    if (next) next.loading = 'eager';
+  }
+  RS.slides = function (list) {
+    list.forEach(el => {
+      if (el.querySelectorAll('.cp-track img').length < 2) return;
+      el.dataset.i = 0;
+      el.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') el.dataset.hover = 1; });
+      el.addEventListener('pointerleave', () => { delete el.dataset.hover; });
+      if (slideIo) slideIo.observe(el); else shown.add(el);
+    });
+  };
+  setInterval(() => {
+    if (document.hidden || lbOpen()) return;
+    shown.forEach(el => {
+      if (!el.isConnected) { shown.delete(el); return; }
+      if (el.dataset.hover) return;
+      const n = el.querySelectorAll('.cp-track img').length;
+      showSlide(el, (+el.dataset.i + 1) % n);
+    });
+  }, SLIDE_MS);
+
+  // Просмотр фото на весь экран: свайп, стрелки, Esc
+  let lb;
+  RS.lightbox = function (srcs, start = 0, opts = {}) {
+    if (!srcs.length) return;
+    if (!lb) {
+      lb = document.createElement('div');
+      lb.className = 'lb';
+      lb.setAttribute('role', 'dialog');
+      lb.setAttribute('aria-modal', 'true');
+      lb.setAttribute('aria-label', 'Фото');
+      lb.innerHTML = `<div class="lb-strip"></div>
+        <button class="lb-btn lb-close" type="button" aria-label="Закрыть">✕</button>
+        <button class="lb-btn lb-prev" type="button" aria-label="Предыдущее фото">‹</button>
+        <button class="lb-btn lb-next" type="button" aria-label="Следующее фото">›</button>
+        <div class="lb-bar"><span class="lb-count"></span><a class="btn btn-primary lb-more" hidden></a></div>`;
+      document.body.appendChild(lb);
+      const strip = lb.querySelector('.lb-strip');
+      const go = d => {
+        const n = strip.children.length;
+        const i = (Math.round(strip.scrollLeft / strip.clientWidth) + d + n) % n;
+        strip.scrollTo({ left: i * strip.clientWidth, behavior: 'smooth' });
+      };
+      const count = () => {
+        const n = strip.children.length;
+        lb.querySelector('.lb-count').textContent = `${Math.min(n, Math.round(strip.scrollLeft / strip.clientWidth) + 1)} / ${n}`;
+      };
+      strip.addEventListener('scroll', count, { passive: true });
+      lb.querySelector('.lb-prev').addEventListener('click', () => go(-1));
+      lb.querySelector('.lb-next').addEventListener('click', () => go(1));
+      lb.querySelector('.lb-close').addEventListener('click', () => RS.lightboxClose());
+      // Нажатие мимо фото закрывает просмотр
+      strip.addEventListener('click', e => { if (e.target.tagName !== 'IMG') RS.lightboxClose(); });
+      document.addEventListener('keydown', e => {
+        if (!lbOpen()) return;
+        if (e.key === 'Escape') RS.lightboxClose();
+        if (e.key === 'ArrowLeft') go(-1);
+        if (e.key === 'ArrowRight') go(1);
+      });
+      lb._count = count;
+    }
+    const strip = lb.querySelector('.lb-strip');
+    strip.innerHTML = srcs.map((s, i) => `<div class="lb-slide"><img src="${RS.esc(s)}" alt="Фото ${i + 1}" ${Math.abs(i - start) > 1 ? 'loading="lazy"' : ''}></div>`).join('');
+    lb.classList.toggle('lb-one', srcs.length < 2);
+    const more = lb.querySelector('.lb-more');
+    more.hidden = !opts.href;
+    if (opts.href) { more.href = opts.href; more.textContent = opts.label || 'Подробнее'; }
+    document.documentElement.classList.add('lb-on');
+    lb.hidden = false;
+    strip.scrollLeft = start * strip.clientWidth;
+    lb._count();
+    lb.querySelector('.lb-close').focus({ preventScroll: true });
+  };
+  RS.lightboxClose = function () {
+    if (!lb) return;
+    lb.hidden = true;
+    document.documentElement.classList.remove('lb-on');
+  };
+
+  // Галерея на странице квартиры: листается сама, по нажатию — на весь экран
   const g = document.getElementById('gallery');
   const cnt = document.getElementById('gcount');
-  if (g && cnt) {
-    const n = g.children.length;
-    g.addEventListener('scroll', () => {
-      const i = Math.round(g.scrollLeft / g.clientWidth);
-      cnt.textContent = `${Math.min(n, i + 1)} / ${n}`;
-    }, { passive: true });
+  if (g && g.querySelector('img')) {
+    const imgs = [...g.querySelectorAll('img')];
+    const n = imgs.length;
+    const at = () => Math.min(n - 1, Math.round(g.scrollLeft / g.clientWidth));
+    if (cnt) g.addEventListener('scroll', () => { cnt.textContent = `${at() + 1} / ${n}`; }, { passive: true });
+    imgs.forEach((img, i) => img.addEventListener('click', () => RS.lightbox(imgs.map(x => x.currentSrc || x.src), i)));
+    if (n > 1) {
+      // Клиент сам листает или держит курсор на фото — автолистание ждёт
+      let pausedTill = 0;
+      const pause = ms => { pausedTill = Date.now() + ms; };
+      ['pointerdown', 'touchstart', 'wheel'].forEach(t => g.addEventListener(t, () => pause(6000), { passive: true }));
+      g.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') pause(1e9); });
+      g.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') pause(0); });
+      let visible = true;
+      if (slideIo) new IntersectionObserver(([e]) => { visible = e.isIntersecting; }).observe(g);
+      setInterval(() => {
+        if (!visible || document.hidden || lbOpen() || Date.now() < pausedTill) return;
+        const next = (at() + 1) % n;
+        imgs[(next + 1) % n].loading = 'eager';
+        g.scrollTo({ left: next * g.clientWidth, behavior: 'smooth' });
+      }, SLIDE_MS);
+    }
   }
 })();
