@@ -516,3 +516,7 @@ select option { background: var(--s2); color: var(--ink); }
 }
 .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; visibility: visible; transition: transform .25s ease, opacity .25s ease; }
 @media (prefers-reduced-motion: reduce) { .toast, .toast.show { transition: none; } }
+
+/* Логотип kvartiry.asia на экране входа */
+.auth-logo { display: block; width: 160px; height: auto; margin: 0 0 28px; }
+@media (max-width: 700px) { .auth-logo { width: 120px; margin-bottom: 20px; } }

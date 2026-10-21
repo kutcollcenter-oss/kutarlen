@@ -161,3 +161,12 @@ body.lx {
 .lx-plan-note { color: var(--lx-muted); font-size: 14px; margin-bottom: 18px; }
 .lx-plan .lx-btn { margin-top: auto; }
 .lx-plans-note { color: var(--lx-muted); font-size: 14px; margin: 18px 0 0; max-width: 820px; }
+
+/* Логотип kvartiry.asia в шапке: знак + название */
+.lx-brand { flex-direction: row; align-items: center; gap: 10px; text-decoration: none; color: var(--lx-text); }
+.lx-brand img { width: 58px; height: 30px; display: block; }
+.lx-brand span { display: flex; flex-direction: column; font-weight: 600; font-size: 17px; letter-spacing: -.01em; line-height: 1.1; }
+.lx-brand b { color: var(--gold); font-weight: 600; }
+.lx-brand span > b { display: inline; }
+.lx-brand small { margin-top: 3px; }
+.lx-brand em { font-style: normal; white-space: nowrap; }

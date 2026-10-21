@@ -99,6 +99,7 @@
       <section class="auth-cover">
         ${SKYLINE}
         <div class="auth-cover-in">
+          <img class="auth-logo" src="/img/brand/logo.png" alt="kvartiry.asia" width="160" height="111">
           <div class="auth-kicker">Кабинет менеджера</div>
           <h1>Ваш сайт продаёт квартиры, <em>пока вы на показах</em></h1>
           <ul class="auth-points">

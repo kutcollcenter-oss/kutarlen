@@ -169,7 +169,31 @@ app.get('/kvartira/:id', (req, res) => {
   res.redirect(301, `/${r.slug}/kvartira/${a.id}`);
 });
 app.get('/privacy', (req, res) => res.redirect(302, '/'));
-app.get('/robots.txt', (req, res) => res.type('text/plain').send('User-agent: *\nDisallow: /admin\nDisallow: /api/\n'));
+// Поисковикам: кабинеты и служебные адреса не индексировать, карта сайта — /sitemap.xml
+app.get('/robots.txt', (req, res) => res.type('text/plain').send(
+  `User-agent: *\nDisallow: /admin\nDisallow: /*/admin\nDisallow: /api/\n\nSitemap: ${base(req)}/sitemap.xml\n`));
+
+// Карта сайта для Google и Яндекса: страница сервиса, сайты менеджеров с оплаченным доступом и их квартиры.
+// Каталог на сайте рисуется скриптом, поэтому здесь поисковик сразу получает все адреса квартир.
+app.get('/sitemap.xml', (req, res) => {
+  const b = base(req);
+  const xmlEsc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const day = v => (v ? String(v).slice(0, 10) : '');
+  const urls = [{ loc: `${b}${PARTNER_PATH}`, pri: '0.6' }];
+  for (const r of D().realtors) {
+    if (!statusOf(r).active) continue;
+    const list = aptsOf(r.id).filter(isVisible);
+    const last = list.map(a => day(a.createdAt)).sort().pop();
+    urls.push({ loc: `${b}/${r.slug}`, last, pri: '1.0' });
+    for (const a of list) urls.push({ loc: `${b}/${r.slug}/kvartira/${a.id}`, last: day(a.createdAt), pri: '0.8' });
+  }
+  const body = urls.map(u => `<url><loc>${xmlEsc(u.loc)}</loc>${u.last ? `<lastmod>${u.last}</lastmod>` : ''}<priority>${u.pri}</priority></url>`).join('\n');
+  res.set('Cache-Control', 'public, max-age=3600').type('application/xml')
+    .send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`);
+});
+
+// Браузеры сами запрашивают /favicon.ico — отдаём иконку kvartiry.asia
+app.get('/favicon.ico', (req, res) => res.type('image/png').sendFile(path.join(__dirname, 'public', 'img', 'brand', 'icon-32.png')));
 
 // Сайт менеджера. Неизвестная ссылка → «Ссылка недействительна»; не оплачен → «временно недоступен».
 // Адрес, который менеджеру поменяли (или старый, с кодом), переадресуется на новый — отправленные ссылки не ломаются.
