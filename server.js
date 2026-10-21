@@ -192,8 +192,8 @@ app.get('/sitemap.xml', (req, res) => {
     .send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`);
 });
 
-// Браузеры сами запрашивают /favicon.ico — отдаём иконку kvartiry.asia
-app.get('/favicon.ico', (req, res) => res.type('image/png').sendFile(path.join(__dirname, 'public', 'img', 'brand', 'icon-32.png')));
+// Браузеры и Яндекс сами запрашивают /favicon.ico — отдаём иконку kvartiry.asia (Яндекс советует от 120×120)
+app.get('/favicon.ico', (req, res) => res.type('image/png').sendFile(path.join(__dirname, 'public', 'img', 'brand', 'icon-192.png')));
 
 // Сайт менеджера. Неизвестная ссылка → «Ссылка недействительна»; не оплачен → «временно недоступен».
 // Адрес, который менеджеру поменяли (или старый, с кодом), переадресуется на новый — отправленные ссылки не ломаются.
