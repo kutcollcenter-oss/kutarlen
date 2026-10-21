@@ -773,15 +773,15 @@ input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 1px sol
 .card-photo .tags { left: 8px; top: 8px; gap: 4px; }
 @media (hover: hover) { .card:hover .card-photo img, .card[data-reveal].in:hover .card-photo img { transform: none; } }
 
-/* Страница квартиры на ноутбуке: слева фото, под ним характеристики и детали; справа цена, расчёт и кнопка.
-   На телефоне порядок прежний: фото → цена и кнопка → характеристики → детали. */
+/* Страница квартиры на ноутбуке: слева фото, под ним детали и карта; справа цена, расчёт и кнопка.
+   На телефоне: фото → цена и расчёт → детали → кнопка → карта. */
 .apt-more { display: grid; gap: 28px; }
 .apt-more h2 { margin-top: 0; }
 @media (min-width: 900px) {
   .apt .gallery-wrap { grid-column: 1; grid-row: 1; }
   .apt .apt-info { grid-column: 2; grid-row: 1 / span 2; }
   .apt .apt-more { grid-column: 1; grid-row: 2; }
-  /* Лишняя высота правой колонки уходит во вторую строку, чтобы характеристики шли сразу под фото */
+  /* Лишняя высота правой колонки уходит во вторую строку, чтобы детали и карта шли сразу под фото */
   .apt { grid-template-rows: auto 1fr; }
 }
 

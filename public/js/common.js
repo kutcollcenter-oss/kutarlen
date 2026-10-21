@@ -334,7 +334,7 @@
     }, calm ? 0 : LB_CLOSE_MS);
   };
 
-  // Кнопка «Хочу эту квартиру»: на телефоне и планшете — после характеристик и деталей, чтобы клиент сначала всё прочёл;
+  // Кнопка «Хочу эту квартиру»: на телефоне и планшете — после деталей, чтобы клиент сначала всё прочёл;
   // на ноутбуке — справа, под расчётом. Переносим тот же элемент, поэтому расчёт взноса продолжает менять его текст и ссылку.
   const aptCta = document.getElementById('aptWa');
   const aptMore = document.querySelector('.apt-more');
@@ -344,7 +344,8 @@
     const place = () => {
       const want = narrow.matches ? aptMore : home;
       if (aptCta.parentNode === want) return;
-      if (narrow.matches) aptMore.appendChild(aptCta); else home.insertBefore(aptCta, next);
+      // На телефоне — сразу после деталей, перед картой (карты может не быть — тогда в конец)
+      if (narrow.matches) aptMore.insertBefore(aptCta, aptMore.querySelector('.map')); else home.insertBefore(aptCta, next);
     };
     place();
     // Поворот планшета или изменение окна: событие медиазапроса приходит не во всех браузерах, поэтому слушаем и resize
