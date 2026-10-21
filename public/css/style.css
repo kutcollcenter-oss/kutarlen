@@ -786,4 +786,5 @@ input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 1px sol
 }
 
 /* На телефоне и планшете кнопка стоит в конце, после деталей: не прилипает к экрану (WhatsApp есть в нижнем меню) */
-.apt-more .apt-cta { position: static; margin: 4px 0 0; }
+/* position: relative, а не static: кнопка не прилипает, но блик (::after) остаётся внутри кнопки */
+.apt-more .apt-cta { position: relative; bottom: auto; margin: 4px 0 0; }
