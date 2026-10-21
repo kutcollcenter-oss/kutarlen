@@ -122,13 +122,13 @@
   const pre = document.getElementById('preloader');
   const ready = () => root.classList.add('ready');
   if (pre && !root.classList.contains('no-pl') && !calm) {
-    const minTime = new Promise(r => setTimeout(r, 1500));
+    const minTime = new Promise(r => setTimeout(r, 600)); // заставка короткая: клиент из Instagram не должен ждать
     const loaded = new Promise(r => (document.readyState === 'complete' ? r() : window.addEventListener('load', r, { once: true })));
-    const maxTime = new Promise(r => setTimeout(r, 3500)); // не держим заставку дольше 3,5 с на медленном интернете
+    const maxTime = new Promise(r => setTimeout(r, 1800)); // не держим заставку дольше 1,8 с на медленном интернете
     Promise.race([Promise.all([minTime, loaded]), maxTime]).then(() => {
       root.classList.add('pl-done');
       try { sessionStorage.setItem('pl', '1'); } catch (e) {}
-      setTimeout(ready, 350);
+      setTimeout(ready, 150);
       setTimeout(() => pre.remove(), 1200);
     });
   } else {
@@ -259,7 +259,7 @@
       if (slideIo) slideIo.observe(el); else shown.add(el);
     });
   };
-  setInterval(() => {
+  if (!calm) setInterval(() => {
     if (document.hidden || lbOpen()) return;
     shown.forEach(el => {
       if (!el.isConnected) { shown.delete(el); return; }
@@ -269,62 +269,69 @@
     });
   }, SLIDE_MS);
 
-  // Просмотр фото на весь экран: свайп, стрелки, Esc
+  // Просмотр фото на весь экран — родное окно <dialog>: фокус остаётся внутри, Esc закрывает,
+  // после закрытия фокус возвращается туда, откуда открыли. Открытие и закрытие — плавные (рецепт transitions.dev «Modal»).
+  const LB_CLOSE_MS = 150;
   let lb;
+  function lbGo(d) {
+    const strip = lb.querySelector('.lb-strip');
+    const n = strip.children.length;
+    const i = (Math.round(strip.scrollLeft / strip.clientWidth) + d + n) % n;
+    strip.scrollTo({ left: i * strip.clientWidth, behavior: calm ? 'auto' : 'smooth' });
+  }
+  function lbCount() {
+    const strip = lb.querySelector('.lb-strip');
+    const n = strip.children.length;
+    lb.querySelector('.lb-count').textContent = `${Math.min(n, Math.round(strip.scrollLeft / strip.clientWidth) + 1)} из ${n}`;
+  }
   RS.lightbox = function (srcs, start = 0, opts = {}) {
     if (!srcs.length) return;
     if (!lb) {
-      lb = document.createElement('div');
+      lb = document.createElement('dialog');
       lb.className = 'lb';
-      lb.setAttribute('role', 'dialog');
-      lb.setAttribute('aria-modal', 'true');
-      lb.setAttribute('aria-label', 'Фото');
+      lb.setAttribute('aria-label', 'Фото квартиры');
       lb.innerHTML = `<div class="lb-strip"></div>
         <button class="lb-btn lb-close" type="button" aria-label="Закрыть">✕</button>
         <button class="lb-btn lb-prev" type="button" aria-label="Предыдущее фото">‹</button>
         <button class="lb-btn lb-next" type="button" aria-label="Следующее фото">›</button>
-        <div class="lb-bar"><span class="lb-count"></span><a class="btn btn-primary lb-more" hidden></a></div>`;
+        <div class="lb-bar"><span class="lb-count" aria-live="polite"></span><a class="btn btn-primary lb-more" hidden></a></div>`;
       document.body.appendChild(lb);
       const strip = lb.querySelector('.lb-strip');
-      const go = d => {
-        const n = strip.children.length;
-        const i = (Math.round(strip.scrollLeft / strip.clientWidth) + d + n) % n;
-        strip.scrollTo({ left: i * strip.clientWidth, behavior: 'smooth' });
-      };
-      const count = () => {
-        const n = strip.children.length;
-        lb.querySelector('.lb-count').textContent = `${Math.min(n, Math.round(strip.scrollLeft / strip.clientWidth) + 1)} / ${n}`;
-      };
-      strip.addEventListener('scroll', count, { passive: true });
-      lb.querySelector('.lb-prev').addEventListener('click', () => go(-1));
-      lb.querySelector('.lb-next').addEventListener('click', () => go(1));
+      strip.addEventListener('scroll', lbCount, { passive: true });
+      lb.querySelector('.lb-prev').addEventListener('click', () => lbGo(-1));
+      lb.querySelector('.lb-next').addEventListener('click', () => lbGo(1));
       lb.querySelector('.lb-close').addEventListener('click', () => RS.lightboxClose());
       // Нажатие мимо фото закрывает просмотр
       strip.addEventListener('click', e => { if (e.target.tagName !== 'IMG') RS.lightboxClose(); });
-      document.addEventListener('keydown', e => {
-        if (!lbOpen()) return;
-        if (e.key === 'Escape') RS.lightboxClose();
-        if (e.key === 'ArrowLeft') go(-1);
-        if (e.key === 'ArrowRight') go(1);
+      // Esc: закрываем сами, чтобы успела сыграть анимация закрытия
+      lb.addEventListener('cancel', e => { e.preventDefault(); RS.lightboxClose(); });
+      lb.addEventListener('keydown', e => {
+        if (e.key === 'ArrowLeft') { e.preventDefault(); lbGo(-1); }
+        if (e.key === 'ArrowRight') { e.preventDefault(); lbGo(1); }
       });
-      lb._count = count;
     }
     const strip = lb.querySelector('.lb-strip');
-    strip.innerHTML = srcs.map((s, i) => `<div class="lb-slide"><img src="${RS.esc(s)}" alt="Фото ${i + 1}" ${Math.abs(i - start) > 1 ? 'loading="lazy"' : ''}></div>`).join('');
+    strip.innerHTML = srcs.map((s, i) => `<div class="lb-slide"><img src="${RS.esc(s)}" alt="Фото ${i + 1} из ${srcs.length}" ${Math.abs(i - start) > 1 ? 'loading="lazy"' : ''}></div>`).join('');
     lb.classList.toggle('lb-one', srcs.length < 2);
     const more = lb.querySelector('.lb-more');
     more.hidden = !opts.href;
     if (opts.href) { more.href = opts.href; more.textContent = opts.label || 'Подробнее'; }
+    lb.classList.remove('is-closing');
     document.documentElement.classList.add('lb-on');
-    lb.hidden = false;
+    if (!lb.open) lb.showModal();
     strip.scrollLeft = start * strip.clientWidth;
-    lb._count();
-    lb.querySelector('.lb-close').focus({ preventScroll: true });
+    lbCount();
+    requestAnimationFrame(() => lb.classList.add('is-open'));
   };
   RS.lightboxClose = function () {
-    if (!lb) return;
-    lb.hidden = true;
-    document.documentElement.classList.remove('lb-on');
+    if (!lb || !lb.open) return;
+    lb.classList.remove('is-open');
+    lb.classList.add('is-closing');
+    setTimeout(() => {
+      lb.classList.remove('is-closing');
+      lb.close();
+      document.documentElement.classList.remove('lb-on');
+    }, calm ? 0 : LB_CLOSE_MS);
   };
 
   // Галерея на странице квартиры: листается сама, по нажатию — на весь экран
@@ -336,7 +343,7 @@
     const at = () => Math.min(n - 1, Math.round(g.scrollLeft / g.clientWidth));
     if (cnt) g.addEventListener('scroll', () => { cnt.textContent = `${at() + 1} / ${n}`; }, { passive: true });
     imgs.forEach((img, i) => img.addEventListener('click', () => RS.lightbox(imgs.map(x => x.currentSrc || x.src), i)));
-    if (n > 1) {
+    if (n > 1 && !calm) {
       // Клиент сам листает или держит курсор на фото — автолистание ждёт
       let pausedTill = 0;
       const pause = ms => { pausedTill = Date.now() + ms; };

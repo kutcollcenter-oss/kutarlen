@@ -476,18 +476,18 @@ input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 1px sol
 .preloader {
   position: fixed; inset: 0; z-index: 100; background: var(--bg);
   display: grid; place-items: center;
-  transition: transform 1s var(--ease-out);
+  transition: transform .6s var(--ease-out);
 }
 .no-pl .preloader, html:not(.js) .preloader { display: none; }
 .pl-done .preloader { transform: translateY(-100%); }
 .pl-in { display: grid; justify-items: center; gap: 18px; }
 .pl-logo { width: 150px; height: auto; opacity: 0; transform: translateY(14px) scale(.96); filter: blur(6px);
-  animation: plLogo 1s var(--ease-out) .15s forwards; }
+  animation: plLogo .5s var(--ease-out) forwards; }
 .pl-line { width: 150px; height: 1px; background: var(--line); overflow: hidden; }
 .pl-line span { display: block; height: 100%; background: var(--primary); transform: scaleX(0); transform-origin: left;
-  animation: plLine 1.3s var(--ease) .3s forwards; }
+  animation: plLine .6s var(--ease) .05s forwards; }
 .pl-cap { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted);
-  opacity: 0; animation: plFade .8s var(--ease) .6s forwards; }
+  opacity: 0; animation: plFade .4s var(--ease) .15s forwards; }
 .pl-done .pl-in { opacity: 0; transform: translateY(-20px); transition: opacity .4s, transform .6s var(--ease); }
 @keyframes plLogo { to { opacity: 1; transform: none; filter: blur(0); } }
 @keyframes plLine { to { transform: scaleX(1); } }
@@ -497,7 +497,7 @@ input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 1px sol
 .hero h1 .w { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: .04em; }
 .hero h1 .w > span { display: inline-block; }
 .js:not(.ready) .hero h1 .w > span { transform: translateY(105%); }
-.ready .hero h1 .w > span { transition: transform 1s var(--ease-out); transition-delay: calc(var(--i) * 70ms + 100ms); }
+.ready .hero h1 .w > span { transition: transform .7s var(--ease-out); transition-delay: calc(var(--i) * 35ms); }
 
 .js:not(.ready) .hero .pill,
 .js:not(.ready) .hero-sub,
@@ -505,19 +505,19 @@ input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 1px sol
 .js:not(.ready) .hero-points,
 .js:not(.ready) .hero-badge { opacity: 0; transform: translateY(18px); }
 .ready .hero .pill, .ready .hero-sub, .ready .hero-btns, .ready .hero-points, .ready .hero-badge {
-  transition: opacity .9s var(--ease), transform .9s var(--ease-out);
+  transition: opacity .5s var(--ease), transform .6s var(--ease-out);
 }
 .ready .hero .pill { transition-delay: 0s; }
-.ready .hero-sub { transition-delay: .45s; }
-.ready .hero-btns { transition-delay: .6s; }
-.ready .hero-points { transition-delay: .75s; }
-.ready .hero-badge { transition-delay: 1.1s; }
+.ready .hero-sub { transition-delay: .15s; }
+.ready .hero-btns { transition-delay: .25s; }
+.ready .hero-points { transition-delay: .35s; }
+.ready .hero-badge { transition-delay: .5s; }
 
 .hero-photo { overflow: hidden; }
 .hero-photo img { transform-origin: 50% 30%; }
 .js:not(.ready) .hero-photo { clip-path: inset(100% 0 0 0); }
 .js:not(.ready) .hero-photo img { transform: scale(1.25); }
-.ready .hero-photo { clip-path: inset(0 0 0 0); transition: clip-path 1.4s var(--ease-out) .15s; }
+.ready .hero-photo { clip-path: inset(0 0 0 0); transition: clip-path 1s var(--ease-out); }
 .ready .hero-photo img { transform: scale(1); transition: transform 2.2s var(--ease-out) .15s; }
 
 /* Галерея на странице квартиры — та же шторка */
@@ -624,7 +624,7 @@ input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 1px sol
 /* ===== Продукт: заглушки и страница продукта ===== */
 /* Заставка у менеджера без логотипа — имя вместо логотипа */
 .pl-name { font-size: 28px; text-transform: uppercase; letter-spacing: .04em; opacity: 0; transform: translateY(14px); filter: blur(6px);
-  animation: plLogo 1s var(--ease-out) .15s forwards; }
+  animation: plLogo .5s var(--ease-out) forwards; }
 
 /* «Ссылка недействительна», «Сайт временно недоступен» */
 .plain-page { padding-bottom: 0; }
@@ -694,8 +694,13 @@ input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 1px sol
 
 /* Просмотр фото на весь экран */
 .lb-on, .lb-on body { overflow: hidden; }
-.lb { position: fixed; inset: 0; z-index: 100; background: rgba(10,12,10,.94); }
-.lb[hidden] { display: none; }
+.lb { position: fixed; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; padding: 0; border: 0;
+  background: rgba(10,12,10,.96); color: #fff; overflow: hidden;
+  /* Рецепт transitions.dev «Modal»: открытие 250 мс из 0.96, закрытие 150 мс */
+  opacity: 0; transform: scale(.96); transition: opacity 250ms cubic-bezier(.22,1,.36,1), transform 250ms cubic-bezier(.22,1,.36,1); }
+.lb::backdrop { background: transparent; }
+.lb.is-open { opacity: 1; transform: none; }
+.lb.is-closing { opacity: 0; transform: scale(.96); transition-duration: 150ms; }
 .lb-strip { display: flex; height: 100%; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior: contain; }
 .lb-strip::-webkit-scrollbar { display: none; }
 .lb-slide { flex: 0 0 100%; height: 100%; display: flex; align-items: center; justify-content: center; scroll-snap-align: start; padding: 56px 0 88px; }
@@ -707,10 +712,53 @@ input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 1px sol
 .lb-prev { left: 12px; } .lb-next { right: 12px; }
 .lb-one .lb-prev, .lb-one .lb-next { display: none; }
 @media (hover: none) { .lb-prev, .lb-next { display: none; } }
-.lb-bar { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; gap: 16px; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); color: #fff; font-family: var(--mono); font-size: 13px; }
+.lb-bar { position: absolute; font-size: 14px; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; gap: 16px; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); color: #fff; font-family: var(--mono); }
 .lb-more { min-height: 44px; }
 
 /* Подвал: предложение сделать такой же сайт */
 .footer-partner { margin: 0 auto 18px; font-size: 14px; color: var(--text); }
 .footer-partner a { color: var(--ink); font-weight: 600; text-decoration: underline; text-underline-offset: 4px; }
 .footer-partner a:hover { color: var(--primary); }
+
+/* ---------- Читаемость для клиентов (проверка по WCAG 2.2: контраст 4.5:1, мелкий текст) ----------
+   Стиль сайта сохранён: моноширинные подписи остаются, но не мельче 12 px и темнее. */
+:root {
+  --muted: #646b60;   /* было #7d8479 — контраст 3.4:1, стало 4.9:1 */
+  --link: #5a6c54;    /* зелёный для мелкого текста ссылок: 5:1 */
+}
+.btn-primary { background: var(--primary-2); }           /* белый текст на кнопке: 3.6:1 → 4.7:1 */
+.btn-primary:hover { background: var(--ink); }
+.tag-inst { background: var(--primary-2); }
+.office-link, .stars { color: var(--link); }
+.brand small, .hero-badge span, .tag, .footer-bottom, .pl-cap, .pill,
+.hero-points, .office-label, .office-link, .stat span, .seg button, .field-head label,
+.card-price span, .pay-row span, .calc-rows dt, .calc-min, .calc-note, .calc-hint, .card-ppm, .feats-ppm,
+.apt-complex, .gallery-count, .calc-main span, .calc-main small, .footer-links a, .footer-links span, .co-head span,
+.tab { font-size: 12px; }
+.results-head #count { font-size: 13px; }
+.about-text, .lead, .faq details p, .review blockquote { font-size: 16px; }
+
+/* Вопросы и ответы: ответ раскрывается плавно (рецепт transitions.dev «Accordion», 250 мс).
+   Браузеры без поддержки просто открывают ответ сразу. */
+@supports (interpolate-size: allow-keywords) {
+  :root { interpolate-size: allow-keywords; }
+  .faq details::details-content {
+    block-size: 0; overflow: hidden; opacity: 0;
+    transition: block-size 250ms cubic-bezier(.22,1,.36,1), opacity 250ms cubic-bezier(.22,1,.36,1), content-visibility 250ms allow-discrete;
+  }
+  .faq details[open]::details-content { block-size: auto; opacity: 1; }
+}
+.faq summary::after { transition: transform 250ms cubic-bezier(.22,1,.36,1); }
+.faq details[open] summary::after { content: "+"; transform: rotate(45deg); }
+.faq summary:focus-visible, .lb-btn:focus-visible, .card-link:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.lb-btn:focus-visible { outline-color: #fff; }
+
+@media (prefers-reduced-motion: reduce) {
+  .faq details::details-content, .lb, .cp-track { transition: none !important; }
+}
+
+/* Первый экран на ноутбуке: колонка текста шире, чтобы заголовок занимал 2–3 строки, а не 4 */
+@media (min-width: 900px) {
+  .hero-in { grid-template-columns: 1.4fr 1fr; }
+  .hero h1 { font-size: clamp(44px, 4.6vw, 66px); }
+}
