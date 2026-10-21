@@ -503,3 +503,16 @@ select option { background: var(--s2); color: var(--ink); }
 /* Коммерческое помещение — третья категория */
 #type.seg { grid-template-columns: repeat(3, 1fr); }
 .badge-commercial { background: rgba(167,139,250,.16); color: #c4b5fd; }
+
+/* Всплывающее сообщение («Сохранено», «Фото загружены…»).
+   Раньше на телефоне оно пряталось только сдвигом на 100 px вниз, выглядывало над нижним меню
+   и перехватывало нажатия. Теперь: сверху экрана, полностью исчезает, касания проходят сквозь него. */
+.toast {
+  top: calc(12px + env(safe-area-inset-top)); bottom: auto !important;
+  width: max-content; max-width: calc(100% - 32px); text-align: center; line-height: 1.35;
+  transform: translateX(-50%) translateY(-12px); opacity: 0; visibility: hidden; pointer-events: none;
+  transition: transform .25s ease, opacity .25s ease, visibility 0s linear .25s;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .35); z-index: 120;
+}
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; visibility: visible; transition: transform .25s ease, opacity .25s ease; }
+@media (prefers-reduced-motion: reduce) { .toast, .toast.show { transition: none; } }

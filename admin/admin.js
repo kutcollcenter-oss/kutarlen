@@ -25,7 +25,8 @@
   function toast(msg) {
     const t = document.getElementById('toast');
     t.textContent = msg; t.classList.add('show');
-    clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 2200);
+    // Длинное сообщение показываем дольше, чтобы успеть прочитать
+    clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), Math.min(6000, 2000 + String(msg).length * 40));
   }
 
   // Окно внутри страницы вместо confirm()/prompt(): системные окна заблокированы во многих браузерах
