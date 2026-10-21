@@ -136,7 +136,7 @@
     requestAnimationFrame(ready);
   }
 
-  const REVEAL = '.section h2, .kicker, .lead, .about-text, .office, .stat, .filter, .results-head, .steps li, .docs, .review, .faq details, .cta, .gallery-wrap, .apt-info > *, .specs, .map, .similar, .gone > *';
+  const REVEAL = '.section h2, .kicker, .lead, .about-text, .office, .stat, .filter, .results-head, .steps li, .docs, .review, .faq details, .cta, .gallery-wrap, .apt-info > *, .specs, .apt-more .details, .map, .similar, .gone > *';
   const io = 'IntersectionObserver' in window && !calm
     ? new IntersectionObserver(entries => entries.forEach(e => {
       if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
@@ -333,6 +333,24 @@
       document.documentElement.classList.remove('lb-on');
     }, calm ? 0 : LB_CLOSE_MS);
   };
+
+  // Кнопка «Хочу эту квартиру»: на телефоне и планшете — после характеристик и деталей, чтобы клиент сначала всё прочёл;
+  // на ноутбуке — справа, под расчётом. Переносим тот же элемент, поэтому расчёт взноса продолжает менять его текст и ссылку.
+  const aptCta = document.getElementById('aptWa');
+  const aptMore = document.querySelector('.apt-more');
+  if (aptCta && aptMore) {
+    const home = aptCta.parentNode, next = aptCta.nextSibling;
+    const narrow = window.matchMedia('(max-width: 899px)');
+    const place = () => {
+      const want = narrow.matches ? aptMore : home;
+      if (aptCta.parentNode === want) return;
+      if (narrow.matches) aptMore.appendChild(aptCta); else home.insertBefore(aptCta, next);
+    };
+    place();
+    // Поворот планшета или изменение окна: событие медиазапроса приходит не во всех браузерах, поэтому слушаем и resize
+    narrow.addEventListener('change', place);
+    window.addEventListener('resize', place, { passive: true });
+  }
 
   // Галерея на странице квартиры: листается сама, по нажатию — на весь экран
   const g = document.getElementById('gallery');
