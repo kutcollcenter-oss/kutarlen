@@ -762,3 +762,13 @@ input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 1px sol
   .hero-in { grid-template-columns: 1.4fr 1fr; }
   .hero h1 { font-size: clamp(44px, 4.6vw, 66px); }
 }
+
+/* Фото квартир показываются целиком, без обрезки: планировки и снимки бывают разной формы.
+   Белый фон сливается с белым полем планировок; для обычных фото по краям остаются аккуратные поля. */
+.card-photo, .cp-track img, .card-photo > img { background: #fff; }
+.cp-track img, .card-photo > img { object-fit: contain; }
+.gallery { background: #fff; }
+.gallery img { object-fit: contain; background: #fff; }
+/* Метки над фото не должны закрывать план: делаем их компактнее */
+.card-photo .tags { left: 8px; top: 8px; gap: 4px; }
+@media (hover: hover) { .card:hover .card-photo img, .card[data-reveal].in:hover .card-photo img { transform: none; } }
