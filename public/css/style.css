@@ -853,3 +853,6 @@ input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 1px sol
 @media (max-width: 599px) { .fx-cta { padding: 22px 18px; } .fx-cta-btn { width: 100%; justify-content: center; } }
 @media (prefers-reduced-motion: reduce) { .fx-cta-btn::after { display: none; } }
 .fx-bottom { margin-top: 32px; }
+/* Подвал без верхнего блока: призыв идёт первым; высоты хватает, чтобы был виден силуэт стройки */
+.fx .fx-cta:first-child { margin-top: 0; }
+.fx .wrap { min-height: 260px; display: flex; flex-direction: column; justify-content: flex-end; }
