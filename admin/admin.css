@@ -524,5 +524,5 @@ select option { background: var(--s2); color: var(--ink); }
 /* Карта дома в форме квартиры: одна рамка, пояснение и два поля (2ГИС, Google Карты) */
 .mapbox { border: 1px solid var(--line); padding: 16px 16px 4px; margin: 4px 0 16px; }
 .mapbox-head { font-size: 16px; font-weight: 600; color: var(--ink); margin-bottom: 6px; }
-.mapbox-note { margin: 0 0 14px; font-size: 14px; line-height: 1.5; color: var(--muted); }
+.mapbox-note { margin: -4px 0 14px; font-size: 14px; line-height: 1.5; color: var(--muted); }
 .mapbox-note b { color: var(--ink); font-weight: 600; }

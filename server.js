@@ -171,7 +171,7 @@ app.get('/kvartira/:id', (req, res) => {
 app.get('/privacy', (req, res) => res.redirect(302, '/'));
 // Поисковикам: кабинеты и служебные адреса не индексировать, карта сайта — /sitemap.xml
 app.get('/robots.txt', (req, res) => res.type('text/plain').send(
-  `User-agent: *\nDisallow: /admin\nDisallow: /*/admin\nDisallow: /api/\n\nSitemap: ${base(req)}/sitemap.xml\n`));
+  `User-agent: *\nDisallow: /admin\nDisallow: /*/admin\nDisallow: /api/\nDisallow: /map/\n\nSitemap: ${base(req)}/sitemap.xml\n`));
 
 // Карта сайта для Google и Яндекса: страница сервиса, сайты менеджеров с оплаченным доступом и их квартиры.
 // Каталог на сайте рисуется скриптом, поэтому здесь поисковик сразу получает все адреса квартир.
@@ -190,6 +190,30 @@ app.get('/sitemap.xml', (req, res) => {
   const body = urls.map(u => `<url><loc>${xmlEsc(u.loc)}</loc>${u.last ? `<lastmod>${u.last}</lastmod>` : ''}<priority>${u.pri}</priority></url>`).join('\n');
   res.set('Cache-Control', 'public, max-age=3600').type('application/xml')
     .send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`);
+});
+
+// Карта 2ГИС с меткой — встраивается в страницу квартиры (2gis.kg запрещает показывать себя внутри других сайтов)
+// Плитки карты 2ГИС (те же, что в приложении) рисует библиотека Leaflet; ключ 2ГИС не нужен. Метка — на доме.
+app.get('/map/2gis', (req, res) => {
+  const lat = Number(req.query.lat), lng = Number(req.query.lng);
+  if (!(Math.abs(lat) <= 90 && Math.abs(lng) <= 180)) return res.status(400).type('text/plain').send('bad point');
+  res.set('Cache-Control', 'public, max-age=86400').type('html').send(`<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>Карта 2ГИС</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>html,body,#map{margin:0;height:100%;background:#f2efe6}
+.pin svg{display:block;filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))}</style></head><body><div id="map"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+  var p = [${lat}, ${lng}];
+  var map = L.map('map', { center: p, zoom: 17, scrollWheelZoom: false, attributionControl: true });
+  L.tileLayer('https://tile{s}.maps.2gis.com/tiles?x={x}&y={y}&z={z}&v=1', {
+    subdomains: '0123', maxZoom: 18, attribution: '&copy; <a href="https://2gis.kg" target="_blank" rel="noopener">2ГИС</a>'
+  }).addTo(map);
+  // Метка в стиле 2ГИС: синяя капля
+  var pin = L.divIcon({ className: 'pin', iconSize: [30, 42], iconAnchor: [15, 41],
+    html: '<svg width="30" height="42" viewBox="0 0 30 42"><path d="M15 0C6.7 0 0 6.6 0 14.8 0 26 15 42 15 42s15-16 15-27.2C30 6.6 23.3 0 15 0z" fill="#1a8cff"/><circle cx="15" cy="15" r="6" fill="#fff"/></svg>' });
+  L.marker(p, { icon: pin, keyboard: false }).addTo(map);
+</script></body></html>`);
 });
 
 // Браузеры и Яндекс сами запрашивают /favicon.ico — отдаём иконку kvartiry.asia (Яндекс советует от 120×120)
@@ -392,26 +416,16 @@ app.post('/api/admin/photos', requireAuth, upload.array('photos', 30), async (re
   }
 });
 
-// Ссылки на карту: Google Карты хранятся в a.map, 2ГИС — в a.map2gis. Точку распознаём при сохранении
-// (короткие ссылки раскрываются здесь, на сервере). Можно указать одну или обе.
-// Любое из двух полей принимает любую ссылку: перепутал менеджер поля — раскладываем по тому, чья это ссылка.
+// Ссылка на карту (одно поле mapLink → a.map): 2ГИС или Google Карты. Точку распознаём при сохранении
+// (короткие ссылки раскрываются здесь, на сервере). На сайте: ссылка 2ГИС → карта 2ГИС, Google → карта Google.
 async function applyMap(a, body) {
-  const fields = [['mapLink', 'map'], ['map2gisLink', 'map2gis']].filter(([f]) => f in body);
-  if (!fields.length) return;
-  const old = { map: a.map, map2gis: a.map2gis };
-  const next = {};
-  for (const [field, key] of fields) {
-    const link = String(body[field] || '').trim().slice(0, 2000);
-    if (!link) continue;
-    // Ссылка не изменилась — берём уже распознанную, не ходим в интернет заново
-    const same = [old.map, old.map2gis].find(m => m && m.link === link && !m.error);
-    const r = same || await resolveMap(link);
-    const slot = r.source === '2gis' ? 'map2gis' : r.source === 'google' ? 'map' : key; // ошибка — остаётся в своём поле
-    if (!next[slot]) next[slot] = r;
-  }
-  // Поля, которых не было в запросе, не трогаем
-  for (const [, key] of fields) delete a[key];
-  for (const key of ['map', 'map2gis']) if (next[key]) a[key] = next[key];
+  if (!('mapLink' in body)) return;
+  const link = String(body.mapLink || '').trim().slice(0, 2000);
+  const old = a.map || a.map2gis;
+  delete a.map2gis; // старое второе поле: теперь всё в одном
+  if (!link) { delete a.map; return; }
+  if (old && old.link === link && !old.error) { a.map = old; return; } // не изменилась
+  a.map = await resolveMap(link);
 }
 
 app.post('/api/admin/apartments', requireAuth, async (req, res) => {
@@ -580,7 +594,6 @@ function copyOwnerApartments(owner, r) {
       ...a, id: db.newId(), realtorId: r.id, copiedFrom: a.id, createdAt: new Date().toISOString(),
       photos: [...(a.photos || [])], tags: [...(a.tags || [])],
       ...(a.map ? { map: { ...a.map } } : {}),
-      ...(a.map2gis ? { map2gis: { ...a.map2gis } } : {}),
     });
   }
   return { copied: take.length, already: already.size, notFit: src.length - take.length };
