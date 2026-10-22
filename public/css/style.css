@@ -254,7 +254,7 @@ input.range {
 body { padding-bottom: calc(68px + env(safe-area-inset-bottom)); }
 .tabbar {
   position: fixed; z-index: 40; left: 0; right: 0; bottom: 0;
-  display: grid; grid-template-columns: repeat(4, 1fr);
+  display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; /* 3 или 4 пункта: «Отзывы» — только если есть отзывы */
   background: var(--bg); border-top: 1px solid var(--line);
   padding: 4px 0 calc(4px + env(safe-area-inset-bottom));
 }
