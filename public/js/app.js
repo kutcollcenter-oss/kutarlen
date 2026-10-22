@@ -123,6 +123,24 @@
     return { down: d, monthly: monthlyAt(a, d) };
   }
 
+  // Левый край ползунка «Платёж в месяц до» — самый маленький платёж, который реально возможен:
+  // клиент вносит выбранную сумму (не больше цены), считаем платёж по каждой подходящей квартире и берём минимум.
+  // Квартиры, где выбранного взноса меньше минимального, не учитываем. Округляем вверх до шага ползунка,
+  // чтобы на самом краю хотя бы одна квартира точно подходила.
+  function minMonthly() {
+    const L = ofType().filter(a => a.installment && match(a) && (st.down == null || st.down >= a.down));
+    if (!L.length) return B.monthly.min;
+    const m = Math.min(...L.map(a => monthlyAt(a, st.down == null ? a.price : Math.min(st.down, a.price))));
+    const s = B.monthly.step;
+    return Math.min(B.monthly.max, Math.ceil(m / s) * s);
+  }
+  function syncMonthly() {
+    const min = minMonthly();
+    fMonthly.min = min;
+    if (st.monthly != null && st.monthly < min) st.monthly = min; // взнос изменился — платёж не ниже возможного
+    fMonthly.value = st.monthly ?? B.monthly.max;
+  }
+
   function setupRange(el, b, val) { el.min = b.min; el.max = b.max; el.step = b.step; el.value = val; }
   function paintRange(el) {
     const p = ((el.value - el.min) / (el.max - el.min || 1)) * 100;
@@ -256,6 +274,7 @@
 
   function update() {
     const c = cur(st.type);
+    if (st.type !== 'cash') syncMonthly();
     $('oDown').textContent = st.down == null ? 'любой' : money(st.down, c);
     $('oMonthly').textContent = st.monthly == null ? 'любой' : `до ${money(st.monthly, c)}`;
     $('oArea').textContent = `${st.area[0]} – ${st.area[1]} м²`;
