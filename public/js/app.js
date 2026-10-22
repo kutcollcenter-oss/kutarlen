@@ -191,6 +191,7 @@
     const v = b.dataset.v;
     st.rooms.has(v) ? st.rooms.delete(v) : st.rooms.add(v);
     b.classList.toggle('on', st.rooms.has(v));
+    fitArea();
     update();
   });
   $('fReset').addEventListener('click', () => { reset(); syncInputs(); update(); });
@@ -212,11 +213,23 @@
     });
   });
 
+  // Отдельной кнопки «Студия» нет: студии показываются вместе с однокомнатными; 4 и больше — кнопка «4+»
+  const roomKey = a => (a.rooms >= 4 ? '4' : a.rooms <= 1 ? '1' : String(a.rooms));
+  const roomsOk = a => !st.rooms.size || st.rooms.has(roomKey(a));
+
   function match(a) {
     if (a.area < st.area[0] || a.area > st.area[1]) return false;
-    // Отдельной кнопки «Студия» нет: студии показываются вместе с однокомнатными
-    if (st.rooms.size && !st.rooms.has(a.rooms >= 4 ? '4' : a.rooms <= 1 ? '1' : String(a.rooms))) return false;
+    if (!roomsOk(a)) return false;
     return true;
+  }
+
+  // Ползунок площади подстраивается под выбранные комнаты: края — самая маленькая и самая большая
+  // площадь среди квартир с этим числом комнат. Выбор комнат меняется — площадь снова на всю ширину.
+  function fitArea() {
+    const L = ofType().filter(roomsOk);
+    B.area = bounds((L.length ? L : ofType()).map(a => a.area), 60);
+    st.area = [B.area.min, B.area.max];
+    setupRange(aLo, B.area, st.area[0]); setupRange(aHi, B.area, st.area[1]);
   }
 
   const SORTS = {
@@ -277,7 +290,7 @@
     if (st.type !== 'cash') syncMonthly();
     $('oDown').textContent = st.down == null ? 'любой' : money(st.down, c);
     $('oMonthly').textContent = st.monthly == null ? 'любой' : `до ${money(st.monthly, c)}`;
-    $('oArea').textContent = `${st.area[0]} – ${st.area[1]} м²`;
+    $('oArea').textContent = st.area[0] === st.area[1] ? `${st.area[0]} м²` : `${st.area[0]} – ${st.area[1]} м²`;
     [fDown, fMonthly].forEach(paintRange);
     paintDual($('fArea'), st.area, B.area);
 
