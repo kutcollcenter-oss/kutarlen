@@ -236,6 +236,7 @@
     monthly: (a, b) => a.o.monthly - b.o.monthly || a.price - b.price,
     down: (a, b) => a.o.down - b.o.down,
     price: (a, b) => a.price - b.price,
+    'price-desc': (a, b) => b.price - a.price,
     ppm: (a, b) => a.pricePerM2 - b.pricePerM2,
     new: (a, b) => String(b.createdAt).localeCompare(String(a.createdAt)),
   };
