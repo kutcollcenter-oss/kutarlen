@@ -353,11 +353,20 @@
             ${n('floors', 'Этажей в доме')}
           </div>
           ${f('address', 'Адрес')}
-          <label class="f"><span>Ссылка на Google Карты</span>
-            <input type="text" name="mapLink" value="${esc(a.map ? a.map.link : '')}" placeholder="https://maps.app.goo.gl/…" inputmode="url">
-            <div class="hint">Google Карты → найдите дом → «Поделиться» → «Копировать ссылку» → вставьте сюда. Без ссылки карта строится по адресу.</div>
-            <div class="err" id="mapErr">${a.map && a.map.error ? esc(a.map.error) : ''}</div>
-          </label>
+          <div class="mapbox">
+            <div class="mapbox-head">Карта дома</div>
+            <p class="mapbox-note">Вставьте ссылку из <b>2ГИС</b> или <b>Google Карт</b> — можно одну любую или обе.
+              В приложении найдите дом → «Поделиться» → «Копировать ссылку».
+              На сайте под картой появятся кнопки «Открыть в 2ГИС» / «Открыть в Google Картах». Без ссылок карта строится по адресу.</p>
+            <label class="f"><span>Ссылка на 2ГИС</span>
+              <input type="text" name="map2gisLink" value="${esc(a.map2gis ? a.map2gis.link : '')}" placeholder="https://go.2gis.com/…" inputmode="url">
+              <div class="err" id="map2gisErr">${a.map2gis && a.map2gis.error ? esc(a.map2gis.error) : ''}</div>
+            </label>
+            <label class="f"><span>Ссылка на Google Карты</span>
+              <input type="text" name="mapLink" value="${esc(a.map ? a.map.link : '')}" placeholder="https://maps.app.goo.gl/…" inputmode="url">
+              <div class="err" id="mapErr">${a.map && a.map.error ? esc(a.map.error) : ''}</div>
+            </label>
+          </div>
           ${a.computed && a.computed.map.embed ? `<div class="map-prev"><div class="hint">Так карта выглядит на сайте:</div><iframe loading="lazy" src="${esc(a.computed.map.embed)}" title="Карта"></iframe></div>` : ''}
           <label class="f"><span>Детали</span><textarea name="details">${esc(a.details)}</textarea></label>
           <label class="f"><span>Метки через запятую</span><input type="text" name="tags" value="${esc((a.tags || []).join(', '))}" placeholder="Скидка, Дом сдан"></label>
@@ -443,11 +452,12 @@
       const saved = isNewRecord
         ? await api('POST', '/api/admin/apartments', d)
         : await api('PUT', `/api/admin/apartments/${a.id}`, d);
-      if (saved.map && saved.map.error) {
+      const bad = [['map', 'mapErr'], ['map2gis', 'map2gisErr']].filter(([k]) => saved[k] && saved[k].error);
+      if (bad.length) {
         // Квартира сохранена, но ссылку на карту распознать не удалось — остаёмся и показываем почему
         toast('Сохранено, но ссылка на карту не распознана');
         if (isNewRecord) location.hash = `#edit/${saved.id}`;
-        else showErr('mapErr', saved.map.error);
+        else bad.forEach(([k, id]) => showErr(id, saved[k].error));
         return;
       }
       toast('Сохранено');

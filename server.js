@@ -392,13 +392,26 @@ app.post('/api/admin/photos', requireAuth, upload.array('photos', 30), async (re
   }
 });
 
-// Ссылка на Google Карты: распознаём точку при сохранении (короткие ссылки раскрываются здесь, на сервере)
+// Ссылки на карту: Google Карты хранятся в a.map, 2ГИС — в a.map2gis. Точку распознаём при сохранении
+// (короткие ссылки раскрываются здесь, на сервере). Можно указать одну или обе.
+// Любое из двух полей принимает любую ссылку: перепутал менеджер поля — раскладываем по тому, чья это ссылка.
 async function applyMap(a, body) {
-  if (!('mapLink' in body)) return;
-  const link = String(body.mapLink || '').trim().slice(0, 2000);
-  if (!link) { delete a.map; return; }
-  if (a.map && a.map.link === link && !a.map.error) return; // не изменилась
-  a.map = await resolveMap(link);
+  const fields = [['mapLink', 'map'], ['map2gisLink', 'map2gis']].filter(([f]) => f in body);
+  if (!fields.length) return;
+  const old = { map: a.map, map2gis: a.map2gis };
+  const next = {};
+  for (const [field, key] of fields) {
+    const link = String(body[field] || '').trim().slice(0, 2000);
+    if (!link) continue;
+    // Ссылка не изменилась — берём уже распознанную, не ходим в интернет заново
+    const same = [old.map, old.map2gis].find(m => m && m.link === link && !m.error);
+    const r = same || await resolveMap(link);
+    const slot = r.source === '2gis' ? 'map2gis' : r.source === 'google' ? 'map' : key; // ошибка — остаётся в своём поле
+    if (!next[slot]) next[slot] = r;
+  }
+  // Поля, которых не было в запросе, не трогаем
+  for (const [, key] of fields) delete a[key];
+  for (const key of ['map', 'map2gis']) if (next[key]) a[key] = next[key];
 }
 
 app.post('/api/admin/apartments', requireAuth, async (req, res) => {
@@ -567,6 +580,7 @@ function copyOwnerApartments(owner, r) {
       ...a, id: db.newId(), realtorId: r.id, copiedFrom: a.id, createdAt: new Date().toISOString(),
       photos: [...(a.photos || [])], tags: [...(a.tags || [])],
       ...(a.map ? { map: { ...a.map } } : {}),
+      ...(a.map2gis ? { map2gis: { ...a.map2gis } } : {}),
     });
   }
   return { copied: take.length, already: already.size, notFit: src.length - take.length };

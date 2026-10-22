@@ -791,3 +791,7 @@ input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 1px sol
 
 /* Страница квартиры: взнос стоит над платежом в месяц — отступ под подсказкой перед зелёным блоком */
 .calc-down + .calc-main { margin-top: 12px; }
+
+/* Под картой — кнопки «Открыть в 2ГИС» и «Открыть в Google Картах» (какие ссылки указаны) */
+.map-btns { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+.map-btns .map-open { margin-top: 0; flex: 1 1 220px; }
