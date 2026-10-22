@@ -791,3 +791,65 @@ input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 1px sol
 
 /* Страница квартиры: взнос стоит над платежом в месяц — отступ под подсказкой перед зелёным блоком */
 .calc-down + .calc-main { margin-top: 12px; }
+
+/* ===== Подвал в духе hip.agency, в цветах сайта =====
+   Тёмно-зелёный фон (#1f281d — темнее основного тёмного цвета сайта), сливочный текст, акцент — светлый шалфей.
+   Внизу — ночной силуэт города и стройки (footer-city-night.svg, тёмные тона, едва заметен). */
+.fx {
+  --fx-bg: #1f281d; --fx-text: #f2f1ee; --fx-muted: rgba(242, 241, 238, .64); --fx-line: rgba(242, 241, 238, .14); --fx-accent: #b6c8ae;
+  background: var(--fx-bg) url(/img/footer-city-night.svg) center bottom / max(100%, 1100px) auto no-repeat;
+  color: var(--fx-text); text-align: left; border-top: 0; padding: 72px 0 28px; font-size: 15px;
+}
+.fx-top { display: grid; gap: 40px; }
+@media (min-width: 900px) { .fx-top { grid-template-columns: 2.2fr 1fr 1fr 1.2fr; gap: 48px; align-items: start; } }
+.fx-head { display: flex; align-items: center; gap: 18px; margin-bottom: 28px; }
+/* Логотип компании — белым силуэтом, чтобы читался на тёмном фоне при любых цветах исходника */
+.fx-logo { width: 64px; height: auto; display: block; filter: brightness(0) invert(1); opacity: .92; }
+.fx-social { display: flex; gap: 10px; }
+.fx-social a { width: 40px; height: 40px; border-radius: 50% !important; border: 1px solid var(--fx-line); display: grid; place-items: center; color: var(--fx-text); transition: background .2s, border-color .2s, color .2s; }
+.fx-social a:hover { background: var(--fx-accent); border-color: var(--fx-accent); color: var(--fx-bg); }
+.fx-social svg { width: 18px; height: 18px; }
+.fx-word { font-size: clamp(56px, 9vw, 132px); line-height: .9; font-weight: 500; text-transform: uppercase; letter-spacing: -.03em; color: var(--fx-text); overflow-wrap: anywhere; }
+.fx-role { margin-top: 16px; font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--fx-muted); max-width: 32em; }
+.fx-label { font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: var(--fx-accent); margin-bottom: 14px; }
+.fx-col a, .fx-col p { display: block; margin: 0; padding: 6px 0; color: var(--fx-text); text-decoration: none; font-family: var(--mono); font-size: 13px; text-transform: uppercase; letter-spacing: .06em; line-height: 1.5; }
+.fx-col a:hover { color: var(--fx-accent); }
+.fx-col .fx-more { color: var(--fx-muted); text-transform: none; letter-spacing: 0; font-family: var(--sans); font-size: 14px; }
+.fx-bottom { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px 24px; margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--fx-line); font-size: 13px; }
+.fx-legal { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; }
+.fx-legal a { color: var(--fx-muted); text-decoration: none; }
+.fx-legal a:hover { color: var(--fx-text); text-decoration: underline; text-underline-offset: 4px; }
+.fx-partner { display: inline-flex; align-items: center; gap: 8px; }
+.fx-partner img { width: 18px; height: 18px; border-radius: 4px !important; }
+.fx-copy { color: var(--fx-accent); }
+.fx a:focus-visible { outline: 2px solid var(--fx-accent); outline-offset: 3px; }
+@media (max-width: 899px) {
+  .fx { padding-top: 56px; background-size: 820px auto; }
+  .fx-top { grid-template-columns: 1fr 1fr; }
+  .fx-brand { grid-column: 1 / -1; }
+  .fx-top > .fx-col:nth-child(4) { grid-column: 1 / -1; } /* офис — во всю ширину под парой колонок */
+  .fx-bottom { margin-top: 48px; }
+}
+/* На телефоне снизу закреплено меню: тёмный подвал продолжается под ним, без светлой полосы */
+@media (max-width: 1023px) {
+  .fx { margin-bottom: calc(-68px - env(safe-area-inset-bottom)); padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+}
+
+/* Подвал: заметный призыв «Хотите такой же сайт?» — рамка во всю ширину, яркая кнопка, весь блок кликабельный */
+.fx-cta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 18px 32px; margin-top: 56px;
+  padding: 26px 28px; border: 1px solid var(--fx-accent); background: rgba(31, 40, 29, .88); color: var(--fx-text); text-decoration: none; position: relative; overflow: hidden; }
+.fx-cta-text { display: grid; gap: 6px; max-width: 40em; }
+.fx-cta-text b { font-size: clamp(22px, 2.6vw, 30px); font-weight: 500; line-height: 1.15; }
+.fx-cta-text span { font-size: 15px; line-height: 1.5; color: var(--fx-muted); }
+.fx-cta-btn { display: inline-flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 22px; background: var(--fx-accent); color: #1f281d;
+  font-family: var(--mono); font-size: 13px; text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; transition: background .2s; }
+.fx-cta-btn img { width: 20px; height: 20px; border-radius: 4px !important; }
+.fx-cta:hover .fx-cta-btn { background: #f2f1ee; }
+.fx-cta:hover { border-color: #f2f1ee; }
+/* Блик по кнопке, как у кнопок WhatsApp на сайте */
+.fx-cta-btn { position: relative; overflow: hidden; }
+.fx-cta-btn::after { content: ""; position: absolute; top: -20%; bottom: -20%; left: 0; width: 45%; pointer-events: none;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,.6), transparent); transform: translateX(-160%) skewX(-18deg); animation: waShine 3s var(--ease) infinite; }
+@media (max-width: 599px) { .fx-cta { padding: 22px 18px; } .fx-cta-btn { width: 100%; justify-content: center; } }
+@media (prefers-reduced-motion: reduce) { .fx-cta-btn::after { display: none; } }
+.fx-bottom { margin-top: 32px; }

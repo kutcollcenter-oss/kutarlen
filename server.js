@@ -158,6 +158,15 @@ app.get(PARTNER_PATH, (req, res) => {
     const a = list.find(x => x.installment && x.photos.length) || list.find(x => x.installment);
     if (a) demo.apt = { thumb: a.photos[0] && a.photos[0].thumb, title: `${a.roomsLabel}, ${a.area} м²`, monthly: a.monthly, currency: a.currency };
   }
+  // Сколько риелторов уже пользуются сайтом (оплачено и не заблокировано) — показываем на странице, это вызывает доверие.
+  // Тестовые кабинеты (логин test, test2, test3, …) не считаем. Лица: сначала те, у кого есть фото.
+  const isTest = r => /^test\d*$/i.test(String((userOf(r) || {}).login || ''));
+  const using = D().realtors.filter(r => statusOf(r).active && !isTest(r));
+  demo.users = {
+    count: using.length,
+    faces: [...using].sort((x, y) => Boolean(y.settings.photo) - Boolean(x.settings.photo)).slice(0, 5)
+      .map(r => ({ name: r.settings.name || '', photo: r.settings.photo || '' })),
+  };
   res.send(pages.renderLanding(product(), base(req), demo));
 });
 
