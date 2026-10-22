@@ -53,18 +53,13 @@
         <button data-v="cash">Наличные · $</button>
       </div>
       <div class="field" id="fDownWrap">
-        <div class="field-head"><label for="fDown">Готов внести сейчас</label><output id="oDown"></output></div>
-        <input type="range" id="fDown" class="range">
+        <div class="field-head"><label for="fDown">Мой первоначальный взнос</label><output id="oDown"></output></div>
+        <input type="range" id="fDown" class="range" data-hint="Двигайте — укажите, сколько готовы внести">
       </div>
 
       <div class="field" id="fMonthlyWrap">
         <div class="field-head"><label for="fMonthly">Платёж в месяц до</label><output id="oMonthly"></output></div>
-        <input type="range" id="fMonthly" class="range" data-hint="Двигайте — подберём квартиры под ваш платёж">
-      </div>
-
-      <div class="field">
-        <div class="field-head"><label>Цена</label><output id="oPrice"></output></div>
-        <div class="dual" id="fPrice"><input type="range" aria-label="Цена от"><input type="range" aria-label="Цена до"></div>
+        <input type="range" id="fMonthly" class="range" data-hint="Двигайте — подберём квартиры под ваш платёж" data-hint-after="fDown">
       </div>
 
       <div class="field" id="fRoomsWrap">

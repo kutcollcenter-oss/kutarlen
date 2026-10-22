@@ -10,7 +10,7 @@
   const range = $('cDown'), input = $('cDownInput');
   const cur = a.currency;
   const min = a.down, max = a.price;
-  const step = Math.max(1000, Math.pow(10, Math.floor(Math.log10(Math.max(max - min, 1))) - 2)); // ~100 шагов
+  const step = 100000; // взнос двигается по 100 000; точную сумму можно ввести в поле
   range.min = min; range.max = max; range.step = step;
 
   const monthlyAt = d => (d >= a.price ? 0 : Math.ceil((a.price - d) / a.months));

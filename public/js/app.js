@@ -84,6 +84,13 @@
     const step = nice((Math.max(...vals) - Math.min(...vals)) / steps || 1);
     return { min: Math.floor(Math.min(...vals) / step) * step, max: Math.ceil(Math.max(...vals) / step) * step, step };
   };
+  // Границы с заданным шагом: ползунок «Мой первоначальный взнос» двигается ровно по 100 000
+  const fixedBounds = (vals, step) => {
+    vals = vals.filter(v => v != null);
+    if (!vals.length) return { min: 0, max: 0, step };
+    return { min: Math.floor(Math.min(...vals) / step) * step, max: Math.ceil(Math.max(...vals) / step) * step, step };
+  };
+  const DOWN_STEP = 100000;
   const monthlyAt = (a, d) => (a.price <= d ? 0 : Math.ceil((a.price - d) / a.months));
   const cur = type => (type === 'cash' ? S.currencyCash || '$' : S.currencyInstallment || 'сом');
 
@@ -95,14 +102,13 @@
     const L = ofType();
     const inst = L.filter(a => a.installment);
     B = {
-      down: bounds(inst.map(a => a.down).concat(inst.map(a => a.price))),
+      down: fixedBounds(inst.map(a => a.down).concat(inst.map(a => a.price)), DOWN_STEP),
       monthly: bounds(inst.map(a => a.monthly).concat([0])),
-      price: bounds(L.map(a => a.price)),
       area: bounds(L.map(a => a.area), 60),
     };
     Object.assign(st, {
       down: null, monthly: null, // null — не задано («любой»)
-      price: [B.price.min, B.price.max], area: [B.area.min, B.area.max], rooms: new Set(),
+      area: [B.area.min, B.area.max], rooms: new Set(),
     });
   }
 
@@ -129,13 +135,11 @@
   }
 
   const fDown = $('fDown'), fMonthly = $('fMonthly');
-  const [pLo, pHi] = $('fPrice').querySelectorAll('input');
   const [aLo, aHi] = $('fArea').querySelectorAll('input');
 
   function syncInputs() {
     setupRange(fDown, B.down, st.down ?? B.down.max);
     setupRange(fMonthly, B.monthly, st.monthly ?? B.monthly.max);
-    setupRange(pLo, B.price, st.price[0]); setupRange(pHi, B.price, st.price[1]);
     setupRange(aLo, B.area, st.area[0]); setupRange(aHi, B.area, st.area[1]);
     $('fType').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === st.type));
     $('fRooms').querySelectorAll('button').forEach(b => b.classList.toggle('on', st.rooms.has(b.dataset.v)));
@@ -158,7 +162,6 @@
     lo.addEventListener('input', on('lo'));
     hi.addEventListener('input', on('hi'));
   }
-  dual(pLo, pHi, 'price');
   dual(aLo, aHi, 'area');
 
   $('fType').addEventListener('click', e => {
@@ -192,7 +195,6 @@
   });
 
   function match(a) {
-    if (a.price < st.price[0] || a.price > st.price[1]) return false;
     if (a.area < st.area[0] || a.area > st.area[1]) return false;
     // Отдельной кнопки «Студия» нет: студии показываются вместе с однокомнатными
     if (st.rooms.size && !st.rooms.has(a.rooms >= 4 ? '4' : a.rooms <= 1 ? '1' : String(a.rooms))) return false;
@@ -256,10 +258,8 @@
     const c = cur(st.type);
     $('oDown').textContent = st.down == null ? 'любой' : money(st.down, c);
     $('oMonthly').textContent = st.monthly == null ? 'любой' : `до ${money(st.monthly, c)}`;
-    $('oPrice').textContent = `${money(st.price[0], c)} – ${money(st.price[1], c)}`;
     $('oArea').textContent = `${st.area[0]} – ${st.area[1]} м²`;
     [fDown, fMonthly].forEach(paintRange);
-    paintDual($('fPrice'), st.price, B.price);
     paintDual($('fArea'), st.area, B.area);
 
     const list = ofType().filter(match)

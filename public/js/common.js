@@ -160,10 +160,13 @@
   // Ползунок с атрибутом data-hint: пока он на экране, каждые 3 секунды рука «берёт» бегунок
   // и проводит его в сторону и обратно. Ушёл с экрана — рука прячется, вернулся — снова показывается.
   // Клиент тронул ползунок — рука пропадает до конца визита. Подпись видна только первые 6 секунд.
+  // data-hint-after="id": рука на этом ползунке появится, только когда клиент тронет тот (по очереди, а не две сразу).
   const HAND = '<svg viewBox="0 0 72 80" aria-hidden="true"><path d="M24 44V10a6 6 0 0 1 12 0v22a5 5 0 0 1 10 0v2a5 5 0 0 1 10 0v3a5 5 0 0 1 10 0v21c0 11-8 18-19 18h-6c-7 0-12-3-16-9L5 54a5.5 5.5 0 0 1 8.5-7L24 56Z" fill="#fff" stroke="#252f23" stroke-width="2.6" stroke-linejoin="round"/><path d="M36 33v11M46 34v10M56 37v8" stroke="#252f23" stroke-width="2" stroke-linecap="round" opacity=".35"/></svg>';
   function handHint(input) {
-    const key = 'hint:' + location.pathname;
-    const done = () => { try { return !!sessionStorage.getItem(key); } catch (e) { return false; } };
+    const keyOf = id => 'hint:' + location.pathname + ':' + id;
+    const key = keyOf(input.id);
+    const seen = k => { try { return !!sessionStorage.getItem(k); } catch (e) { return false; } };
+    const done = () => seen(key);
     if (done()) return;
     const host = input.parentElement;
     if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
@@ -199,18 +202,30 @@
       }
     };
     const stop = () => {
+      if (done()) return;
       try { sessionStorage.setItem(key, '1'); } catch (e) {}
+      document.dispatchEvent(new CustomEvent('hint-done', { detail: input.id }));
       clearTimeout(delay);
       hide();
       if (io2) io2.disconnect();
     };
     ['pointerdown', 'touchstart', 'input', 'keydown'].forEach(t => input.addEventListener(t, stop, { passive: true }));
     if (!('IntersectionObserver' in window) || calm) return;
-    io2 = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting) delay = setTimeout(show, 700);
-      else { clearTimeout(delay); hide(); }
-    }, { threshold: 1, rootMargin: '0px 0px -15% 0px' });
-    io2.observe(input);
+    const watch = () => {
+      if (done()) return;
+      io2 = new IntersectionObserver(entries => {
+        if (entries[0].isIntersecting) delay = setTimeout(show, 700);
+        else { clearTimeout(delay); hide(); }
+      }, { threshold: 1, rootMargin: '0px 0px -15% 0px' });
+      io2.observe(input);
+    };
+    const after = input.dataset.hintAfter;
+    const before = after && document.getElementById(after);
+    // Предыдущий ползунок ещё не трогали (и он виден на странице) — ждём его
+    if (before && !before.closest('[hidden]') && !seen(keyOf(after))) {
+      const go = e => { if (e.detail === after) { document.removeEventListener('hint-done', go); setTimeout(watch, 600); } };
+      document.addEventListener('hint-done', go);
+    } else watch();
   }
   // Ползунки могут появиться после отрисовки фильтра — ждём загрузки страницы
   window.addEventListener('load', () => document.querySelectorAll('input[type=range][data-hint]').forEach(handHint), { once: true });
