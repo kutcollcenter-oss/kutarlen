@@ -159,13 +159,18 @@ app.get(PARTNER_PATH, (req, res) => {
     if (a) demo.apt = { thumb: a.photos[0] && a.photos[0].thumb, title: `${a.roomsLabel}, ${a.area} м²`, monthly: a.monthly, currency: a.currency };
   }
   // Сколько риелторов уже пользуются сайтом (оплачено и не заблокировано) — показываем на странице, это вызывает доверие.
-  // Тестовые кабинеты (логин test, test2, test3, …) не считаем. Лица: сначала те, у кого есть фото.
+  // Тестовые кабинеты (логин test, test2, test3, …) не считаем.
+  // Лица — самые посещаемые сайты за 30 дней (уникальные посетители, как в кабинете «Менеджеры»), без владельца:
+  // сначала менеджеры с фото, по числу посетителей; если с фото меньше пяти — добираем остальных по тому же порядку.
   const isTest = r => /^test\d*$/i.test(String((userOf(r) || {}).login || ''));
   const using = D().realtors.filter(r => statusOf(r).active && !isTest(r));
+  const visits = analytics.summary(30);
+  const seen = r => (visits[r.id] || {}).visitors || 0;
+  const faces = using.filter(r => !isOwnerRealtor(r))
+    .sort((x, y) => Boolean(y.settings.photo) - Boolean(x.settings.photo) || seen(y) - seen(x));
   demo.users = {
     count: using.length,
-    faces: [...using].sort((x, y) => Boolean(y.settings.photo) - Boolean(x.settings.photo)).slice(0, 5)
-      .map(r => ({ name: r.settings.name || '', photo: r.settings.photo || '' })),
+    faces: faces.slice(0, 5).map(r => ({ name: r.settings.name || '', photo: r.settings.photo || '' })),
   };
   res.send(pages.renderLanding(product(), base(req), demo));
 });
