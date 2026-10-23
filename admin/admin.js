@@ -352,6 +352,7 @@
             ${n('floorFrom', 'С какого этажа (и выше)')}
             ${n('floors', 'Этажей в доме')}
           </div>
+          <label class="f"><span>Город</span><select name="city">${['Бишкек', 'Ош'].map(c => `<option ${(a.city || 'Бишкек') === c ? 'selected' : ''}>${c}</option>`).join('')}</select></label>
           ${f('address', 'Адрес')}
           <div class="mapbox">
             <label class="f"><span>Ссылка на карту — 2ГИС или Google Карты</span>
@@ -769,6 +770,7 @@
           </div>
           <label class="f"><span>Заметка (видите только вы)</span><input name="note" placeholder="Тариф, сумма, контакт…"></label>
           <div class="hint" style="margin:-4px 0 10px">Пустой адрес — возьмём имя латиницей. Пустой пароль — сгенерируем надёжный. Лимит 0 — без ограничения.</div>
+          <label class="check"><input type="checkbox" name="partnerCta" checked> Показывать на сайте призыв «Хотите такой же сайт?» — внизу страницы, ведёт на kvartiry.asia</label>
           ${myInstallment ? `<label class="check"><input type="checkbox" name="copyApartments"> Скопировать мои квартиры в рассрочку (${flats(myInstallment)}) — менеджеру не придётся начинать с нуля</label>` : ''}
           <div class="err" id="nfErr"></div>
           <button class="btn btn-primary btn-block">Создать кабинет</button>
@@ -792,6 +794,7 @@
             <button class="btn" data-act="date">Дата…</button>
             <button class="btn" data-act="limit">Лимит…</button>`}
             ${x.role === 'owner' || !myInstallment ? '' : '<button class="btn" data-act="copy">Скопировать мои квартиры</button>'}
+            <button class="btn${x.partnerCta ? ' btn-on' : ''}" data-act="cta" title="Блок внизу сайта менеджера, ведёт на kvartiry.asia">«Хотите такой же сайт?»: ${x.partnerCta ? 'показан ✓' : 'скрыт'}</button>
             <button class="btn" data-act="stats">Аналитика</button>
             ${x.role === 'owner' ? '' : x.blocked
               ? '<button class="btn btn-danger-fill" data-act="block">Заблокирован · Разблокировать</button>'
@@ -834,6 +837,7 @@
       e.preventDefault();
       const d = Object.fromEntries(new FormData(e.target));
       d.copyApartments = !!e.target.copyApartments && e.target.copyApartments.checked;
+      d.partnerCta = !!e.target.partnerCta && e.target.partnerCta.checked;
       try {
         const res = await api('POST', '/api/owner/realtors', d);
         await renderRealtors();
@@ -855,6 +859,7 @@
       try {
         switch (act.dataset.act) {
           case 'm1': await put({ paidUntil: addMonths(x.plan.paidUntil, 1) }); toast('Продлено на месяц'); break;
+          case 'cta': await put({ partnerCta: !x.partnerCta }); toast(x.partnerCta ? 'Призыв скрыт с сайта' : 'Призыв показан на сайте'); break;
           case 'm3': await put({ paidUntil: addMonths(x.plan.paidUntil, 3) }); toast('Продлено на 3 месяца'); break;
           case 'date': {
             const v = await modal({

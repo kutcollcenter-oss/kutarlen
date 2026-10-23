@@ -526,3 +526,6 @@ select option { background: var(--s2); color: var(--ink); }
 .mapbox-head { font-size: 16px; font-weight: 600; color: var(--ink); margin-bottom: 6px; }
 .mapbox-note { margin: -4px 0 14px; font-size: 14px; line-height: 1.5; color: var(--muted); }
 .mapbox-note b { color: var(--ink); font-weight: 600; }
+
+/* Кнопка-переключатель «Хотите такой же сайт?» в карточке менеджера: включено — с зелёной рамкой */
+.btn.btn-on { border-color: var(--ok); color: var(--ok); }

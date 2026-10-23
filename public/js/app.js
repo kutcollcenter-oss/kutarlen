@@ -96,7 +96,9 @@
 
   const st = { type: 'installment' };
   let B;
-  const ofType = () => APTS.filter(a => a.type === st.type);
+  // Город: null — все города. Всё остальное в фильтре (ползунки, комнаты) считается по квартирам выбранного города.
+  st.city = null;
+  const ofType = () => APTS.filter(a => a.type === st.type && (!st.city || a.city === st.city));
 
   function reset() {
     const L = ofType();
@@ -309,12 +311,29 @@
         st.rooms.size && `комнат: ${[...st.rooms].map(r => (r === '1' ? '1 или студия' : r === '4' ? '4+' : r)).join(', ')}`,
       ].filter(Boolean).join(', ');
       const kind = st.type === 'cash' ? 'квартиру за наличные' : st.type === 'commercial' ? 'коммерческое помещение в рассрочку' : 'квартиру в рассрочку';
-      const text = `Здравствуйте! Подберите, пожалуйста, ${kind}${budget ? `: ${budget}` : ''}.`;
+      const where = st.city ? ` в городе ${st.city}` : '';
+      const text = `Здравствуйте! Подберите, пожалуйста, ${kind}${where}${budget ? `: ${budget}` : ''}.`;
       $('cards').innerHTML = `<div class="empty">
         <p><b>Под эти условия сейчас нет квартир на сайте.</b><br>Напишите — подберу вручную.</p>
         <a class="btn btn-wa btn-lg" href="${esc(wa(text))}" data-wa="empty" target="_blank" rel="noopener">${D.waIcon}Подберу вручную</a>
       </div>`;
     }
+  }
+
+  // Города: кнопки «Все города» и каждый город, где есть квартиры. Один город — переключателя нет.
+  const cities = ['Бишкек', 'Ош'].filter(c => APTS.some(a => a.city === c));
+  if (cities.length > 1) {
+    $('fCity').innerHTML = ['', ...cities].map(c => `<button type="button" data-v="${esc(c)}" class="${c ? '' : 'on'}">${c ? esc(c) : 'Все города'}</button>`).join('');
+    $('fCity').hidden = false;
+    $('fCity').addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      const v = b.dataset.v || null; if (v === st.city) return;
+      st.city = v;
+      $('fCity').querySelectorAll('button').forEach(x => x.classList.toggle('on', (x.dataset.v || null) === v));
+      // В выбранном городе может не быть квартир текущей категории — переключаемся на ту, что есть
+      if (!ofType().length) { const t = ['installment', 'commercial', 'cash'].find(t => APTS.some(a => a.type === t && (!v || a.city === v))); if (t) st.type = t; }
+      reset(); syncInputs(); update();
+    });
   }
 
   // Вкладки только тех категорий, что есть на сайте; если категория одна — вкладок нет

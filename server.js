@@ -8,7 +8,7 @@ const multer = require('multer');
 const sharp = require('sharp');
 const db = require('./lib/db');
 const seed = require('./lib/seed');
-const { publicApt, kindLabel, money, isListed, typeOf, TYPES } = require('./lib/calc');
+const { publicApt, kindLabel, money, isListed, typeOf, TYPES, CITIES } = require('./lib/calc');
 const { resolveMap } = require('./lib/maps');
 const pages = require('./lib/pages');
 const auth = require('./lib/auth');
@@ -44,7 +44,8 @@ const aptsOf = rid => D().apartments.filter(a => a.realtorId === rid);
 const findApt = (rid, id) => D().apartments.find(a => a.id === id && a.realtorId === rid);
 const isVisible = isListed; // статусов нет: на сайте все квартиры с ценой; проданную удаляют
 const siteUrl = (req, r) => `${base(req)}/${r.slug}`;
-const ctxOf = (r, req) => ({ s: r.settings, base: base(req), prefix: `/${r.slug}`, slug: r.slug });
+// partnerCta — показывать ли в подвале призыв «Хотите такой же сайт?» (по умолчанию да; выключает владелец)
+const ctxOf = (r, req) => ({ s: r.settings, base: base(req), prefix: `/${r.slug}`, slug: r.slug, partnerCta: r.partnerCta !== false });
 const pub = (r, a, req) => publicApt(a, r.settings, base(req), `/${r.slug}`);
 const aptLabel = a => `${a.title ? a.title + ' · ' : ''}${kindLabel(a)}, ${a.area} м²`;
 
@@ -394,6 +395,7 @@ const FIELDS = {
   price: v => Math.max(0, Number(v) || 0),                   // наличные, цена в $
   floorFrom: v => Math.max(0, parseInt(v) || 0),
   floors: v => Math.max(0, parseInt(v) || 0),
+  city: v => (CITIES.includes(v) ? v : CITIES[0]),          // город: Бишкек или Ош
   address: v => String(v || '').trim().slice(0, 200),
   details: v => String(v || '').trim().slice(0, 5000),
   tags: v => (Array.isArray(v) ? v : String(v || '').split(',')).map(t => String(t).trim()).filter(Boolean).slice(0, 8),
@@ -555,12 +557,13 @@ function realtorRow(r, req, stats) {
     id: r.id, name: r.settings.name, slug: r.slug, url: siteUrl(req, r), login: u ? u.login : '',
     role: u ? u.role : '', status: statusOf(r), plan: r.plan, blocked: !!r.blocked, note: r.note || '',
     createdAt: r.createdAt, apartments: aptsOf(r.id).length, visitors30: st.visitors, wa30: st.wa, lastActivity: st.last,
+    partnerCta: r.partnerCta !== false,
   };
 }
 
 app.get('/api/owner/realtors', requireAuth, ownerOnly, (req, res) => {
   const stats = analytics.summary(30);
-  res.json(D().realtors.map(r => realtorRow(r, req, stats)).sort((a, b) => (a.role === 'owner' ? -1 : b.role === 'owner' ? 1 : b.createdAt.localeCompare(a.createdAt))));
+  res.json(D().realtors.map(r => realtorRow(r, req, stats)).sort((a, b) => (a.role === 'owner' ? -1 : b.role === 'owner' ? 1 : String(b.createdAt || '').localeCompare(String(a.createdAt || '')))));
 });
 
 app.post('/api/owner/realtors', requireAuth, ownerOnly, (req, res) => {
@@ -579,6 +582,7 @@ app.post('/api/owner/realtors', requireAuth, ownerOnly, (req, res) => {
     settings: tenants.defaultSettings(name),
     plan: { paidUntil: DATE_RE.test(b.paidUntil || '') ? b.paidUntil : '', maxApartments: Math.max(0, parseInt(b.maxApartments) || 0) },
     blocked: false, note: String(b.note || '').slice(0, 300), createdAt: new Date().toISOString(),
+    partnerCta: b.partnerCta !== false,
   };
   if (b.whatsapp) r.settings.whatsapp = String(b.whatsapp).slice(0, 30);
   D().realtors.push(r);
@@ -637,6 +641,7 @@ app.put('/api/owner/realtors/:id', requireAuth, ownerOnly, (req, res) => {
   if ('maxApartments' in b) r.plan.maxApartments = Math.max(0, parseInt(b.maxApartments) || 0);
   if ('blocked' in b && !isOwn) r.blocked = !!b.blocked;
   if ('note' in b) r.note = String(b.note || '').slice(0, 300);
+  if ('partnerCta' in b) r.partnerCta = !!b.partnerCta;
   if ('slug' in b) {
     const slug = String(b.slug || '').trim().toLowerCase();
     if (slug !== r.slug) {

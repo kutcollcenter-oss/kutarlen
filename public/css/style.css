@@ -863,3 +863,20 @@ input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 1px sol
   .topbar { position: relative; }
   html { scroll-padding-top: 12px; }
 }
+
+/* Логотипы менеджеров бывают любой формы (квадрат, широкая надпись «Кут Инвест»). Не сжимаем:
+   сохраняем пропорции и вписываем по высоте, ширина — сколько нужно, но не больше предела. */
+.brand img, .hero-badge img, .office-logo, .pl-logo { object-fit: contain; }
+.brand img { width: auto; height: 34px; max-width: 120px; }
+.hero-badge img { width: auto; height: 34px; max-width: 110px; }
+.office-logo { width: auto; height: auto; max-width: 180px; max-height: 64px; display: block; }
+.pl-logo { width: auto; height: auto; max-width: 180px; max-height: 110px; }
+
+/* Переключатель городов над фильтром (Бишкек / Ош) */
+.seg-city + .seg { margin-top: -8px; }
+
+/* Призыв «Хотите такой же сайт?» выключен — подвал в одну строку, без пустого тёмного поля и рисунка */
+.fx.fx-short { background-image: none; padding-top: 22px; padding-bottom: 22px; }
+.fx.fx-short .wrap { min-height: 0; }
+.fx.fx-short .fx-bottom { margin-top: 0; padding-top: 0; border-top: 0; }
+@media (max-width: 1023px) { .fx.fx-short { padding-bottom: calc(90px + env(safe-area-inset-bottom)); } }
