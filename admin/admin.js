@@ -525,6 +525,56 @@
     return () => buildReviews(list);
   }
 
+  // Новости «Скоро»: карточки с фото, заголовком и текстом. Фото грузятся как фото квартир (/api/admin/photos).
+  const NEWS_MAX = 6;
+  function newsEditor(initial) {
+    const list = (Array.isArray(initial) ? initial : []).map(n => ({ ...n }));
+    const box = document.getElementById('newsList');
+    const add = document.getElementById('newsAdd');
+    const draw = () => {
+      box.innerHTML = list.length ? list.map((n, i) => `<div class="rev news-ed" data-i="${i}">
+        <div class="row" style="margin-bottom:10px">
+          ${n.photo ? `<img class="news-ed-img" src="/uploads/${esc(n.photo)}-t.webp" alt="">` : ''}
+          <label class="upload" style="flex:1"><input type="file" accept="image/*" data-up>+ ${n.photo ? 'Заменить фото' : 'Добавить фото (необязательно)'}</label>
+          ${n.photo ? '<button type="button" class="btn news-nophoto">Убрать фото</button>' : ''}
+        </div>
+        <label class="f"><span>Заголовок</span><input data-k="title" maxlength="120" value="${esc(n.title)}" placeholder="Например: Квартиры без первоначального взноса"></label>
+        <label class="f"><span>Текст</span><textarea data-k="text" rows="3" maxlength="600" placeholder="Например: Скоро старт продаж. Напишите — первым сообщу условия.">${esc(n.text)}</textarea></label>
+        <button type="button" class="btn btn-danger rev-del news-del">Удалить новость</button>
+      </div>`).join('') : '<p class="hint">Новостей пока нет. Расскажите о том, что скоро: старт продаж, новый дом, особые условия.</p>';
+      add.hidden = list.length >= NEWS_MAX;
+    };
+    box.addEventListener('input', e => {
+      const el = e.target.closest('[data-k]'); if (!el) return;
+      list[+el.closest('.news-ed').dataset.i][el.dataset.k] = el.value;
+    });
+    box.addEventListener('change', async e => {
+      const inp = e.target.closest('[data-up]'); if (!inp || !inp.files[0]) return;
+      const n = list[+inp.closest('.news-ed').dataset.i];
+      const fd = new FormData(); fd.append('photos', inp.files[0]);
+      toast('Загрузка фото…');
+      try {
+        const r = await api('POST', '/api/admin/photos', fd);
+        n.photo = r.photos[0]; draw(); toast('Фото загружено — не забудьте сохранить');
+      } catch (err) { toast(err.message); }
+    });
+    box.addEventListener('click', async e => {
+      const ed = e.target.closest('.news-ed'); if (!ed) return;
+      const i = +ed.dataset.i, n = list[i];
+      if (e.target.closest('.news-nophoto')) { n.photo = ''; draw(); return; }
+      if (!e.target.closest('.news-del')) return;
+      if ((n.title || n.text) && !(await confirmBox('Удалить новость?', 'Новость исчезнет с сайта после сохранения.', 'Удалить', true))) return;
+      list.splice(i, 1); draw();
+    });
+    add.onclick = () => {
+      list.unshift({ title: '', text: '', photo: '' });
+      draw();
+      const first = box.querySelector('.news-ed input[data-k]'); if (first) first.focus();
+    };
+    draw();
+    return () => list.filter(n => String(n.title || '').trim() || String(n.text || '').trim());
+  }
+
   // ---------- Профиль (настройки сайта) ----------
   async function renderSettings() {
     settings = await api('GET', '/api/admin/settings');
@@ -564,6 +614,11 @@
         <div class="card"><h2 style="margin-top:0">Валюта</h2>
           <div class="grid2">${f('currencyInstallment', 'Рассрочка')}${f('currencyCash', 'Наличные')}</div>
         </div>
+        <div class="card"><h2 style="margin-top:0">Новости «Скоро»</h2>
+          <div class="hint" style="margin:-4px 0 10px">Показываются на главной сразу после первого экрана. Под каждой новостью кнопка «Узнать первым» — клиент пишет вам в WhatsApp. До ${NEWS_MAX} новостей.</div>
+          <div id="newsList" class="rev-list"></div>
+          <button type="button" class="btn btn-block" id="newsAdd">+ Добавить новость</button>
+        </div>
         <div class="card"><h2 style="margin-top:0">Блоки главной</h2>
           ${t('steps', 'Как работает рассрочка — шаги', 'Каждый шаг с новой строки')}
           ${t('documents', 'Какие документы нужны', 'Каждый пункт с новой строки')}
@@ -597,11 +652,13 @@
     bindNav();
     const form = document.getElementById('sf');
     const getReviews = reviewsEditor(s.reviews);
+    const getNews = newsEditor(s.news);
     form.onsubmit = async e => {
       e.preventDefault();
-      // Поля карточек отзывов без name — в форму не попадают; отзывы собираются из карточек
+      // Поля карточек отзывов и новостей без name — в форму не попадают; они собираются из карточек
       const data = Object.fromEntries(new FormData(form));
       data.reviews = getReviews();
+      data.news = getNews();
       settings = await api('PUT', '/api/admin/settings', data);
       toast('Сохранено');
     };

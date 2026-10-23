@@ -880,3 +880,16 @@ input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 1px sol
 .fx.fx-short .wrap { min-height: 0; }
 .fx.fx-short .fx-bottom { margin-top: 0; padding-top: 0; border-top: 0; }
 @media (max-width: 1023px) { .fx.fx-short { padding-bottom: calc(90px + env(safe-area-inset-bottom)); } }
+
+/* Блок «Скоро»: новости менеджера после первого экрана */
+.news-sec { background: var(--soft); }
+.news { display: grid; gap: 0; margin-top: 24px; border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+@media (min-width: 760px) { .news { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1100px) { .news:has(> :nth-child(3)) { grid-template-columns: repeat(3, 1fr); } }
+.news-card { display: flex; flex-direction: column; background: var(--card); border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.news-photo { aspect-ratio: 16 / 10; overflow: hidden; background: var(--line); }
+.news-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.news-body { display: flex; flex-direction: column; flex: 1; padding: 22px 22px 24px; }
+.news-body h3 { margin: 0 0 10px; font-size: 21px; line-height: 1.3; color: var(--ink); text-transform: none; letter-spacing: 0; }
+.news-body p { margin: 0 0 20px; font-size: 16px; line-height: 1.55; color: var(--text); flex: 1; }
+.news-btn { margin-top: auto; align-self: flex-start; }

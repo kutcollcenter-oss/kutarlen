@@ -532,3 +532,6 @@ select option { background: var(--s2); color: var(--ink); }
 .btn.btn-on { border-color: var(--ok); color: var(--ok); }
 /* Участок — зелёная метка */
 .badge-land { background: rgba(74, 222, 128, .14); color: #86efac; }
+/* Новости «Скоро»: превью фото в карточке редактора */
+.news-ed-img { width: 72px; height: 48px; object-fit: cover; border-radius: 4px; }
+.news-ed .row { align-items: center; gap: 8px; }

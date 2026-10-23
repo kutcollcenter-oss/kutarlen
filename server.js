@@ -86,8 +86,9 @@ async function saveLogo(buffer) {
 }
 
 function removePhotoFiles(name) {
-  const used = D().apartments.some(a => (a.photos || []).includes(name));
-  if (used) return; // фото ещё используется в дубликате
+  const used = D().apartments.some(a => (a.photos || []).includes(name))
+    || D().realtors.some(r => ((r.settings || {}).news || []).some(n => n.photo === name));
+  if (used) return; // фото ещё используется в дубликате или в новости
   for (const f of [`${name}.webp`, `${name}-t.webp`, `${name}-og.jpg`]) {
     fs.unlink(path.join(UPLOAD_DIR, f), () => {});
   }
@@ -501,11 +502,31 @@ const SETTINGS_KEYS = ['name', 'role', 'company', 'tagline', 'about', 'stats', '
 
 app.get('/api/admin/settings', requireAuth, (req, res) => res.json(req.realtor.settings));
 
+// Новости «Скоро» на главной сайта менеджера: до 6 штук — заголовок, текст и одно фото (из /api/admin/photos)
+const NEWS_MAX = 6;
+function cleanNews(list) {
+  return list.slice(0, NEWS_MAX).map(n => {
+    const photo = cleanPhotos([n && n.photo]) || [];
+    return {
+      id: n && /^[a-z0-9]{4,24}$/i.test(String(n.id || '')) ? String(n.id) : db.newId(),
+      title: String((n && n.title) || '').trim().slice(0, 120),
+      text: String((n && n.text) || '').trim().slice(0, 600),
+      photo: photo[0] || '',
+    };
+  }).filter(n => n.title || n.text);
+}
+
 app.put('/api/admin/settings', requireAuth, (req, res) => {
   const s = req.realtor.settings;
   for (const k of SETTINGS_KEYS) {
     if (!(k in req.body)) continue;
     s[k] = String(req.body[k] ?? '').slice(0, 10000);
+  }
+  if (Array.isArray(req.body.news)) {
+    const before = (s.news || []).map(n => n.photo).filter(Boolean);
+    s.news = cleanNews(req.body.news);
+    db.save();
+    before.filter(p => !s.news.some(n => n.photo === p)).forEach(removePhotoFiles);
   }
   db.save();
   res.json(s);
@@ -677,7 +698,7 @@ app.post('/api/owner/realtors/:id/password', requireAuth, ownerOnly, (req, res) 
 app.delete('/api/owner/realtors/:id', requireAuth, ownerOnly, (req, res) => {
   const r = ownedRealtor(req, res); if (!r) return;
   if (r.id === req.realtor.id) return res.status(400).json({ error: 'Свой кабинет удалить нельзя' });
-  const photos = aptsOf(r.id).flatMap(a => a.photos || []);
+  const photos = aptsOf(r.id).flatMap(a => a.photos || []).concat(((r.settings || {}).news || []).map(n => n.photo).filter(Boolean));
   D().apartments = D().apartments.filter(a => a.realtorId !== r.id);
   D().users = D().users.filter(u => u.realtorId !== r.id);
   D().realtors = D().realtors.filter(x => x.id !== r.id);
