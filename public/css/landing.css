@@ -242,3 +242,11 @@ body.lx {
 
 /* Лица внизу после номера — по центру */
 .lx-final .lx-users { justify-content: center; margin-top: 26px; }
+
+/* «Новое: продавайте и участки» — текст и рисунок */
+.lx-land-in { display: grid; gap: 28px; align-items: center; }
+@media (min-width: 900px) { .lx-land-in { grid-template-columns: 1fr 1.25fr; gap: 48px; } }
+.lx-land h2 { margin-bottom: 16px; }
+.lx-land-text p { margin: 0; max-width: 460px; font-size: 18px; line-height: 1.55; color: var(--lx-muted); }
+.lx-land img { display: block; width: 100%; height: auto; filter: drop-shadow(0 24px 40px rgba(0, 0, 0, .45)); }
+.lx-sec.lx-land { padding-bottom: 40px; }
