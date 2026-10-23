@@ -109,21 +109,10 @@ body.lx {
 .lx-calc-in input[type=range]::-moz-range-thumb { border: 2px solid var(--gold); background: var(--lx-bg); }
 .lx-calc-out { background: linear-gradient(160deg, #1d2e22, #121d16); padding: 30px 24px; display: flex; flex-direction: column; justify-content: center; }
 .lx-calc-out > span { font-family: var(--mono); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--gold); }
-.lx-calc-out b { font-weight: 400; font-size: clamp(38px, 9vw, 60px); line-height: 1.05; margin-top: 8px;
+.lx-calc-out > b { font-weight: 400; font-size: clamp(38px, 9vw, 60px); line-height: 1.05; margin-top: 8px;
   background: linear-gradient(90deg, var(--gold2), var(--gold)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .lx-calc-out small { color: var(--lx-muted); font-size: 15px; }
-.lx-year { margin-top: 14px; font-size: 20px; color: var(--lx-text); }
-.lx-calc-out p { margin: 18px 0 0; color: var(--lx-muted); font-size: 14px; line-height: 1.55; }
 
-/* Возможности */
-.lx-feats { display: grid; gap: 1px; background: var(--lx-line); border: 1px solid var(--lx-line); }
-@media (min-width: 700px) { .lx-feats { grid-template-columns: repeat(2, 1fr); } }
-@media (min-width: 1000px) { .lx-feats { grid-template-columns: repeat(3, 1fr); } }
-.lx-feat { background: var(--lx-bg2); padding: 26px 22px; transition: background .3s; }
-.lx-feat:hover { background: var(--lx-card); }
-.lx-feat i { font-style: normal; font-family: var(--mono); color: var(--gold); font-size: 13px; }
-.lx-feat b { display: block; font-weight: 500; font-size: 18px; margin: 18px 0 8px; }
-.lx-feat p { margin: 0; color: var(--lx-muted); font-size: 15px; line-height: 1.55; }
 
 .lx-steps { list-style: none; counter-reset: s; padding: 0; margin: 0; display: grid; gap: 1px; background: var(--lx-line); border: 1px solid var(--lx-line); }
 @media (min-width: 860px) { .lx-steps { grid-template-columns: repeat(3, 1fr); } }
@@ -184,13 +173,7 @@ body.lx {
 .lx-tier-price b { font-size: clamp(40px, 5vw, 52px); font-weight: 400; line-height: 1; letter-spacing: -.02em; color: var(--lx-text); font-variant-numeric: tabular-nums; }
 .lx-tier.best .lx-tier-price b { color: var(--gold2); }
 .lx-tier-price span { font-size: 15px; color: var(--lx-muted); }
-.lx-tier-sub { margin: 12px 0 22px; font-size: 15px; line-height: 1.5; color: var(--lx-muted); min-height: 3em; }
 .lx-tier-btn { width: 100%; }
-.lx-tier-head { margin: 26px 0 14px; font-size: 15px; color: var(--lx-text); }
-.lx-tier-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
-.lx-tier-list li { position: relative; padding-left: 24px; font-size: 15px; line-height: 1.45; color: var(--lx-muted); }
-.lx-tier-list li::before { content: ""; position: absolute; left: 0; top: .42em; width: 10px; height: 10px; border: 1.5px solid var(--gold); border-radius: 50% !important; }
-.lx-tier.best .lx-tier-list li { color: var(--lx-text); }
 
 /* «Уже пользуются N риелторов»: ряд лиц внахлёст и число */
 .lx-users { display: flex; align-items: center; gap: 14px; margin-top: 22px; color: var(--lx-muted); font-size: 15px; }
@@ -199,3 +182,30 @@ body.lx {
   display: grid; place-items: center; font-style: normal; font-size: 14px; font-weight: 600; color: var(--gold2); background: var(--lx-card); }
 .lx-faces > * + * { margin-left: -10px; }
 .lx-users b { color: var(--lx-text); font-weight: 600; }
+
+/* Тарифы: только деньги — сколько платите и выгода */
+.lx-tier-money { margin: 22px 0 26px; display: grid; gap: 10px; }
+.lx-tier-money div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-bottom: 10px; border-bottom: 1px dashed var(--lx-line); }
+.lx-tier-money dt { font-size: 15px; color: var(--lx-muted); }
+.lx-tier-money dd { margin: 0; font-size: 17px; color: var(--lx-text); font-variant-numeric: tabular-nums; text-align: right; }
+.lx-tier-money dd.plus { color: var(--gold2); font-weight: 600; }
+.lx-tier-btn { margin-top: auto; }
+
+/* «В любой тариф входит» — под тарифами */
+.lx-incl { margin-top: 28px; border: 1px solid var(--gold); background: linear-gradient(160deg, #1d2e22, #121d16); padding: 26px 24px; }
+.lx-incl-head { font-size: clamp(20px, 3vw, 24px); color: var(--gold2); margin-bottom: 18px; }
+.lx-incl ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px 28px; }
+@media (min-width: 700px) { .lx-incl ul { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1000px) { .lx-incl ul { grid-template-columns: repeat(3, 1fr); } }
+.lx-incl li { display: flex; align-items: flex-start; gap: 12px; font-size: 17px; line-height: 1.4; color: var(--lx-text); }
+.lx-incl svg { flex: none; width: 26px; height: 26px; padding: 4px; color: #1b1407; background: var(--gold2); border-radius: 50% !important; }
+
+/* Калькулятор: поле комиссии и понятный итог */
+.lx-pct { align-items: center; }
+.lx-pct em { font-style: normal; display: inline-flex; align-items: center; gap: 6px; font-size: 20px; color: var(--gold2); }
+.lx-pct input { width: 76px; padding: 8px 10px; font: inherit; font-size: 20px; text-align: center; color: var(--gold2); background: var(--lx-bg); border: 1px solid var(--gold); outline: none; }
+.lx-pct input:focus { box-shadow: 0 0 0 3px rgba(217, 180, 90, .3); }
+.lx-calc-out .lx-one { margin: 0 0 22px; padding-bottom: 18px; border-bottom: 1px solid var(--lx-line); font-size: 16px; line-height: 1.5; color: var(--lx-muted); }
+.lx-one b { color: var(--lx-text); font-weight: 600; white-space: nowrap; }
+.lx-pay { margin-top: 22px; padding: 14px 16px; background: rgba(243, 217, 139, .08); border-left: 3px solid var(--gold); font-size: 16px; line-height: 1.5; color: var(--lx-text); }
+.lx-pay b { color: var(--gold2); font-weight: 600; }
