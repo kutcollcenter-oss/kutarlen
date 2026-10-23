@@ -501,7 +501,8 @@ select option { background: var(--s2); color: var(--ink); }
 .auth-phone { color: var(--muted); }
 
 /* Коммерческое помещение — третья категория */
-#type.seg { grid-template-columns: repeat(3, 1fr); }
+#type.seg { grid-template-columns: repeat(2, 1fr); }
+@media (min-width: 640px) { #type.seg { grid-template-columns: repeat(4, 1fr); } }
 .badge-commercial { background: rgba(167,139,250,.16); color: #c4b5fd; }
 
 /* Всплывающее сообщение («Сохранено», «Фото загружены…»).
@@ -529,3 +530,5 @@ select option { background: var(--s2); color: var(--ink); }
 
 /* Кнопка-переключатель «Хотите такой же сайт?» в карточке менеджера: включено — с зелёной рамкой */
 .btn.btn-on { border-color: var(--ok); color: var(--ok); }
+/* Участок — зелёная метка */
+.badge-land { background: rgba(74, 222, 128, .14); color: #86efac; }

@@ -53,6 +53,7 @@
         <button data-v="installment" class="on">Рассрочка · сом</button>
         <button data-v="commercial">Коммерция · сом</button>
         <button data-v="cash">Наличные · $</button>
+        <button data-v="land">Участки · $</button>
       </div>
       <div class="field" id="fDownWrap">
         <div class="field-head"><label for="fDown">Мой первоначальный взнос</label><output id="oDown"></output></div>
@@ -72,7 +73,7 @@
       </div>
 
       <div class="field">
-        <div class="field-head"><label>Площадь, м²</label><output id="oArea"></output></div>
+        <div class="field-head"><label id="lArea">Площадь, м²</label><output id="oArea"></output></div>
         <div class="dual" id="fArea"><input type="range" aria-label="Площадь от"><input type="range" aria-label="Площадь до"></div>
       </div>
 
@@ -84,7 +85,7 @@
       <select id="sort" aria-label="Сортировка">
         <option value="monthly">Платёж в месяц: от меньшего</option>
         <option value="down">Взнос: от меньшего</option>
-        <option value="ppm">Цена за м²: от дешёвых</option>
+        <option value="ppm" id="sortPpm">Цена за м²: от дешёвых</option>
       </select>
     </div>
     <div class="cards" id="cards"></div>

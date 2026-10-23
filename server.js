@@ -8,7 +8,7 @@ const multer = require('multer');
 const sharp = require('sharp');
 const db = require('./lib/db');
 const seed = require('./lib/seed');
-const { publicApt, kindLabel, money, isListed, typeOf, TYPES, CITIES } = require('./lib/calc');
+const { publicApt, kindLabel, unitOf, money, isListed, typeOf, isCashType, TYPES, CITIES } = require('./lib/calc');
 const { resolveMap } = require('./lib/maps');
 const pages = require('./lib/pages');
 const auth = require('./lib/auth');
@@ -47,7 +47,7 @@ const siteUrl = (req, r) => `${base(req)}/${r.slug}`;
 // partnerCta — показывать ли в подвале призыв «Хотите такой же сайт?» (по умолчанию да; выключает владелец)
 const ctxOf = (r, req) => ({ s: r.settings, base: base(req), prefix: `/${r.slug}`, slug: r.slug, partnerCta: r.partnerCta !== false });
 const pub = (r, a, req) => publicApt(a, r.settings, base(req), `/${r.slug}`);
-const aptLabel = a => `${a.title ? a.title + ' · ' : ''}${kindLabel(a)}, ${a.area} м²`;
+const aptLabel = a => `${a.title ? a.title + ' · ' : ''}${kindLabel(a)}, ${a.area} ${unitOf(a)}`;
 
 function similarTo(r, a, req, limit = 4) {
   const ref = a ? pub(r, a, req) : null;
@@ -157,7 +157,7 @@ app.get(PARTNER_PATH, (req, res) => {
     demo.name = owner.settings.name;
     demo.photo = owner.settings.photo;
     const a = list.find(x => x.installment && x.photos.length) || list.find(x => x.installment);
-    if (a) demo.apt = { thumb: a.photos[0] && a.photos[0].thumb, title: `${a.roomsLabel}, ${a.area} м²`, monthly: a.monthly, currency: a.currency };
+    if (a) demo.apt = { thumb: a.photos[0] && a.photos[0].thumb, title: `${a.roomsLabel}, ${a.area} ${a.unit}`, monthly: a.monthly, currency: a.currency };
   }
   // Сколько риелторов уже пользуются сайтом (оплачено и не заблокировано) — показываем на странице, это вызывает доверие.
   // Тестовые кабинеты (логин test, test2, test3, …) не считаем.
@@ -319,7 +319,7 @@ async function notifyTelegram(r, a, ev, req) {
   if (a) {
     const p = pub(r, a, req);
     const cur = p.currency;
-    text += `\n${p.title} · ${p.roomsLabel}, ${p.area} м²\nЦена ${money(p.price, cur)}${p.installment ? `, мин. взнос ${money(p.down, cur)}, ${p.months} мес.` : p.type === 'cash' ? ', наличные' : ''}\n${base(req)}${p.url}`;
+    text += `\n${p.title} · ${p.roomsLabel}, ${p.area} ${p.unit}\nЦена ${money(p.price, cur)}${p.installment ? `, мин. взнос ${money(p.down, cur)}, ${p.months} мес.` : isCashType(p.type) ? ', наличные' : ''}\n${base(req)}${p.url}`;
   }
   await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
     method: 'POST',
@@ -392,7 +392,7 @@ const FIELDS = {
   down: v => Math.max(0, Number(v) || 0),                    // рассрочка, минимальный взнос
   months: v => Math.max(0, Math.min(240, parseInt(v) || 0)), // рассрочка, срок
   cashDiscount: v => Math.max(0, Number(v) || 0),            // рассрочка: скидка за наличные, сом за м²
-  price: v => Math.max(0, Number(v) || 0),                   // наличные, цена в $
+  price: v => Math.max(0, Number(v) || 0),                   // наличные и участки, цена в $ (у участка площадь в сотках)
   floorFrom: v => Math.max(0, parseInt(v) || 0),
   floors: v => Math.max(0, parseInt(v) || 0),
   city: v => (CITIES.includes(v) ? v : CITIES[0]),          // город: Бишкек или Ош
@@ -604,7 +604,7 @@ function copyOwnerApartments(owner, r) {
   // Копии из прошлой версии без copiedFrom узнаём по названию, площади и главному фото
   const sig = a => `${a.title}|${a.area}|${(a.photos || [])[0] || ''}`;
   const mineSigs = new Set(mine.map(sig));
-  const src = aptsOf(owner.id).filter(a => isVisible(a) && typeOf(a) !== 'cash' && !already.has(a.id) && !mineSigs.has(sig(a)));
+  const src = aptsOf(owner.id).filter(a => isVisible(a) && !isCashType(typeOf(a)) && !already.has(a.id) && !mineSigs.has(sig(a)));
   const free = Number(r.plan.maxApartments) ? Math.max(0, Number(r.plan.maxApartments) - mine.length) : Infinity;
   const take = src.slice(0, free);
   for (const a of take) {

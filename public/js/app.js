@@ -92,7 +92,10 @@
   };
   const DOWN_STEP = 100000;
   const monthlyAt = (a, d) => (a.price <= d ? 0 : Math.ceil((a.price - d) / a.months));
-  const cur = type => (type === 'cash' ? S.currencyCash || '$' : S.currencyInstallment || 'сом');
+  // Наличные и участки — одна цена в $, без рассрочки; у участков площадь в сотках
+  const cashLike = t => t === 'cash' || t === 'land';
+  const TYPE_ORDER = ['installment', 'commercial', 'cash', 'land'];
+  const cur = type => (cashLike(type) ? S.currencyCash || '$' : S.currencyInstallment || 'сом');
 
   const st = { type: 'installment' };
   let B;
@@ -164,10 +167,13 @@
     $('fType').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === st.type));
     $('fRooms').querySelectorAll('button').forEach(b => b.classList.toggle('on', st.rooms.has(b.dataset.v)));
     // Коммерция считается как рассрочка: те же ползунки взноса и платежа, только без комнат
-    const isNew = st.type !== 'cash';
+    const isNew = !cashLike(st.type);
     $('fDownWrap').hidden = !isNew;
     $('fMonthlyWrap').hidden = !isNew;
-    $('fRoomsWrap').hidden = st.type === 'commercial';
+    $('fRoomsWrap').hidden = st.type === 'commercial' || st.type === 'land';
+    const land = st.type === 'land';
+    $('lArea').textContent = land ? 'Площадь, соток' : 'Площадь, м²';
+    $('sortPpm').textContent = land ? 'Цена за сотку: от дешёвых' : 'Цена за м²: от дешёвых';
   }
 
   fDown.addEventListener('input', () => { st.down = +fDown.value >= B.down.max ? null : +fDown.value; update(); });
@@ -211,7 +217,7 @@
     const link = ph.closest('.card-link');
     window.RS.lightbox(a.photos.map(p => p.src), +(ph.dataset.i || 0), {
       href: link && link.getAttribute('href'),
-      label: a.type === 'commercial' ? 'Подробнее о помещении' : 'Подробнее о квартире',
+      label: { commercial: 'Подробнее о помещении', land: 'Подробнее об участке' }[a.type] || 'Подробнее о квартире',
     });
   });
 
@@ -252,7 +258,7 @@
     const url = a.installment && a.o.down !== a.down ? `${a.url}?down=${a.o.down}` : a.url;
     const main = a.installment
       ? `<div class="card-price"><b>${money(a.o.monthly, c)}</b><span>/ мес</span></div>`
-      : `<div class="card-price"><b>${money(a.price, c)}</b><span>${a.type === 'cash' ? 'наличные' : '100% оплата'}</span></div>`;
+      : `<div class="card-price"><b>${money(a.price, c)}</b><span>${cashLike(a.type) ? 'наличные' : '100% оплата'}</span></div>`;
     const pay = a.installment
       ? `<div class="pay-row">
           <div><span>Взнос</span><b>${money(a.o.down, c)}</b></div>
@@ -266,13 +272,13 @@
         <div class="card-photo" data-id="${a.id}">${photo}<div class="tags">${a.tags.map(t => `<span class="tag${tagCls(t)}">${esc(t)}</span>`).join('')}</div></div>
         <div class="card-body">
           ${main}
-          <div class="card-title">${a.roomsLabel}, ${a.area} м²${a.title ? ` · ${esc(a.title)}` : ''}</div>
+          <div class="card-title">${a.roomsLabel}, ${a.area} ${a.unit}${a.title ? ` · ${esc(a.title)}` : ''}</div>
           ${a.address ? `<div class="card-addr">${I.pin}${esc(a.address)}</div>` : ''}
           ${pay}
           <div class="feats">
-            ${a.type === 'commercial' ? '' : `<span>${I.bed}${a.roomsLabel}</span>`}<span>${I.area}${a.area} м²</span>
+            ${a.type === 'commercial' || a.type === 'land' ? '' : `<span>${I.bed}${a.roomsLabel}</span>`}<span>${I.area}${a.area} ${a.unit}</span>
             ${a.floorFrom ? `<span>${I.floor}от ${a.floorFrom} эт.</span>` : ''}
-            <span class="feats-ppm">${money(a.pricePerM2, c)}/м²</span>
+            <span class="feats-ppm">${money(a.pricePerM2, c)}/${a.type === 'land' ? 'сот.' : 'м²'}</span>
           </div>
         </div>
       </a>
@@ -287,10 +293,11 @@
 
   function update() {
     const c = cur(st.type);
-    if (st.type !== 'cash') syncMonthly();
+    if (!cashLike(st.type)) syncMonthly();
+    const u = st.type === 'land' ? 'сот.' : 'м²';
     $('oDown').textContent = st.down == null ? 'любой' : money(st.down, c);
     $('oMonthly').textContent = st.monthly == null ? 'любой' : `до ${money(st.monthly, c)}`;
-    $('oArea').textContent = st.area[0] === st.area[1] ? `${st.area[0]} м²` : `${st.area[0]} – ${st.area[1]} м²`;
+    $('oArea').textContent = st.area[0] === st.area[1] ? `${st.area[0]} ${u}` : `${st.area[0]} – ${st.area[1]} ${u}`;
     [fDown, fMonthly].forEach(paintRange);
     paintDual($('fArea'), st.area, B.area);
 
@@ -298,9 +305,8 @@
       .map(a => ({ ...a, o: offer(a) }))
       .filter(a => a.o)
       .sort(SORTS[$('sort').value]);
-    $('count').textContent = st.type === 'commercial'
-      ? `Найдено: ${list.length} ${plural(list.length, 'помещение', 'помещения', 'помещений')}`
-      : `Найдено: ${list.length} ${plural(list.length, 'квартира', 'квартиры', 'квартир')}`;
+    const words = { commercial: ['помещение', 'помещения', 'помещений'], land: ['участок', 'участка', 'участков'] }[st.type] || ['квартира', 'квартиры', 'квартир'];
+    $('count').textContent = `Найдено: ${list.length} ${plural(list.length, ...words)}`;
     if (list.length) {
       $('cards').innerHTML = list.map(card).join('');
       window.RS.slides($('cards').querySelectorAll('.card-photo'));
@@ -310,11 +316,11 @@
         st.monthly != null && `платёж до ${money(st.monthly, c)} в месяц`,
         st.rooms.size && `комнат: ${[...st.rooms].map(r => (r === '1' ? '1 или студия' : r === '4' ? '4+' : r)).join(', ')}`,
       ].filter(Boolean).join(', ');
-      const kind = st.type === 'cash' ? 'квартиру за наличные' : st.type === 'commercial' ? 'коммерческое помещение в рассрочку' : 'квартиру в рассрочку';
+      const kind = st.type === 'land' ? 'участок' : st.type === 'cash' ? 'квартиру за наличные' : st.type === 'commercial' ? 'коммерческое помещение в рассрочку' : 'квартиру в рассрочку';
       const where = st.city ? ` в городе ${st.city}` : '';
       const text = `Здравствуйте! Подберите, пожалуйста, ${kind}${where}${budget ? `: ${budget}` : ''}.`;
       $('cards').innerHTML = `<div class="empty">
-        <p><b>Под эти условия сейчас нет квартир на сайте.</b><br>Напишите — подберу вручную.</p>
+        <p><b>Под эти условия сейчас нет ${words[2]} на сайте.</b><br>Напишите — подберу вручную.</p>
         <a class="btn btn-wa btn-lg" href="${esc(wa(text))}" data-wa="empty" target="_blank" rel="noopener">${D.waIcon}Подберу вручную</a>
       </div>`;
     }
@@ -331,7 +337,7 @@
       st.city = v;
       $('fCity').querySelectorAll('button').forEach(x => x.classList.toggle('on', (x.dataset.v || null) === v));
       // В выбранном городе может не быть квартир текущей категории — переключаемся на ту, что есть
-      if (!ofType().length) { const t = ['installment', 'commercial', 'cash'].find(t => APTS.some(a => a.type === t && (!v || a.city === v))); if (t) st.type = t; }
+      if (!ofType().length) { const t = TYPE_ORDER.find(t => APTS.some(a => a.type === t && (!v || a.city === v))); if (t) st.type = t; }
       reset(); syncInputs(); update();
     });
   }
@@ -339,8 +345,8 @@
   // Вкладки только тех категорий, что есть на сайте; если категория одна — вкладок нет
   const has = t => APTS.some(a => a.type === t);
   $('fType').querySelectorAll('button').forEach(b => { b.hidden = !has(b.dataset.v); });
-  if (['installment', 'commercial', 'cash'].filter(has).length < 2) $('fType').hidden = true;
-  if (!has(st.type)) st.type = ['installment', 'commercial', 'cash'].find(has) || 'installment';
+  if (TYPE_ORDER.filter(has).length < 2) $('fType').hidden = true;
+  if (!has(st.type)) st.type = TYPE_ORDER.find(has) || 'installment';
   reset();
   syncInputs();
   update();

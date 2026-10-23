@@ -3,15 +3,24 @@
 // Рассчитан на телефон. Статусов у квартир нет: квартира либо на сайте, либо удалена.
 (function () {
   const app = document.getElementById('app');
-  const TYPES = { installment: 'Рассрочка', commercial: 'Коммерция', cash: 'Наличные' };
-  const typeOf = a => (a.type === 'cash' || a.type === 'resale' ? 'cash' : a.type === 'commercial' ? 'commercial' : 'installment');
+  const TYPES = { installment: 'Рассрочка', commercial: 'Коммерция', cash: 'Наличные', land: 'Участок' };
+  const typeOf = a => (a.type === 'cash' || a.type === 'resale' ? 'cash' : a.type === 'commercial' || a.type === 'land' ? a.type : 'installment');
+  // Наличные и участки — одна цена в $, без рассрочки; у участка площадь в сотках
+  const cashLike = t => t === 'cash' || t === 'land';
+  // Подпись и пример для поля «Название» в зависимости от вида объекта
+  const TITLE_HINT = {
+    installment: ['Название (ЖК / дом)', 'Например: ЖК «Ала-Тоо Резиденс»'],
+    cash: ['Название (ЖК / дом)', 'Например: дом у парка, ЖК «Ала-Тоо»'],
+    commercial: ['Название (ЖК / бизнес-центр)', 'Например: БЦ «Орион», ЖК «Ала-Тоо»'],
+    land: ['Район или массив', 'Например: Арча-Бешик, Ак-Орго, Кок-Жар'],
+  };
   const nf = new Intl.NumberFormat('ru-RU');
   let settings = null;
   let me = null; // { login, role, defaultPassword, realtor: { url, status, plan, count }, product }
   let listFilter = 'all';
 
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const cur = type => (type === 'cash' ? settings.currencyCash || '$' : settings.currencyInstallment || 'сом');
+  const cur = type => (cashLike(type) ? settings.currencyCash || '$' : settings.currencyInstallment || 'сом');
   const money = (n, c) => (n == null ? '—' : `${nf.format(Math.round(n))} ${c}`);
   const rooms = r => (+r === 0 ? 'Студия' : `${r}-комн.`);
   const isOwner = () => me && me.role === 'owner';
@@ -286,7 +295,7 @@
     return `<div class="item" data-id="${a.id}">
       ${img}
       <div><div class="t">${esc(a.title || 'Без названия')} <span class="badge badge-${c.type}">${TYPES[c.type]}</span></div>
-        <div class="s">${rooms(a.rooms)}, ${a.area} м² · от ${a.floorFrom || '—'} эт.</div>
+        <div class="s">${c.type === 'land' ? `Участок, ${a.area} сот.` : `${rooms(a.rooms)}, ${a.area} м² · от ${a.floorFrom || '—'} эт.`}</div>
         <div class="s">${line}</div></div>
       <div class="acts">
         <button class="btn" data-act="edit">Изменить</button>
@@ -323,6 +332,7 @@
             <button type="button" data-v="installment">Рассрочка<small>цены в ${esc(cur('installment'))}</small></button>
             <button type="button" data-v="commercial">Коммерция<small>рассрочка, ${esc(cur('installment'))}</small></button>
             <button type="button" data-v="cash">Наличные<small>цены в ${esc(cur('cash'))}</small></button>
+            <button type="button" data-v="land">Участок<small>цена в ${esc(cur('cash'))}, сотки</small></button>
           </div>
         </div>
         <div class="card">
@@ -332,10 +342,10 @@
           <div class="hint">Первое фото — главное. Фото автоматически сжимаются.</div>
         </div>
         <div class="card">
-          ${f('title', 'Название (ЖК / дом)')}
+          <label class="f"><span id="titleLbl">Название (ЖК / дом)</span><input type="text" name="title" value="${v('title')}"></label>
           <div class="grid2">
             <label class="f" data-for="installment cash"><span>Комнаты</span><select name="rooms">${[0, 1, 2, 3, 4, 5, 6].map(r => `<option value="${r}" ${+a.rooms === r ? 'selected' : ''}>${r === 0 ? 'Студия' : r}</option>`).join('')}</select></label>
-            ${n('area', 'Площадь, м²')}
+            <label class="f"><span id="areaLbl">Площадь, м²</span><input type="text" name="area" value="${v('area')}" inputmode="decimal"></label>
           </div>
           <div data-for="installment commercial">
             ${n('pricePerM2', `Цена за м², ${esc(cur('installment'))}`)}
@@ -346,9 +356,9 @@
             ${n('cashDiscount', `Скидка за наличные, ${esc(cur('installment'))} за м²`)}
             <div class="hint" style="margin:-6px 0 10px">Если клиент купит за наличные. 0 или пусто — без скидки, блок «за наличные» на сайте не показывается.</div>
           </div>
-          <div data-for="cash">${n('price', `Цена, ${esc(cur('cash'))}`)}</div>
+          <div data-for="cash land">${n('price', `Цена, ${esc(cur('cash'))}`)}</div>
           <div class="calcbox" id="calc"></div>
-          <div class="grid2">
+          <div class="grid2" data-for="installment commercial cash">
             ${n('floorFrom', 'С какого этажа (и выше)')}
             ${n('floors', 'Этажей в доме')}
           </div>
@@ -387,14 +397,19 @@
       type = t;
       form.querySelectorAll('#type button').forEach(b => b.classList.toggle('on', b.dataset.v === t));
       form.querySelectorAll('[data-for]').forEach(el => { el.hidden = !el.dataset.for.split(' ').includes(t); });
+      document.getElementById('areaLbl').textContent = t === 'land' ? 'Площадь, соток' : 'Площадь, м²';
+      // Название — подсказка под вид объекта: у участка это район или массив
+      const [tl, tp] = TITLE_HINT[t] || TITLE_HINT.installment;
+      document.getElementById('titleLbl').textContent = tl;
+      form.elements.title.placeholder = tp;
       updCalc();
     }
     // Платёж в месяц не вводится — считается: (цена за м² × м² − взнос) / срок
     function updCalc() {
       const d = readForm();
       const box = document.getElementById('calc');
-      if (type === 'cash') {
-        box.innerHTML = d.price && d.area ? `Цена за м²: ${money(d.price / d.area, cur('cash'))}` : 'Укажите цену и площадь';
+      if (cashLike(type)) {
+        box.innerHTML = d.price && d.area ? `Цена за ${type === 'land' ? 'сотку' : 'м²'}: ${money(d.price / d.area, cur('cash'))}` : 'Укажите цену и площадь';
         return;
       }
       const c = cur('installment');
@@ -441,9 +456,9 @@
     };
     const save = async () => {
       const d = readForm();
-      const ok = type === 'cash' ? d.price > 0 && d.area > 0 : d.pricePerM2 > 0 && d.area > 0;
+      const ok = cashLike(type) ? d.price > 0 && d.area > 0 : d.pricePerM2 > 0 && d.area > 0;
       if (!ok && !(await confirmBox('Сохранить без цены?', 'Цена или площадь не указаны — квартира не появится на сайте, пока их не заполните.', 'Сохранить'))) return;
-      if (ok && type !== 'cash' && !(d.months > 0) && !(await confirmBox('Сохранить без срока?', 'Не указан срок рассрочки — на сайте будет только цена при 100% оплате.', 'Сохранить'))) return;
+      if (ok && !cashLike(type) && !(d.months > 0) && !(await confirmBox('Сохранить без срока?', 'Не указан срок рассрочки — на сайте будет только цена при 100% оплате.', 'Сохранить'))) return;
       const saved = isNewRecord
         ? await api('POST', '/api/admin/apartments', d)
         : await api('PUT', `/api/admin/apartments/${a.id}`, d);
@@ -740,7 +755,7 @@
     if (!isOwner()) { location.hash = '#list'; return; }
     const [list, product, mine] = await Promise.all([api('GET', '/api/owner/realtors'), api('GET', '/api/owner/product'), api('GET', '/api/admin/apartments')]);
     // Сколько квартир в рассрочку скопируется новому менеджеру (наличные не копируются)
-    const myInstallment = mine.filter(a => a.computed.installment || (typeOf(a) !== 'cash' && a.computed.price)).length;
+    const myInstallment = mine.filter(a => a.computed.installment || (!cashLike(typeOf(a)) && a.computed.price)).length;
     const others = list.filter(x => x.role !== 'owner');
     const paying = others.filter(x => x.status.active && !x.blocked).length;
     const inMonth = addMonths('', 1);
