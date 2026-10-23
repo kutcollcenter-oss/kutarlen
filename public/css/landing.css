@@ -200,12 +200,45 @@ body.lx {
 .lx-incl li { display: flex; align-items: flex-start; gap: 12px; font-size: 17px; line-height: 1.4; color: var(--lx-text); }
 .lx-incl svg { flex: none; width: 26px; height: 26px; padding: 4px; color: #1b1407; background: var(--gold2); border-radius: 50% !important; }
 
-/* Калькулятор: поле комиссии и понятный итог */
-.lx-pct { align-items: center; }
-.lx-pct em { font-style: normal; display: inline-flex; align-items: center; gap: 6px; font-size: 20px; color: var(--gold2); }
-.lx-pct input { width: 76px; padding: 8px 10px; font: inherit; font-size: 20px; text-align: center; color: var(--gold2); background: var(--lx-bg); border: 1px solid var(--gold); outline: none; }
-.lx-pct input:focus { box-shadow: 0 0 0 3px rgba(217, 180, 90, .3); }
-.lx-calc-out .lx-one { margin: 0 0 22px; padding-bottom: 18px; border-bottom: 1px solid var(--lx-line); font-size: 16px; line-height: 1.5; color: var(--lx-muted); }
-.lx-one b { color: var(--lx-text); font-weight: 600; white-space: nowrap; }
 .lx-pay { margin-top: 22px; padding: 14px 16px; background: rgba(243, 217, 139, .08); border-left: 3px solid var(--gold); font-size: 16px; line-height: 1.5; color: var(--lx-text); }
 .lx-pay b { color: var(--gold2); font-weight: 600; }
+
+/* Калькулятор-история: квартира продана → какая комиссия? → доход бежит вверх, летят монетки */
+.lx-calc-in { align-content: start; }
+.lx-story { margin: 0; font-size: clamp(19px, 2.4vw, 23px); line-height: 1.45; color: var(--lx-text); }
+.lx-story b { color: var(--gold2); font-weight: 600; white-space: nowrap; }
+.lx-ask { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 14px 16px; padding: 20px 18px; border: 1px solid var(--gold); background: rgba(243, 217, 139, .05); }
+.lx-calc-in .lx-ask label { display: block; font-size: 19px; color: var(--gold2); }
+.lx-pct { display: inline-flex; align-items: center; gap: 6px; }
+.lx-pct input { width: 84px; padding: 8px 10px; font: inherit; font-size: 26px; text-align: center; color: var(--gold2); background: var(--lx-bg); border: 1px solid var(--gold); outline: none; }
+.lx-pct input::placeholder { color: rgba(243, 217, 139, .45); }
+.lx-pct input:focus { box-shadow: 0 0 0 3px rgba(217, 180, 90, .3); }
+.lx-pct em { font-style: normal; font-size: 24px; color: var(--gold2); }
+.lx-calc:has(.wait) .lx-pct input { animation: lxAsk 1.8s ease-in-out infinite; }
+@keyframes lxAsk { 50% { box-shadow: 0 0 0 6px rgba(217, 180, 90, .22); } }
+.lx-chips { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
+.lx-chips button { font: inherit; font-size: 15px; padding: 8px 14px; color: var(--lx-text); background: transparent; border: 1px solid var(--lx-line); cursor: pointer; transition: border-color .2s, background .2s, color .2s; }
+.lx-chips button:hover { border-color: var(--gold); }
+.lx-chips button.on { background: var(--gold2); border-color: var(--gold2); color: #1b1407; font-weight: 600; }
+
+.lx-calc-out { position: relative; }
+.lx-calc-out > b { transition: opacity .3s; font-variant-numeric: tabular-nums; }
+.lx-calc-out.wait > b { opacity: .45; }
+.lx-calc-out > b.win { animation: lxWin .9s ease-out; }
+@keyframes lxWin { 0% { transform: scale(1); filter: drop-shadow(0 0 0 transparent); } 30% { transform: scale(1.07); filter: drop-shadow(0 0 18px rgba(243, 217, 139, .65)); } 100% { transform: scale(1); filter: drop-shadow(0 0 0 transparent); } }
+.lx-calc-out > b { transform-origin: left center; }
+.lx-more { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; margin-top: 22px; background: var(--lx-line); border: 1px solid var(--lx-line); transition: opacity .3s; }
+.wait .lx-more { opacity: .4; }
+.lx-more div { background: rgba(12, 21, 16, .55); padding: 14px 16px; display: grid; gap: 4px; }
+.lx-more small { font-size: 14px; color: var(--lx-muted); }
+.lx-more strong { font-size: clamp(20px, 2.6vw, 26px); font-weight: 500; color: var(--lx-text); font-variant-numeric: tabular-nums; }
+.lx-more .yr strong { color: var(--gold2); }
+
+.lx-burst { position: absolute; left: 24px; right: 24px; top: 70px; height: 0; pointer-events: none; }
+.lx-burst i { position: absolute; top: 0; width: 20px; height: 20px; border-radius: 50% !important; opacity: 0;
+  background: radial-gradient(circle at 35% 30%, #fff3c4, #e2bd5c 45%, #8a6420); box-shadow: inset 0 0 0 2px rgba(255, 243, 196, .5);
+  animation: lxCoin 1.2s cubic-bezier(.2, .7, .3, 1) forwards; }
+@keyframes lxCoin { 0% { opacity: 0; transform: translate(0, 0) rotate(0) scale(.4); } 15% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--x), var(--y)) rotate(var(--r)) scale(1); } }
+
+/* Лица внизу после номера — по центру */
+.lx-final .lx-users { justify-content: center; margin-top: 26px; }
