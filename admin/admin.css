@@ -535,3 +535,9 @@ select option { background: var(--s2); color: var(--ink); }
 /* Новости «Скоро»: превью фото в карточке редактора */
 .news-ed-img { width: 72px; height: 48px; object-fit: cover; border-radius: 4px; }
 .news-ed .row { align-items: center; gap: 8px; }
+
+/* «Профиль»: читаемые подписи — обычный шрифт, крупнее и светлее (раньше 11–12px, заглавные, 55% яркости) */
+:is(#sf, #pwf) .card h2, #pwf > h2 { font-family: inherit; font-size: 20px; font-weight: 600; text-transform: none; letter-spacing: -.01em; color: #fff; margin-bottom: 14px; }
+:is(#sf, #pwf) .f > span { font-family: inherit; font-size: 15px; font-weight: 500; text-transform: none; letter-spacing: 0; color: rgba(255, 255, 255, .88); margin-bottom: 6px; }
+:is(#sf, #pwf) .hint { font-size: 14px; line-height: 1.5; color: rgba(255, 255, 255, .72); }
+:is(#sf, #pwf) ::placeholder { color: rgba(255, 255, 255, .42); }
