@@ -20,8 +20,26 @@ const UPLOAD_DIR = path.join(__dirname, 'uploads');
 const SESSION_DAYS = 30;
 
 const app = express();
-app.set('trust proxy', true);
+// Доверяем только своему nginx на этом же сервере (127.0.0.1). Раньше было true — тогда адрес посетителя брался
+// из заголовка X-Forwarded-For, который любой может подделать и так обойти задержку при подборе пароля.
+app.set('trust proxy', 'loopback');
 app.disable('x-powered-by');
+
+// Защитные заголовки для всех страниц
+app.use((req, res, next) => {
+  // Браузер не угадывает тип файла (картинку не исполнит как скрипт)
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  // Сайт и кабинет нельзя вставить в чужую страницу (защита от «невидимых кнопок»); свои карты /map/2gis — можно
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Content-Security-Policy', "frame-ancestors 'self'");
+  // На другие сайты уходит только адрес домена, без пути и параметров
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  // Камера, микрофон и геолокация сайту не нужны
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  // HTTPS всегда: браузер год не будет открывать сайт по http (только когда сайт уже открыт по HTTPS)
+  if (req.secure) res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  next();
+});
 app.use(express.json({ limit: '1mb' }));
 
 const upload = multer({
@@ -116,9 +134,18 @@ function setSession(req, res, user) {
   res.setHeader('Set-Cookie', `sess=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${user ? SESSION_DAYS * 86400 : 0}${secure}`);
 }
 
-// Простая защита от перебора: задержка после неудачных попыток с одного IP
-const fails = new Map();
+// Защита от перебора паролей:
+//  1) задержка после неудачных попыток с одного IP (до 5 секунд);
+//  2) после 10 неверных паролей подряд к одному логину вход в него закрыт на 15 минут — с любого IP.
+// Счётчики живут в памяти и забываются через час без попыток.
+const fails = new Map();        // ip → { n, t }
+const loginFails = new Map();   // login → { n, t, until }
+const LOCK_AFTER = 10, LOCK_MS = 15 * 60 * 1000, FORGET_MS = 60 * 60 * 1000;
 const failDelay = ip => Math.min(((fails.get(ip) || {}).n || 0) * 700, 5000);
+setInterval(() => {
+  const old = Date.now() - FORGET_MS;
+  for (const m of [fails, loginFails]) for (const [k, v] of m) if (v.t < old && !(v.until > Date.now())) m.delete(k);
+}, 10 * 60 * 1000).unref();
 
 // ---------- Статика (раньше страниц менеджеров, чтобы /admin не принимался за ссылку) ----------
 app.use('/uploads', express.static(UPLOAD_DIR, { maxAge: '30d', immutable: true }));
@@ -316,12 +343,24 @@ app.post('/api/admin/login', async (req, res) => {
   await new Promise(r => setTimeout(r, failDelay(req.ip)));
   const login = String(req.body.login || '').trim().toLowerCase();
   const user = D().users.find(u => u.login === login);
+  const lock = user && loginFails.get(login);
+  if (lock && lock.until > Date.now()) {
+    const min = Math.ceil((lock.until - Date.now()) / 60000);
+    return res.status(429).json({ error: `Слишком много неверных паролей. Вход в этот кабинет закрыт на ${min} мин. Попробуйте позже.` });
+  }
   if (!auth.checkPassword(user, req.body.password)) {
     const f = fails.get(req.ip) || { n: 0 };
-    f.n++; fails.set(req.ip, f);
+    f.n++; f.t = Date.now(); fails.set(req.ip, f);
+    if (user) {
+      const l = loginFails.get(login) || { n: 0 };
+      l.n++; l.t = Date.now();
+      if (l.n >= LOCK_AFTER) { l.until = Date.now() + LOCK_MS; l.n = 0; console.warn(`Вход в кабинет «${login}» закрыт на 15 минут: ${LOCK_AFTER} неверных паролей подряд (последний IP ${req.ip})`); }
+      loginFails.set(login, l);
+    }
     return res.status(401).json({ error: 'Неверный логин или пароль' });
   }
   fails.delete(req.ip);
+  loginFails.delete(login);
   setSession(req, res, user);
   res.json({ ok: true });
 });
