@@ -632,13 +632,6 @@
           ${t('ctaText', 'Текст финального блока')}
           ${t('privacy', 'Политика конфиденциальности')}
         </div>
-        <div class="card"><h2 style="margin-top:0">Уведомления и внешние счётчики</h2>
-          ${f('tgToken', 'Telegram-бот: токен', 'password', 'Уведомление о каждом нажатии WhatsApp. Токен — у @BotFather')}
-          ${f('tgChat', 'Telegram: chat_id получателя')}
-          ${f('gaId', 'Google Analytics 4 (G-XXXX)', 'text', 'Необязательно: своя аналитика уже есть в разделе «Аналитика»')}
-          ${f('ymId', 'Яндекс Метрика (номер счётчика)')}
-          ${f('pixelId', 'Пиксель Meta (ID)')}
-        </div>
         <div class="savebar"><button class="btn btn-primary">Сохранить</button></div>
       </form>
       <form class="card" id="pwf"><h2 style="margin-top:0">Пароль от кабинета</h2>

@@ -309,26 +309,7 @@ app.post('/api/track', express.text({ type: '*/*' }), (req, res) => {
     d: b.d === 'd' ? 'd' : 'm',
   };
   analytics.append(ev);
-  if (ev.e === 'wa') notifyTelegram(r, apt, ev, req).catch(() => {});
 });
-
-async function notifyTelegram(r, a, ev, req) {
-  const { tgToken, tgChat } = r.settings;
-  if (!tgToken || !tgChat) return;
-  let text = `🟢 Нажатие WhatsApp на сайте (${ev.pl || 'кнопка'})`;
-  if (ev.s && ev.s !== 'direct') text += `\nИсточник: ${analytics.SOURCE_LABEL[ev.s] || ev.s}`;
-  if (a) {
-    const p = pub(r, a, req);
-    const cur = p.currency;
-    text += `\n${p.title} · ${p.roomsLabel}, ${p.area} ${p.unit}\nЦена ${money(p.price, cur)}${p.installment ? `, мин. взнос ${money(p.down, cur)}, ${p.months} мес.` : isCashType(p.type) ? ', наличные' : ''}\n${base(req)}${p.url}`;
-  }
-  await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: tgChat, text, disable_web_page_preview: true }),
-    signal: AbortSignal.timeout(8000),
-  });
-}
 
 // ---------- Кабинет: вход ----------
 app.post('/api/admin/login', async (req, res) => {
@@ -497,8 +478,10 @@ app.delete('/api/admin/apartments/:id', requireAuth, (req, res) => {
 
 // ---------- Кабинет: настройки своего сайта ----------
 const SETTINGS_KEYS = ['name', 'role', 'company', 'tagline', 'about', 'stats', 'whatsapp', 'instagram', 'officeAddress', 'officeLink',
-  'currencyInstallment', 'currencyCash', 'heroKicker', 'heroPoints', 'ctaTitle', 'ctaText', 'steps', 'documents', 'reviews', 'faq', 'privacy',
-  'gaId', 'ymId', 'pixelId', 'tgToken', 'tgChat'];
+  'currencyInstallment', 'currencyCash', 'heroKicker', 'heroPoints', 'ctaTitle', 'ctaText', 'steps', 'documents', 'reviews', 'faq', 'privacy'];
+// Раздел «Уведомления и внешние счётчики» убран: Telegram-бот, Google Analytics, Метрика, пиксель не используются.
+// Браузер подставлял туда логин и пароль от кабинета, поэтому старые значения стираем при запуске (см. ниже).
+const DROPPED_KEYS = ['gaId', 'ymId', 'pixelId', 'tgToken', 'tgChat'];
 
 app.get('/api/admin/settings', requireAuth, (req, res) => res.json(req.realtor.settings));
 
@@ -730,6 +713,10 @@ app.use((req, res) => res.status(404).send(pages.renderInvalid(D().product, base
     if (m.oldEvents.length) analytics.appendMany(m.oldEvents);
     console.log(`База перенесена в кабинеты. Ваш сайт: /${m.realtor.slug}. Вход в кабинет: логин admin`);
   }
+  // Стираем поля убранного раздела (там мог оказаться пароль, подставленный браузером)
+  let dropped = false;
+  for (const r of D().realtors) for (const k of DROPPED_KEYS) if (r.settings && k in r.settings) { delete r.settings[k]; dropped = true; }
+  if (dropped) db.save();
   if (tenants.plainSlugs(D())) {
     db.save();
     console.log('Адреса сайтов переведены на простые имена: ' + D().realtors.map(r => '/' + r.slug).join(', '));
