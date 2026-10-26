@@ -269,7 +269,7 @@
     ppm: (a, b) => a.pricePerM2 - b.pricePerM2,
   };
 
-  const tagCls = t => (t === 'Скидка' ? ' tag-sale' : t === L('tagInstallment') ? ' tag-inst' : '');
+  const tagCls = t => ((t === 'Скидка' || t === 'Арзандатуу') ? ' tag-sale' : t === L('tagInstallment') ? ' tag-inst' : '');
 
   function card(a) {
     const c = a.currency;

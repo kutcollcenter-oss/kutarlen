@@ -375,7 +375,9 @@
           </div>
           ${a.computed && a.computed.map.embed ? `<div class="map-prev"><div class="hint">Так карта выглядит на сайте:</div><iframe loading="lazy" src="${esc(a.computed.map.embed)}" title="Карта"></iframe></div>` : ''}
           <label class="f"><span>Детали</span><textarea name="details">${esc(a.details)}</textarea></label>
+          <label class="f"><span>Детали — по-кыргызски</span><textarea name="detailsKy" placeholder="${esc(a.details || '')}">${esc(a.detailsKy)}</textarea><div class="hint">Для кыргызской версии сайта. Пусто — клиенты увидят русский текст.</div></label>
           <label class="f"><span>Метки через запятую</span><input type="text" name="tags" value="${esc((a.tags || []).join(', '))}" placeholder="Скидка, Дом сдан"></label>
+          <label class="f"><span>Метки — по-кыргызски, через запятую</span><input type="text" name="tagsKy" value="${esc((a.tagsKy || []).join(', '))}" placeholder="${esc((a.tags || []).join(', ') || 'Арзандатуу, Үй тапшырылган')}"></label>
         </div>
         <div class="savebar">
           <a class="btn" href="#list">← Назад</a>
@@ -540,7 +542,9 @@
           ${n.photo ? '<button type="button" class="btn news-nophoto">Убрать фото</button>' : ''}
         </div>
         <label class="f"><span>Заголовок</span><input data-k="title" maxlength="120" value="${esc(n.title)}" placeholder="Например: Квартиры без первоначального взноса"></label>
-        <label class="f"><span>Текст</span><textarea data-k="text" rows="3" maxlength="600" placeholder="Например: Скоро старт продаж. Напишите — первым сообщу условия.">${esc(n.text)}</textarea></label>
+        <label class="f"><span>Текст</span><textarea data-k="text" rows="3" maxlength="1000" placeholder="Например: Скоро старт продаж. Напишите — первым сообщу условия.">${esc(n.text)}</textarea></label>
+        <label class="f"><span>Заголовок — по-кыргызски</span><input data-k="titleKy" maxlength="120" value="${esc(n.titleKy)}" placeholder="${esc(n.title || 'Пусто — на кыргызской версии будет русский заголовок')}"></label>
+        <label class="f"><span>Текст — по-кыргызски</span><textarea data-k="textKy" rows="3" maxlength="1000" placeholder="${esc(n.text || 'Пусто — на кыргызской версии будет русский текст')}">${esc(n.textKy)}</textarea></label>
         <button type="button" class="btn btn-danger rev-del news-del">Удалить новость</button>
       </div>`).join('') : '<p class="hint">Новостей пока нет. Расскажите о том, что скоро: старт продаж, новый дом, особые условия.</p>';
       add.hidden = list.length >= NEWS_MAX;
@@ -614,6 +618,15 @@
         </div>
         <div class="card"><h2 style="margin-top:0">Валюта</h2>
           <div class="grid2">${f('currencyInstallment', 'Рассрочка')}${f('currencyCash', 'Наличные')}</div>
+        </div>
+        <div class="card"><h2 style="margin-top:0">Кыргызская версия сайта</h2>
+          <div class="hint" style="margin:-4px 0 12px">Эти тексты видят клиенты, которые нажали на сайте «Кыр». Пустое поле — покажется русский текст. Серым в поле подсказан ваш русский вариант.</div>
+          ${[['heroKicker', 'Надпись над заголовком'], ['tagline', 'Заголовок первого экрана'], ['role', 'Кем работаете'], ['heroPoints', 'Пункты под кнопками', 1],
+            ['about', 'Текст «Обо мне»', 1], ['stats', 'Цифры доверия', 1], ['steps', 'Как работает рассрочка — шаги', 1], ['documents', 'Какие документы нужны', 1],
+            ['faq', 'Вопросы и ответы', 1], ['ctaTitle', 'Заголовок финального блока'], ['ctaText', 'Текст финального блока', 1]]
+            .map(([k, label, area]) => `<label class="f"><span>${label} — по-кыргызски</span>${area
+              ? `<textarea name="${k}Ky" rows="5" placeholder="${esc(s[k])}">${esc(s[k + 'Ky'])}</textarea>`
+              : `<input type="text" name="${k}Ky" value="${esc(s[k + 'Ky'])}" placeholder="${esc(s[k])}">`}</label>`).join('')}
         </div>
         <div class="card"><h2 style="margin-top:0">Новости «Скоро»</h2>
           <div class="hint" style="margin:-4px 0 10px">Показываются на главной сразу после первого экрана. Под каждой новостью кнопка «Узнать первым» — клиент пишет вам в WhatsApp. До ${NEWS_MAX} новостей.</div>

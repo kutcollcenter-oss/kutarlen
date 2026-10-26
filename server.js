@@ -8,7 +8,8 @@ const multer = require('multer');
 const sharp = require('sharp');
 const db = require('./lib/db');
 const seed = require('./lib/seed');
-const { LANGS, langOk } = require('./lib/i18n');
+const { LANGS, KY_KEYS, langOk, localizeSettings } = require('./lib/i18n');
+const { kyText, kyTag } = require('./lib/ky-fill');
 const { migrateHandover, pendingHandover, dropHandoverTags } = require('./lib/handover');
 const { publicApt, kindLabel, unitOf, money, isListed, typeOf, isCashType, TYPES, CITIES } = require('./lib/calc');
 const { resolveMap } = require('./lib/maps');
@@ -78,7 +79,8 @@ const siteUrl = (req, r) => `${base(req)}/${r.slug}`;
 // partnerCta — показывать ли в подвале призыв «Хотите такой же сайт?» (по умолчанию да; выключает владелец)
 // Язык сайта клиента: выбор хранится в cookie lang (ru — по умолчанию, ky — кыргызский). Роботы поиска видят русский.
 const langOf = req => langOk(cookies(req).lang);
-const ctxOf = (r, req) => ({ s: r.settings, base: base(req), prefix: `/${r.slug}`, slug: r.slug, partnerCta: r.partnerCta !== false, lang: langOf(req) });
+// Тексты профиля на языке страницы: на кыргызской версии — кыргызские варианты (если менеджер их заполнил)
+const ctxOf = (r, req) => ({ s: localizeSettings(r.settings, langOf(req)), base: base(req), prefix: `/${r.slug}`, slug: r.slug, partnerCta: r.partnerCta !== false, lang: langOf(req) });
 const pub = (r, a, req, lang = langOf(req)) => publicApt(a, r.settings, base(req), `/${r.slug}`, lang);
 const aptLabel = a => `${a.title ? a.title + ' · ' : ''}${kindLabel(a)}, ${a.area} ${unitOf(a)}`;
 
@@ -436,6 +438,9 @@ const FIELDS = {
   address: v => String(v || '').trim().slice(0, 200),
   details: v => String(v || '').trim().slice(0, 5000),
   tags: v => (Array.isArray(v) ? v : String(v || '').split(',')).map(t => String(t).trim()).filter(Boolean).slice(0, 8),
+  // Кыргызская версия сайта: детали и метки по-кыргызски (пусто — показываются русские)
+  detailsKy: v => String(v || '').trim().slice(0, 5000),
+  tagsKy: v => (Array.isArray(v) ? v : String(v || '').split(',')).map(t => String(t).trim()).filter(Boolean).slice(0, 8),
 };
 function pick(body) {
   const out = {};
@@ -533,7 +538,8 @@ app.delete('/api/admin/apartments/:id', requireAuth, (req, res) => {
 
 // ---------- Кабинет: настройки своего сайта ----------
 const SETTINGS_KEYS = ['name', 'role', 'company', 'tagline', 'about', 'stats', 'whatsapp', 'instagram', 'officeAddress', 'officeLink',
-  'currencyInstallment', 'currencyCash', 'heroKicker', 'heroPoints', 'ctaTitle', 'ctaText', 'steps', 'documents', 'reviews', 'faq', 'privacy'];
+  'currencyInstallment', 'currencyCash', 'heroKicker', 'heroPoints', 'ctaTitle', 'ctaText', 'steps', 'documents', 'reviews', 'faq', 'privacy',
+  ...KY_KEYS.map(k => k + 'Ky')]; // кыргызские варианты текстов профиля
 // Раздел «Уведомления и внешние счётчики» убран: Telegram-бот, Google Analytics, Метрика, пиксель не используются.
 // Браузер подставлял туда логин и пароль от кабинета, поэтому старые значения стираем при запуске (см. ниже).
 const DROPPED_KEYS = ['gaId', 'ymId', 'pixelId', 'tgToken', 'tgChat'];
@@ -548,7 +554,9 @@ function cleanNews(list) {
     return {
       id: n && /^[a-z0-9]{4,24}$/i.test(String(n.id || '')) ? String(n.id) : db.newId(),
       title: String((n && n.title) || '').trim().slice(0, 120),
-      text: String((n && n.text) || '').trim().slice(0, 600),
+      text: String((n && n.text) || '').trim().slice(0, 1000),
+      titleKy: String((n && n.titleKy) || '').trim().slice(0, 120),
+      textKy: String((n && n.textKy) || '').trim().slice(0, 1000),
       photo: photo[0] || '',
     };
   }).filter(n => n.title || n.text);
@@ -792,6 +800,32 @@ app.use((req, res) => res.status(404).send(pages.renderInvalid(D().product, base
     D().done.handoverTags = new Date().toISOString();
     db.save();
     console.log(`Метки со сроком: перенесено в поле ${t.moved}, убрано повторов ${t.removed}`);
+  }
+  // Один раз: кыргызские переводы текстов, которые уже есть у менеджеров (lib/ky-fill.js) — только в пустые кыргызские поля.
+  // Отметка done.kyFill — чтобы потом не трогать то, что менеджер поменял или очистил сам.
+  if (!D().done.kyFill) {
+    const dir = path.join(db.DATA_DIR, 'backups');
+    fs.mkdirSync(dir, { recursive: true });
+    const copy = path.join(dir, `before-ky-${new Date().toISOString().slice(0, 10)}.json`);
+    if (!fs.existsSync(copy)) fs.copyFileSync(path.join(db.DATA_DIR, 'db.json'), copy);
+    let texts = 0, apts = 0;
+    for (const r of D().realtors) {
+      const s = r.settings || {};
+      for (const k of KY_KEYS) if (!String(s[k + 'Ky'] || '').trim() && kyText(s[k])) { s[k + 'Ky'] = kyText(s[k]); texts++; }
+      for (const n of s.news || []) {
+        if (!n.titleKy && kyText(n.title)) { n.titleKy = kyText(n.title); texts++; }
+        if (!n.textKy && kyText(n.text)) { n.textKy = kyText(n.text); texts++; }
+      }
+    }
+    for (const a of D().apartments) {
+      let changed = false;
+      if (!a.detailsKy && kyText(a.details)) { a.detailsKy = kyText(a.details); changed = true; }
+      if (!a.tagsKy && Array.isArray(a.tags) && a.tags.length) { a.tagsKy = a.tags.map(kyTag); changed = true; }
+      if (changed) apts++;
+    }
+    D().done.kyFill = new Date().toISOString();
+    db.save();
+    console.log(`Кыргызские тексты: копия базы ${copy}; заполнено текстов профиля и новостей ${texts}, квартир ${apts}`);
   }
   // Стираем поля убранного раздела (там мог оказаться пароль, подставленный браузером)
   let dropped = false;
