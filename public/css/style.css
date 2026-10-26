@@ -911,3 +911,7 @@ input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 1px sol
   font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink);
   text-decoration: underline; text-underline-offset: 4px; }
 .news-more:hover { color: var(--primary-2); }
+
+/* Фото новости — целиком, без обрезки: афиши и баннеры бывают квадратными и вертикальными */
+.news-photo { aspect-ratio: auto; }
+.news-photo img { height: auto; object-fit: contain; }
