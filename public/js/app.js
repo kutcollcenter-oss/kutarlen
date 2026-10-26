@@ -23,8 +23,6 @@
     ? `<img src="${esc(S.photo)}" alt="${esc(S.name)}" fetchpriority="high">`
     : `<div class="hero-initials">${esc(S.name.split(/\s+/).map(w => w[0]).join('').slice(0, 2))}</div>`;
   const waGeneral = wa(L('waGeneral'));
-  $('heroWa').href = waGeneral;
-  $('heroWa').insertAdjacentHTML('afterbegin', D.waIcon);
   $('ctaWa').href = waGeneral;
   $('ctaWa').insertAdjacentHTML('afterbegin', D.waIcon);
   $('ctaTitle').textContent = S.ctaTitle;
