@@ -362,6 +362,7 @@
             ${n('floorFrom', 'С какого этажа (и выше)')}
             ${n('floors', 'Этажей в доме')}
           </div>
+          <label class="f" data-for="installment commercial"><span>Срок сдачи</span><input type="text" name="handover" value="${v('handover')}" maxlength="60" placeholder="Например: IV квартал 2027 или Дом сдан"></label>
           <label class="f"><span>Город</span><select name="city">${['Бишкек', 'Ош'].map(c => `<option ${(a.city || 'Бишкек') === c ? 'selected' : ''}>${c}</option>`).join('')}</select></label>
           ${f('address', 'Адрес')}
           <div class="mapbox">

@@ -8,6 +8,7 @@ const multer = require('multer');
 const sharp = require('sharp');
 const db = require('./lib/db');
 const seed = require('./lib/seed');
+const { migrateHandover, pendingHandover } = require('./lib/handover');
 const { publicApt, kindLabel, unitOf, money, isListed, typeOf, isCashType, TYPES, CITIES } = require('./lib/calc');
 const { resolveMap } = require('./lib/maps');
 const pages = require('./lib/pages');
@@ -416,6 +417,7 @@ const FIELDS = {
   price: v => Math.max(0, Number(v) || 0),                   // наличные и участки, цена в $ (у участка площадь в сотках)
   floorFrom: v => Math.max(0, parseInt(v) || 0),
   floors: v => Math.max(0, parseInt(v) || 0),
+  handover: v => String(v || '').trim().slice(0, 60),             // срок сдачи дома: рассрочка и коммерция
   city: v => (CITIES.includes(v) ? v : CITIES[0]),          // город: Бишкек или Ош
   address: v => String(v || '').trim().slice(0, 200),
   details: v => String(v || '').trim().slice(0, 5000),
@@ -752,6 +754,17 @@ app.use((req, res) => res.status(404).send(pages.renderInvalid(D().product, base
     if (m.oldEvents.length) analytics.appendMany(m.oldEvents);
     console.log(`База перенесена в кабинеты. Ваш сайт: /${m.realtor.slug}. Вход в кабинет: логин admin`);
   }
+  // Срок сдачи: один раз переносим фразу о сроке из «Деталей» в отдельное поле (остальной текст «Деталей» остаётся).
+  // Перед этим — копия базы data/backups/before-handover-ДАТА.json, на случай если что-то найдётся неправильно.
+  if (pendingHandover(D().apartments, typeOf)) {
+    const dir = path.join(db.DATA_DIR, 'backups');
+    fs.mkdirSync(dir, { recursive: true });
+    const copy = path.join(dir, `before-handover-${new Date().toISOString().slice(0, 10)}.json`);
+    if (!fs.existsSync(copy)) fs.copyFileSync(path.join(db.DATA_DIR, 'db.json'), copy);
+    console.log('Копия базы перед переносом срока сдачи: ' + copy);
+  }
+  const ho = migrateHandover(D().apartments, typeOf, line => console.log('Срок сдачи — ' + line));
+  if (ho.touched) { db.save(); console.log(`Срок сдачи: проверено ${ho.touched} квартир, найдено ${ho.found}`); }
   // Стираем поля убранного раздела (там мог оказаться пароль, подставленный браузером)
   let dropped = false;
   for (const r of D().realtors) for (const k of DROPPED_KEYS) if (r.settings && k in r.settings) { delete r.settings[k]; dropped = true; }
