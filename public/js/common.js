@@ -36,8 +36,18 @@
   const device = window.matchMedia('(min-width: 1024px)').matches ? 'd' : 'm';
 
 
+  // Словарь языка страницы (lib/i18n.js): RS.t('found', { n: 3 }); RS.plural('wordsApartment', 3)
+  const T = D.t || {};
+  const tr = (k, v) => String(T[k] ?? k).replace(/\{(\w+)\}/g, (m, x) => (v && v[x] != null ? v[x] : ''));
   const RS = {
     S,
+    lang: D.lang || 'ru',
+    t: tr,
+    plural(k, n) {
+      const [one, few, many] = tr(k).split('|');
+      const a = n % 10, b = n % 100;
+      return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 10 || b >= 20) ? few : many;
+    },
     money: (n, cur) => (n == null ? '—' : `${nf.format(Math.round(n))} ${cur || ''}`.trim()),
     esc: s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])),
     wa: text => `https://wa.me/${String(S.whatsapp || '').replace(/\D/g, '')}?text=${encodeURIComponent(text)}`,
@@ -297,18 +307,18 @@
   function lbCount() {
     const strip = lb.querySelector('.lb-strip');
     const n = strip.children.length;
-    lb.querySelector('.lb-count').textContent = `${Math.min(n, Math.round(strip.scrollLeft / strip.clientWidth) + 1)} из ${n}`;
+    lb.querySelector('.lb-count').textContent = RS.t('lbCount', { i: Math.min(n, Math.round(strip.scrollLeft / strip.clientWidth) + 1), n });
   }
   RS.lightbox = function (srcs, start = 0, opts = {}) {
     if (!srcs.length) return;
     if (!lb) {
       lb = document.createElement('dialog');
       lb.className = 'lb';
-      lb.setAttribute('aria-label', 'Фото квартиры');
+      lb.setAttribute('aria-label', RS.t('lbLabel'));
       lb.innerHTML = `<div class="lb-strip"></div>
-        <button class="lb-btn lb-close" type="button" aria-label="Закрыть">✕</button>
-        <button class="lb-btn lb-prev" type="button" aria-label="Предыдущее фото">‹</button>
-        <button class="lb-btn lb-next" type="button" aria-label="Следующее фото">›</button>
+        <button class="lb-btn lb-close" type="button" aria-label="${RS.t('lbClose')}">✕</button>
+        <button class="lb-btn lb-prev" type="button" aria-label="${RS.t('lbPrev')}">‹</button>
+        <button class="lb-btn lb-next" type="button" aria-label="${RS.t('lbNext')}">›</button>
         <div class="lb-bar"><span class="lb-count" aria-live="polite"></span><a class="btn btn-primary lb-more" hidden></a></div>`;
       document.body.appendChild(lb);
       const strip = lb.querySelector('.lb-strip');
@@ -326,11 +336,11 @@
       });
     }
     const strip = lb.querySelector('.lb-strip');
-    strip.innerHTML = srcs.map((s, i) => `<div class="lb-slide"><img src="${RS.esc(s)}" alt="Фото ${i + 1} из ${srcs.length}" ${Math.abs(i - start) > 1 ? 'loading="lazy"' : ''}></div>`).join('');
+    strip.innerHTML = srcs.map((s, i) => `<div class="lb-slide"><img src="${RS.esc(s)}" alt="${RS.t('lbAlt', { i: i + 1, n: srcs.length })}" ${Math.abs(i - start) > 1 ? 'loading="lazy"' : ''}></div>`).join('');
     lb.classList.toggle('lb-one', srcs.length < 2);
     const more = lb.querySelector('.lb-more');
     more.hidden = !opts.href;
-    if (opts.href) { more.href = opts.href; more.textContent = opts.label || 'Подробнее'; }
+    if (opts.href) { more.href = opts.href; more.textContent = opts.label || RS.t('more'); }
     lb.classList.remove('is-closing');
     document.documentElement.classList.add('lb-on');
     if (!lb.open) lb.showModal();

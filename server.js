@@ -8,6 +8,7 @@ const multer = require('multer');
 const sharp = require('sharp');
 const db = require('./lib/db');
 const seed = require('./lib/seed');
+const { LANGS, langOk } = require('./lib/i18n');
 const { migrateHandover, pendingHandover, dropHandoverTags } = require('./lib/handover');
 const { publicApt, kindLabel, unitOf, money, isListed, typeOf, isCashType, TYPES, CITIES } = require('./lib/calc');
 const { resolveMap } = require('./lib/maps');
@@ -26,8 +27,19 @@ const app = express();
 app.set('trust proxy', 'loopback');
 app.disable('x-powered-by');
 
+// Переключатель языка: ссылка «?lang=ky» или «?lang=ru» запоминает выбор на год и открывает ту же страницу без параметра
+app.use((req, res, next) => {
+  const l = req.method === 'GET' && req.query.lang;
+  if (!LANGS.includes(l)) return next();
+  res.setHeader('Set-Cookie', `lang=${l}; Path=/; Max-Age=31536000; SameSite=Lax${req.secure ? '; Secure' : ''}`);
+  const q = new URLSearchParams(req.query); q.delete('lang');
+  res.redirect(302, req.path + (q.toString() ? '?' + q : ''));
+});
+
 // Защитные заголовки для всех страниц
 app.use((req, res, next) => {
+  // Страница зависит от выбранного языка (cookie) — кэши должны это учитывать
+  res.vary('Cookie');
   // Браузер не угадывает тип файла (картинку не исполнит как скрипт)
   res.setHeader('X-Content-Type-Options', 'nosniff');
   // Сайт и кабинет нельзя вставить в чужую страницу (защита от «невидимых кнопок»); свои карты /map/2gis — можно
@@ -64,8 +76,10 @@ const findApt = (rid, id) => D().apartments.find(a => a.id === id && a.realtorId
 const isVisible = isListed; // статусов нет: на сайте все квартиры с ценой; проданную удаляют
 const siteUrl = (req, r) => `${base(req)}/${r.slug}`;
 // partnerCta — показывать ли в подвале призыв «Хотите такой же сайт?» (по умолчанию да; выключает владелец)
-const ctxOf = (r, req) => ({ s: r.settings, base: base(req), prefix: `/${r.slug}`, slug: r.slug, partnerCta: r.partnerCta !== false });
-const pub = (r, a, req) => publicApt(a, r.settings, base(req), `/${r.slug}`);
+// Язык сайта клиента: выбор хранится в cookie lang (ru — по умолчанию, ky — кыргызский). Роботы поиска видят русский.
+const langOf = req => langOk(cookies(req).lang);
+const ctxOf = (r, req) => ({ s: r.settings, base: base(req), prefix: `/${r.slug}`, slug: r.slug, partnerCta: r.partnerCta !== false, lang: langOf(req) });
+const pub = (r, a, req, lang = langOf(req)) => publicApt(a, r.settings, base(req), `/${r.slug}`, lang);
 const aptLabel = a => `${a.title ? a.title + ' · ' : ''}${kindLabel(a)}, ${a.area} ${unitOf(a)}`;
 
 function similarTo(r, a, req, limit = 4) {
@@ -398,7 +412,7 @@ app.post('/api/admin/password', requireAuth, (req, res) => {
 });
 
 // ---------- Кабинет: квартиры (только свои) ----------
-const adminApt = (r, a, req) => ({ ...a, computed: pub(r, a, req) });
+const adminApt = (r, a, req) => ({ ...a, computed: pub(r, a, req, 'ru') }); // кабинет всегда по-русски
 
 app.get('/api/admin/apartments', requireAuth, (req, res) => {
   const list = aptsOf(req.realtor.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt));

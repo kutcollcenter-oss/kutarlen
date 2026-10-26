@@ -1,6 +1,7 @@
 // Главная страница: наполнение блоков, фильтр и калькулятор
 (function () {
   const { S, money, esc, wa } = window.RS;
+  const L = window.RS.t, plural = (k, n) => window.RS.plural(k, n); // тексты на языке страницы (lib/i18n.js)
   const D = window.__DATA__;
   const APTS = D.apartments;
   const $ = id => document.getElementById(id);
@@ -15,13 +16,13 @@
   $('heroTitle').innerHTML = words.map((w, i) =>
     `<span class="w${i >= cut ? ' hl' : ''}"><span style="--i:${i}">${esc(w)}</span></span>`).join(' ');
   const role = String(S.role || '');
-  $('heroSub').textContent = `${S.name}${role ? ` — ${role[0].toLowerCase() + role.slice(1)}` : ''}. Подберу квартиру под ваш взнос и ежемесячный платёж.`;
+  $('heroSub').textContent = L('heroSub', { who: `${S.name}${role ? ` — ${role[0].toLowerCase() + role.slice(1)}` : ''}` });
   $('badgeName').textContent = S.name;
   $('badgeRole').textContent = S.role || '';
   $('heroPhoto').innerHTML = S.photo
     ? `<img src="${esc(S.photo)}" alt="${esc(S.name)}" fetchpriority="high">`
     : `<div class="hero-initials">${esc(S.name.split(/\s+/).map(w => w[0]).join('').slice(0, 2))}</div>`;
-  const waGeneral = wa('Здравствуйте! Хочу подобрать квартиру.');
+  const waGeneral = wa(L('waGeneral'));
   $('heroWa').href = waGeneral;
   $('heroWa').insertAdjacentHTML('afterbegin', D.waIcon);
   $('ctaWa').href = waGeneral;
@@ -31,7 +32,7 @@
   $('heroKicker').textContent = S.heroKicker || '';
   $('heroKicker').hidden = !S.heroKicker;
   $('heroPoints').innerHTML = lines(S.heroPoints).map(p => `<li>${esc(p)}</li>`).join('');
-  $('aboutTitle').innerHTML = `Привет! Я ${esc(S.name)} <span class="hl">и помогу с квартирой</span>`;
+  $('aboutTitle').innerHTML = L('aboutTitleHtml', { name: esc(S.name) });
   $('aboutText').textContent = S.about;
   if (S.officeAddress) {
     $('officeAddr').textContent = S.officeAddress;
@@ -59,7 +60,7 @@
     $('reviews').innerHTML = reviews.map(([head, ...text]) => {
       const [who, date] = head.split('|').map(x => x.trim());
       return `<figure class="review">
-        <div class="stars" aria-label="5 из 5">★★★★★</div>
+        <div class="stars" aria-label="${L('stars')}">★★★★★</div>
         <blockquote>${esc(text.join(' '))}</blockquote>
         <figcaption><span class="avatar">${esc((who || '?')[0])}</span><span><b>${esc(who)}</b>${date ? `<small>${esc(date)}</small>` : ''}</span></figcaption>
       </figure>`;
@@ -172,8 +173,8 @@
     $('fMonthlyWrap').hidden = !isNew;
     $('fRoomsWrap').hidden = st.type === 'commercial' || st.type === 'land';
     const land = st.type === 'land';
-    $('lArea').textContent = land ? 'Площадь, соток' : 'Площадь, м²';
-    $('sortPpm').textContent = land ? 'Цена за сотку: от дешёвых' : 'Цена за м²: от дешёвых';
+    $('lArea').textContent = L(land ? 'areaSot' : 'areaM2');
+    $('sortPpm').textContent = L(land ? 'sortPpmLand' : 'sortPpm');
   }
 
   fDown.addEventListener('input', () => { st.down = +fDown.value >= B.down.max ? null : +fDown.value; update(); });
@@ -217,7 +218,7 @@
     const link = ph.closest('.card-link');
     window.RS.lightbox(a.photos.map(p => p.src), +(ph.dataset.i || 0), {
       href: link && link.getAttribute('href'),
-      label: { commercial: 'Подробнее о помещении', land: 'Подробнее об участке' }[a.type] || 'Подробнее о квартире',
+      label: L({ commercial: 'moreCommercial', land: 'moreLand' }[a.type] || 'moreApartment'),
     });
   });
 
@@ -246,7 +247,7 @@
     ppm: (a, b) => a.pricePerM2 - b.pricePerM2,
   };
 
-  const tagCls = t => (t === 'Скидка' ? ' tag-sale' : t === 'Рассрочка' ? ' tag-inst' : '');
+  const tagCls = t => (t === 'Скидка' ? ' tag-sale' : t === L('tagInstallment') ? ' tag-inst' : '');
 
   function card(a) {
     const c = a.currency;
@@ -257,16 +258,17 @@
       : '<div class="ph"></div>';
     const url = a.installment && a.o.down !== a.down ? `${a.url}?down=${a.o.down}` : a.url;
     const main = a.installment
-      ? `<div class="card-price"><b>${money(a.o.monthly, c)}</b><span>/ мес</span></div>`
-      : `<div class="card-price"><b>${money(a.price, c)}</b><span>${cashLike(a.type) ? 'наличные' : '100% оплата'}</span></div>`;
+      ? `<div class="card-price"><b>${money(a.o.monthly, c)}</b><span>${L('perMonth')}</span></div>`
+      : `<div class="card-price"><b>${money(a.price, c)}</b><span>${L(cashLike(a.type) ? 'cashWord' : 'fullPay')}</span></div>`;
     const pay = a.installment
       ? `<div class="pay-row">
-          <div><span>Взнос</span><b>${money(a.o.down, c)}</b></div>
-          <div><span>Срок</span><b>${a.months} мес.</b></div>
-          <div><span>Цена</span><b>${money(a.price, c)}</b></div>
+          <div><span>${L('down')}</span><b>${money(a.o.down, c)}</b></div>
+          <div><span>${L('term')}</span><b>${L('months', { n: a.months })}</b></div>
+          <div><span>${L('price')}</span><b>${money(a.price, c)}</b></div>
         </div>`
       : '';
-    const text = a.installment ? a.waText.replace(/Взнос: [^\n]*\nВ месяц: [^\n]*/, `Взнос: ${money(a.o.down, c)}\nВ месяц: ${money(a.o.monthly, c)} на ${a.months} мес.`).replace(a.url, url) : a.waText;
+    // Строки взноса и платежа в сообщении — под выбранный в фильтре взнос
+    const text = a.installment ? replacePay(a.waText, money(a.o.down, c), L('waMonthlyFor', { x: money(a.o.monthly, c), n: a.months })).replace(a.url, url) : a.waText;
     return `<article class="card">
       <a class="card-link" href="${url}">
         <div class="card-photo" data-id="${a.id}">${photo}<div class="tags">${a.tags.map(t => `<span class="tag${tagCls(t)}">${esc(t)}</span>`).join('')}</div></div>
@@ -277,26 +279,28 @@
           ${pay}
           <div class="feats">
             ${a.type === 'commercial' || a.type === 'land' ? '' : `<span>${I.bed}${a.roomsLabel}</span>`}<span>${I.area}${a.area} ${a.unit}</span>
-            ${a.floorFrom ? `<span>${I.floor}от ${a.floorFrom} эт.</span>` : ''}
-            <span class="feats-ppm">${money(a.pricePerM2, c)}/${a.type === 'land' ? 'сот.' : 'м²'}</span>
+            ${a.floorFrom ? `<span>${I.floor}${L('fromFloor', { f: a.floorFrom })}</span>` : ''}
+            <span class="feats-ppm">${money(a.pricePerM2, c)}/${L(a.type === 'land' ? 'perSot' : 'perM2')}</span>
           </div>
         </div>
       </a>
-      <div class="card-actions"><a class="btn btn-wa" href="${esc(wa(text))}" data-wa="card" data-id="${a.id}" target="_blank" rel="noopener">${D.waIcon}Написать в WhatsApp</a></div>
+      <div class="card-actions"><a class="btn btn-wa" href="${esc(wa(text))}" data-wa="card" data-id="${a.id}" target="_blank" rel="noopener">${D.waIcon}${L('writeWa')}</a></div>
     </article>`;
   }
 
-  function plural(n, one, few, many) {
-    const m10 = n % 10, m100 = n % 100;
-    return m10 === 1 && m100 !== 11 ? one : m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20) ? few : many;
+  // Подменить в сообщении строки «Взнос: …» и «В месяц: …» (их начала — в словаре: waDown, waMonthly)
+  const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  function replacePay(text, down, monthly) {
+    const re = new RegExp(`${escRe(L('waDown'))}[^\\n]*\\n${escRe(L('waMonthly'))}[^\\n]*`);
+    return text.replace(re, `${L('waDown')}${down}\n${L('waMonthly')}${monthly}`);
   }
 
   function update() {
     const c = cur(st.type);
     if (!cashLike(st.type)) syncMonthly();
-    const u = st.type === 'land' ? 'сот.' : 'м²';
-    $('oDown').textContent = st.down == null ? 'любой' : money(st.down, c);
-    $('oMonthly').textContent = st.monthly == null ? 'любой' : `до ${money(st.monthly, c)}`;
+    const u = L(st.type === 'land' ? 'perSot' : 'perM2');
+    $('oDown').textContent = st.down == null ? L('any') : money(st.down, c);
+    $('oMonthly').textContent = st.monthly == null ? L('any') : L('upTo', { x: money(st.monthly, c) });
     $('oArea').textContent = st.area[0] === st.area[1] ? `${st.area[0]} ${u}` : `${st.area[0]} – ${st.area[1]} ${u}`;
     [fDown, fMonthly].forEach(paintRange);
     paintDual($('fArea'), st.area, B.area);
@@ -305,23 +309,23 @@
       .map(a => ({ ...a, o: offer(a) }))
       .filter(a => a.o)
       .sort(SORTS[$('sort').value]);
-    const words = { commercial: ['помещение', 'помещения', 'помещений'], land: ['участок', 'участка', 'участков'] }[st.type] || ['квартира', 'квартиры', 'квартир'];
-    $('count').textContent = `Найдено: ${list.length} ${plural(list.length, ...words)}`;
+    const wordsKey = { commercial: 'wordsCommercial', land: 'wordsLand' }[st.type] || 'wordsApartment';
+    $('count').textContent = L('found', { n: list.length, word: plural(wordsKey, list.length) });
     if (list.length) {
       $('cards').innerHTML = list.map(card).join('');
       window.RS.slides($('cards').querySelectorAll('.card-photo'));
     } else {
       const budget = [
-        st.down != null && `взнос до ${money(st.down, c)}`,
-        st.monthly != null && `платёж до ${money(st.monthly, c)} в месяц`,
-        st.rooms.size && `комнат: ${[...st.rooms].map(r => (r === '1' ? '1 или студия' : r === '4' ? '4+' : r)).join(', ')}`,
+        st.down != null && L('budgetDown', { x: money(st.down, c) }),
+        st.monthly != null && L('budgetMonthly', { x: money(st.monthly, c) }),
+        st.rooms.size && L('budgetRooms', { x: [...st.rooms].map(r => (r === '1' ? L('roomsOneOrStudio') : r === '4' ? '4+' : r)).join(', ') }),
       ].filter(Boolean).join(', ');
-      const kind = st.type === 'land' ? 'участок' : st.type === 'cash' ? 'квартиру за наличные' : st.type === 'commercial' ? 'коммерческое помещение в рассрочку' : 'квартиру в рассрочку';
-      const where = st.city ? ` в городе ${st.city}` : '';
-      const text = `Здравствуйте! Подберите, пожалуйста, ${kind}${where}${budget ? `: ${budget}` : ''}.`;
+      const kind = L({ land: 'kindLand', cash: 'kindCash', commercial: 'kindCommercial' }[st.type] || 'kindInstallment');
+      const where = st.city ? L('inCity', { city: st.city }) : '';
+      const text = L('waPick', { kind, where, budget: budget ? `: ${budget}` : '' });
       $('cards').innerHTML = `<div class="empty">
-        <p><b>Под эти условия сейчас нет ${words[2]} на сайте.</b><br>Напишите — подберу вручную.</p>
-        <a class="btn btn-wa btn-lg" href="${esc(wa(text))}" data-wa="empty" target="_blank" rel="noopener">${D.waIcon}Подберу вручную</a>
+        <p>${L('emptyHtml', { many: esc(plural(wordsKey, 5)) })}</p>
+        <a class="btn btn-wa btn-lg" href="${esc(wa(text))}" data-wa="empty" target="_blank" rel="noopener">${D.waIcon}${L('pickManually')}</a>
       </div>`;
     }
   }
@@ -329,7 +333,7 @@
   // Города: кнопки «Все города» и каждый город, где есть квартиры. Один город — переключателя нет.
   const cities = ['Бишкек', 'Ош'].filter(c => APTS.some(a => a.city === c));
   if (cities.length > 1) {
-    $('fCity').innerHTML = ['', ...cities].map(c => `<button type="button" data-v="${esc(c)}" class="${c ? '' : 'on'}">${c ? esc(c) : 'Все города'}</button>`).join('');
+    $('fCity').innerHTML = ['', ...cities].map(c => `<button type="button" data-v="${esc(c)}" class="${c ? '' : 'on'}">${c ? esc(c) : L('allCities')}</button>`).join('');
     $('fCity').hidden = false;
     $('fCity').addEventListener('click', e => {
       const b = e.target.closest('button'); if (!b) return;
