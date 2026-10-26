@@ -8,7 +8,7 @@ const multer = require('multer');
 const sharp = require('sharp');
 const db = require('./lib/db');
 const seed = require('./lib/seed');
-const { migrateHandover, pendingHandover } = require('./lib/handover');
+const { migrateHandover, pendingHandover, dropHandoverTags } = require('./lib/handover');
 const { publicApt, kindLabel, unitOf, money, isListed, typeOf, isCashType, TYPES, CITIES } = require('./lib/calc');
 const { resolveMap } = require('./lib/maps');
 const pages = require('./lib/pages');
@@ -765,6 +765,20 @@ app.use((req, res) => res.status(404).send(pages.renderInvalid(D().product, base
   }
   const ho = migrateHandover(D().apartments, typeOf, line => console.log('Срок сдачи — ' + line));
   if (ho.touched) { db.save(); console.log(`Срок сдачи: проверено ${ho.touched} квартир, найдено ${ho.found}`); }
+  // Один раз: убрать старые метки со сроком («Сдача в 2030 2 квартал») там, где срок уже в поле.
+  // Отметка в базе (done.handoverTags) — чтобы метки, которые менеджер добавит потом сам, не трогать.
+  D().done = D().done || {};
+  if (!D().done.handoverTags) {
+    const dir = path.join(db.DATA_DIR, 'backups');
+    fs.mkdirSync(dir, { recursive: true });
+    const copy = path.join(dir, `before-handover-tags-${new Date().toISOString().slice(0, 10)}.json`);
+    if (!fs.existsSync(copy)) fs.copyFileSync(path.join(db.DATA_DIR, 'db.json'), copy);
+    console.log('Копия базы перед чисткой меток со сроком: ' + copy);
+    const t = dropHandoverTags(D().apartments, typeOf, line => console.log('Метки — ' + line));
+    D().done.handoverTags = new Date().toISOString();
+    db.save();
+    console.log(`Метки со сроком: перенесено в поле ${t.moved}, убрано повторов ${t.removed}`);
+  }
   // Стираем поля убранного раздела (там мог оказаться пароль, подставленный браузером)
   let dropped = false;
   for (const r of D().realtors) for (const k of DROPPED_KEYS) if (r.settings && k in r.settings) { delete r.settings[k]; dropped = true; }
