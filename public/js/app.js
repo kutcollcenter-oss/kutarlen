@@ -67,6 +67,28 @@
     }).join('');
   } else $('reviews-sec').remove();
 
+  // Новости «Скоро»: длинный текст сворачиваем до 3 строк и показываем кнопку «Читать подробнее».
+  // Текст помещается целиком — кнопки нет. Без скрипта текст виден полностью.
+  document.querySelectorAll('.news-card').forEach(card => {
+    const p = card.querySelector('.news-text'), btn = card.querySelector('.news-more');
+    if (!p || !btn) return;
+    const fit = () => {
+      if (btn.getAttribute('aria-expanded') === 'true') return;
+      p.classList.add('is-clamped');
+      const long = p.scrollHeight > p.clientHeight + 2;
+      p.classList.toggle('is-clamped', long);
+      btn.hidden = !long;
+    };
+    btn.addEventListener('click', () => {
+      const open = btn.getAttribute('aria-expanded') !== 'true';
+      btn.setAttribute('aria-expanded', String(open));
+      p.classList.toggle('is-clamped', !open);
+      btn.textContent = L(open ? 'newsLess' : 'newsMore');
+    });
+    fit();
+    window.addEventListener('load', fit, { once: true }); // шрифт догрузился — высота текста могла измениться
+  });
+
   $('faq').innerHTML = blocks(S.faq).map(([q, ...a]) =>
     `<details><summary>${esc(q)}</summary><p>${esc(a.join(' '))}</p></details>`).join('');
 

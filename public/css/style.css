@@ -903,3 +903,11 @@ input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 1px sol
 .lang-sw a:not(.on):hover { background: var(--soft); }
 @media (max-width: 1023px) { .topbar .wrap { justify-content: space-between; } }
 @media (min-width: 1024px) { .nav ~ .lang-sw { margin-left: 16px; } .lang-sw { align-self: center; } }
+
+/* Новость: длинный текст свёрнут до 3 строк, кнопка «Читать подробнее» раскрывает его (класс ставит app.js) */
+.news-text.is-clamped { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; flex: none; }
+.news-text:has(+ .news-more:not([hidden])) { margin-bottom: 6px; }
+.news-more { align-self: flex-start; min-height: 40px; margin: 0 0 16px; padding: 6px 0; background: none; border: 0; cursor: pointer;
+  font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink);
+  text-decoration: underline; text-underline-offset: 4px; }
+.news-more:hover { color: var(--primary-2); }
