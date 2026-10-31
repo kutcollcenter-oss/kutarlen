@@ -172,6 +172,7 @@ app.get(['/admin/', '/admin/index.html'], (req, res) => {
   const v = f => Math.round(fs.statSync(path.join(ADMIN_DIR, f)).mtimeMs).toString(36);
   const html = fs.readFileSync(path.join(ADMIN_DIR, 'index.html'), 'utf8')
     .replace('/admin/admin.css', `/admin/admin.css?v=${v('admin.css')}`)
+    .replace('/admin/apple-admin.css', `/admin/apple-admin.css?v=${v('apple-admin.css')}`)
     .replace('/admin/admin.js', `/admin/admin.js?v=${v('admin.js')}`);
   res.set('Cache-Control', 'no-cache').type('html').send(html);
 });
