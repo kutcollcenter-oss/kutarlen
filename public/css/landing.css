@@ -250,3 +250,73 @@ body.lx {
 .lx-land-text p { margin: 0; max-width: 460px; font-size: 18px; line-height: 1.55; color: var(--lx-muted); }
 .lx-land img { display: block; width: 100%; height: auto; filter: drop-shadow(0 24px 40px rgba(0, 0, 0, .45)); }
 .lx-sec.lx-land { padding-bottom: 40px; }
+
+/* ===== Стиль iPhone (как сайты менеджеров и кабинет), цвета прежние: тёмно-зелёный и золото.
+   Скругления, шрифт Inter вместо «машинописного», стеклянная шапка, отдельные карточки вместо сетки линий.
+   Убрать этот блок — вернётся прежний вид. ===== */
+body.lx { --lx-r: 22px; --lx-glass: rgba(21, 36, 27, .72); font-family: Inter, -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+.lx h1, .lx h2, .lx h3 { font-family: inherit; font-weight: 700 !important; letter-spacing: -.035em; }
+/* Вместо машинописного шрифта с капслоком — обычный, как в iOS */
+.lx .lx-kicker, .lx .lx-login, .lx .lx-btn, .lx .lx-price, .lx .lx-calc-in span, .lx .lx-calc-out > span, .lx .lx-steps li::before,
+.lx .lx-plan-badge, .lx .lx-plan-name, .lx .lx-phone-link, .lx .lx-brand small { font-family: inherit; text-transform: none; letter-spacing: -.01em; }
+.lx .lx-kicker { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+.lx .lx-kicker::before { content: none; }
+
+/* Шапка — матовое стекло */
+.lx .lx-top { background: rgba(12, 21, 16, .7); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px); border-bottom: .5px solid rgba(217, 180, 90, .18); }
+.lx .lx-login { font-size: 15px; font-weight: 600; border: 0; background: rgba(243, 217, 139, .14); padding: 8px 16px; border-radius: 999px !important; }
+.lx .lx-login:hover { background: rgba(243, 217, 139, .24); }
+.lx .lx-nav a { font-size: 15px; }
+
+/* Кнопки — капсулы */
+.lx .lx-btn { border-radius: 999px !important; font-size: 17px; font-weight: 600; min-height: 54px; padding: 14px 28px; }
+.lx .lx-btn.big { min-height: 60px; font-size: 18px; }
+.lx .lx-btn.gold { background: linear-gradient(180deg, #f6e3a1, #d9b45a); box-shadow: 0 8px 24px rgba(217, 180, 90, .28) !important; }
+.lx .lx-btn.ghost { border: 0; background: rgba(243, 217, 139, .1); color: var(--gold2); }
+.lx .lx-btn.ghost:hover { background: rgba(243, 217, 139, .18); color: var(--gold2); }
+.lx .lx-btn:active { transform: scale(.97); }
+
+/* Первый экран */
+.lx .lx-hero h1 { font-size: clamp(34px, 8.6vw, 60px); line-height: 1.06; }
+.lx .lx-sub { font-size: clamp(17px, 4.2vw, 20px); }
+.lx .lx-price { border: 0; background: rgba(243, 217, 139, .1); border-radius: 14px !important; font-size: 15px; font-weight: 500; padding: 12px 16px; line-height: 1.45; }
+.lx .lx-s-wa { border-radius: 12px !important; font-family: inherit; text-transform: none; font-size: 11px; }
+.lx .lx-s-card { border-radius: 14px !important; overflow: hidden; border: 0; }
+.lx .lx-s-h { text-transform: none; font-weight: 700; letter-spacing: -.02em; }
+
+/* Секции: без линий-разделителей, больше воздуха */
+.lx .lx-sec, .lx .lx-final { border-top: 0; }
+.lx .lx-sec h2, .lx .lx-final h2 { font-size: clamp(30px, 7vw, 48px); line-height: 1.08; }
+
+/* Калькулятор, шаги, тарифы — отдельные скруглённые карточки вместо сетки тонких линий */
+.lx .lx-calc, .lx .lx-steps, .lx .lx-tiers, .lx .lx-plans { background: none; border: 0; gap: 14px; }
+.lx .lx-calc-in, .lx .lx-calc-out, .lx .lx-steps li, .lx .lx-tier, .lx .lx-plan { border-radius: var(--lx-r) !important; background-color: var(--lx-bg2); border: .5px solid rgba(217, 180, 90, .14); }
+.lx .lx-calc-out, .lx .lx-tier.best { background: linear-gradient(160deg, #1f3125, #132019); }
+.lx .lx-tier.best { box-shadow: inset 0 0 0 1.5px var(--gold) !important; }
+.lx .lx-steps li::before { font-size: 15px; font-weight: 700; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50% !important; background: rgba(243, 217, 139, .14); color: var(--gold2); }
+.lx .lx-calc-in span { font-size: 15px; }
+.lx .lx-calc-out > span { font-size: 15px; font-weight: 600; }
+.lx .lx-calc-out > b, .lx .lx-tier-price b { font-weight: 700; letter-spacing: -.035em; }
+.lx .lx-ask { border-radius: 18px !important; border: 0; background: rgba(243, 217, 139, .08); }
+.lx .lx-pct input { border-radius: 14px !important; border: 0; background: rgba(0, 0, 0, .35); box-shadow: inset 0 0 0 1.5px var(--gold) !important; }
+.lx .lx-pct input:focus { box-shadow: inset 0 0 0 1.5px var(--gold), 0 0 0 4px rgba(217, 180, 90, .3) !important; }
+.lx .lx-chips button { border-radius: 999px !important; border: 0; background: rgba(243, 217, 139, .1); font-weight: 500; }
+.lx .lx-chips button:hover { background: rgba(243, 217, 139, .18); }
+.lx .lx-more { background: none; border: 0; gap: 10px; }
+.lx .lx-more div { border-radius: 16px !important; background: rgba(0, 0, 0, .25); }
+.lx .lx-calc-in input[type=range]::-webkit-slider-thumb { border-radius: 50% !important; border: 0; background: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, .4) !important; }
+.lx .lx-calc-in input[type=range]::-moz-range-thumb { border-radius: 50% !important; border: 0; background: #fff; }
+.lx .lx-tier-money div { border-bottom: .5px solid rgba(217, 180, 90, .16); }
+.lx .lx-tier-name { font-weight: 600; }
+.lx .lx-plan-badge { border-radius: 999px !important; font-weight: 600; font-size: 12px; }
+
+/* «В любой тариф входит» и строка про оплату */
+.lx .lx-incl { border-radius: var(--lx-r) !important; border: .5px solid rgba(217, 180, 90, .4); }
+.lx .lx-incl-head { font-weight: 700; letter-spacing: -.02em; }
+.lx .lx-pay { border-left: 0; border-radius: 16px !important; background: rgba(243, 217, 139, .1); }
+
+/* Картинки и подвал */
+.lx .lx-land img { border-radius: var(--lx-r) !important; }
+.lx .lx-phone-link { font-size: 19px; font-weight: 600; letter-spacing: 0; }
+.lx .lx-foot { border-top: .5px solid rgba(217, 180, 90, .14); }
+.lx .lx-chips button.on { background: var(--gold2); color: #1b1407; font-weight: 600; }
