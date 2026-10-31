@@ -4,6 +4,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+const logoBg = require('./lib/logo-bg');
 const multer = require('multer');
 const sharp = require('sharp');
 const db = require('./lib/db');
@@ -612,6 +613,7 @@ app.post('/api/admin/settings/logo', requireAuth, upload.single('logo'), async (
   try {
     req.realtor.settings.logo = await saveLogo(req.file.buffer);
     db.save();
+    logoBg.warm(req.realtor.settings.logo); // цвет фона для плашки вокруг логотипа
     res.json(req.realtor.settings);
   } catch (e) {
     res.status(400).json({ error: 'Не удалось обработать логотип' });
@@ -858,6 +860,8 @@ app.use((req, res) => res.status(404).send(pages.renderInvalid(D().product, base
   }
   analytics.prune();
   db.scheduleBackups();
+  // Цвет фона логотипов менеджеров — заранее, чтобы плашка была уже на первой странице
+  D().realtors.forEach(r => r.settings && r.settings.logo && logoBg.warm(r.settings.logo));
   // На сервере HOST=127.0.0.1: сайт доступен только через nginx (HTTPS), напрямую порт закрыт
   app.listen(PORT, process.env.HOST || '0.0.0.0', () => {
     const owner = D().users.find(u => u.role === 'owner');
