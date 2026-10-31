@@ -102,7 +102,9 @@
     vals = vals.filter(v => v != null);
     if (!vals.length) return { min: 0, max: 0, step: 1 };
     const step = nice((Math.max(...vals) - Math.min(...vals)) / steps || 1);
-    return { min: Math.floor(Math.min(...vals) / step) * step, max: Math.ceil(Math.max(...vals) / step) * step, step };
+    // Шаг 0.1 или 0.2: компьютер считает дроби неточно (20.700000000000003) — округляем до знаков шага
+    const r = v => +v.toFixed(Math.max(0, -Math.floor(Math.log10(step))));
+    return { min: r(Math.floor(Math.min(...vals) / step) * step), max: r(Math.ceil(Math.max(...vals) / step) * step), step };
   };
   // Границы с заданным шагом: ползунок «Мой первоначальный взнос» двигается ровно по 100 000
   const fixedBounds = (vals, step) => {
@@ -366,7 +368,8 @@
     const u = L(st.type === 'land' ? 'perSot' : 'perM2');
     $('oDown').textContent = st.down == null ? L('any') : money(st.down, c);
     $('oMonthly').textContent = st.monthly == null ? L('any') : L('upTo', { x: money(st.monthly, c) });
-    $('oArea').textContent = st.area[0] === st.area[1] ? `${st.area[0]} ${u}` : `${st.area[0]} – ${st.area[1]} ${u}`;
+    const n = v => +(+v).toFixed(1); // площадь — не больше одного знака после точки
+    $('oArea').textContent = st.area[0] === st.area[1] ? `${n(st.area[0])} ${u}` : `${n(st.area[0])} – ${n(st.area[1])} ${u}`;
     [fDown, fMonthly].forEach(paintRange);
     paintDual($('fArea'), st.area, B.area);
     markQuick();
