@@ -21,7 +21,12 @@
     <div class="hero-text">
       <div class="pill" id="heroKicker"></div>
       <h1 id="heroTitle"></h1>
-      <p class="hero-sub" id="heroSub"></p>
+
+      <!-- Как купить: три шага простыми словами -->
+      <div class="howto">
+
+        <ol><li>{{how1}}</li><li>{{how2}}</li><li>{{how3}}</li></ol>
+      </div>
       <ul class="hero-points" id="heroPoints">
       </ul>
     </div>
@@ -48,7 +53,7 @@
     <div class="sec-head">
       <div><div class="kicker">{{catalogKicker}}</div>
       <h2>{{catalogH2Html}}</h2>
-      <p class="lead">{{catalogLead}}</p></div>
+      </div>
     </div>
 
     <div class="filter" id="filter">
@@ -60,13 +65,18 @@
         <button data-v="cash">{{typeCash}}</button>
         <button data-v="land">{{typeLand}}</button>
       </div>
+      <!-- Вопрос → быстрые суммы кнопками (их рисует app.js по ценам квартир), ниже — ползунок для точной суммы -->
       <div class="field" id="fDownWrap">
-        <div class="field-head"><label for="fDown">{{myDown}}</label><output id="oDown"></output></div>
+        <div class="field-head"><label for="fDown">{{askDown}}</label><output id="oDown"></output></div>
+        <div class="chips quick" id="qDown"></div>
+        <div class="exact-hint">{{exactHint}}</div>
         <input type="range" id="fDown" class="range" data-hint="{{hintDown}}">
       </div>
 
       <div class="field" id="fMonthlyWrap">
-        <div class="field-head"><label for="fMonthly">{{monthlyUpTo}}</label><output id="oMonthly"></output></div>
+        <div class="field-head"><label for="fMonthly">{{askMonthly}}</label><output id="oMonthly"></output></div>
+        <div class="chips quick" id="qMonthly"></div>
+        <div class="exact-hint">{{exactHint}}</div>
         <input type="range" id="fMonthly" class="range" data-hint="{{hintMonthly}}" data-hint-after="fDown">
       </div>
 
@@ -111,6 +121,7 @@
         <div class="kicker">{{aboutKicker}}</div>
         <h2 id="aboutTitle"></h2>
         <p class="about-text" id="aboutText"></p>
+        <!--INSTA-->
       </div>
       <a class="office" id="office" target="_blank" rel="noopener">
         <!--LOGO:office-->

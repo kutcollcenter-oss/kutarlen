@@ -915,3 +915,62 @@ input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 1px sol
 /* Фото новости — целиком, без обрезки: афиши и баннеры бывают квадратными и вертикальными */
 .news-photo { aspect-ratio: auto; }
 .news-photo img { height: auto; object-fit: contain; }
+
+/* ===== Понятнее для всех: крупнее, обычными буквами, вопросы и простые фразы ===== */
+/* Кнопки — обычный шрифт и обычные буквы */
+.btn { font-family: var(--sans); font-size: 16px; text-transform: none; letter-spacing: 0; font-weight: 500; }
+.btn-lg { font-size: 17px; }
+/* Вопросы фильтра — крупно и тёмным */
+.filter .field-head { flex-wrap: wrap; }
+.filter .field-head label { font-family: var(--sans); font-size: 17px; font-weight: 500; color: var(--ink); text-transform: none; letter-spacing: 0; }
+.filter .field-head output { font-size: 16px; }
+/* Вкладки: на телефоне 2×2, полные названия */
+#fType button, #fCity button { font-family: var(--sans); font-size: 15px; text-transform: none; letter-spacing: 0; line-height: 1.25; }
+@media (max-width: 699px) {
+  #fType { grid-auto-flow: row; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); }
+  #fType button { border-left: 0; background: var(--bg); }
+  #fType button.on { background: var(--ink); }
+  #fType button.wide { grid-column: 1 / -1; }
+}
+/* Быстрые суммы и комнаты — большие кнопки */
+.chips button { font-family: var(--sans); font-size: 16px; min-height: 48px; }
+.chips.quick { margin: 10px 0 4px; }
+.chips.quick button { flex: 1 1 auto; padding: 0 14px; }
+.exact-hint { margin: 12px 0 2px; font-size: 14px; color: var(--muted); }
+/* Найдено: N квартир, сортировка */
+.results-head #count { font-family: var(--sans); font-size: 16px; text-transform: none; letter-spacing: 0; }
+/* Карточка: главное одной фразой */
+.card-title { text-transform: none; font-size: 17px; letter-spacing: 0; }
+.card-price span { font-family: var(--sans); font-size: 15px; text-transform: none; letter-spacing: 0; }
+.pay-line { margin: 12px 0 0; padding: 12px 14px; background: var(--soft); font-size: 16px; line-height: 1.45; color: var(--ink); }
+.pay-line b { font-weight: 600; white-space: nowrap; }
+.price-line { margin-top: 8px; font-size: 14px; color: var(--muted); }
+.feats { font-size: 14px; }
+.feats-ppm { font-family: var(--sans); font-size: 13px; text-transform: none; letter-spacing: 0; }
+/* «Хочу эту квартиру» — большая зелёная кнопка */
+.card-actions .btn-want, .card-actions .btn-wa.btn-want { background: var(--wa); border-color: var(--wa); color: #fff; min-height: 54px; font-size: 17px; }
+.card-actions .btn-want:hover { background: #255a3b; }
+.card-actions .btn-want svg { color: #fff; }
+/* Пункты под заголовком — читаемо */
+.hero-points { font-family: var(--sans); font-size: 15px; text-transform: none; letter-spacing: 0; }
+/* Как купить: три шага */
+.howto { margin: 4px 0 22px; max-width: 520px; }
+.howto-title { font-size: 15px; font-weight: 600; color: var(--ink); margin-bottom: 10px; }
+.howto ol { list-style: none; counter-reset: how; margin: 0; padding: 0; display: grid; gap: 10px; }
+.howto li { counter-increment: how; display: flex; align-items: center; gap: 12px; font-size: 16px; line-height: 1.35; color: var(--ink); }
+.howto li::before { content: counter(how); flex: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: #fff; font-weight: 600; font-size: 15px; }
+/* Расчёт на странице квартиры — обычными буквами */
+.calc-main span, .calc-main small, .calc-rows dt, .calc-min, .calc-note, .calc-hint { font-family: var(--sans); text-transform: none; letter-spacing: 0; font-size: 14px; }
+.calc-main span { font-size: 15px; }
+/* Словарик под «Деталями» */
+.gloss { margin-top: 16px; padding: 14px 16px; background: var(--soft); font-size: 15px; line-height: 1.5; }
+.gloss b { display: block; margin-bottom: 6px; font-weight: 600; color: var(--ink); }
+.gloss ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; color: var(--text); }
+/* Instagram под «Обо мне» */
+.insta-link { display: inline-flex; align-items: center; gap: 12px; margin-top: 18px; padding: 10px 18px 10px 12px; border: 1px solid var(--line); background: #fff; text-decoration: none; color: var(--ink); }
+.insta-link:hover { border-color: var(--ink); }
+.insta-link svg { width: 34px; height: 34px; color: #d6249f; }
+.insta-link span { display: flex; flex-direction: column; line-height: 1.25; }
+.insta-link small { font-size: 13px; color: var(--muted); }
+.insta-link b { font-size: 17px; font-weight: 500; }
+.fx-legal { display: flex; flex-wrap: wrap; gap: 8px 20px; }
