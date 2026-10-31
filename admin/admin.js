@@ -195,7 +195,7 @@
           <label class="f"><span>Логин</span><input type="text" id="lg" autocomplete="username" autocapitalize="none" spellcheck="false" required value="${preLogin}"></label>
           <label class="f"><span>Пароль</span><input type="password" id="pw" autocomplete="current-password" required></label>
           <label class="check remember"><input type="checkbox" id="rm"> <span>Это мой телефон или компьютер — не выходить</span></label>
-          <p class="hint remember-hint">На чужом устройстве не ставьте галочку: кабинет сам закроется через час без действий или когда закроете браузер.</p>
+          <p class="hint remember-hint">На чужом устройстве не ставьте галочку: кабинет сам закроется через час без действий или когда закроете вкладку.</p>
           ${loginNote ? `<p class="note-box">${esc(loginNote)}</p>` : ''}
           <div class="err" id="le"></div>
           <button class="btn btn-primary btn-block">Войти</button>
@@ -1148,30 +1148,37 @@
   }
 
   // ---------- Вход на чужом устройстве: выход после часа без действий ----------
-  // Пока человек работает (нажимает, печатает, листает), раз в 5 минут кабинет «отмечается» на сервере, и час отсчитывается заново.
-  // Если час ничего не происходило — выходим и показываем вход, чтобы на оставленном ноутбуке не было видно кабинета.
-  let idleTimer = null, lastAct = Date.now(), lastPing = Date.now();
+  // Пока страница кабинета открыта, она каждую минуту «отмечается» на сервере — без этого сервер через 5 минут закроет вход
+  // (так кабинет закрывается, когда закрыли вкладку или браузер). Если же час никто ничего не нажимал — выходим сами
+  // и показываем вход, чтобы на оставленном ноутбуке не было видно кабинета.
+  let idleTimer = null, lastAct = Date.now(), lastPing = Date.now(), idleMin = 60;
   const ACT_EVENTS = ['pointerdown', 'keydown', 'scroll', 'touchstart'];
-  function onAct() {
-    lastAct = Date.now();
-    if (Date.now() - lastPing > 5 * 60000) { lastPing = Date.now(); api('GET', '/api/admin/me').catch(() => {}); }
-  }
-  function stopIdle() {
-    clearInterval(idleTimer); idleTimer = null;
-    ACT_EVENTS.forEach(ev => window.removeEventListener(ev, onAct, true));
-  }
-  function startIdle(min) {
-    stopIdle();
-    lastAct = lastPing = Date.now();
-    ACT_EVENTS.forEach(ev => window.addEventListener(ev, onAct, { capture: true, passive: true }));
-    idleTimer = setInterval(async () => {
-      if (Date.now() - lastAct < min * 60000) return;
+  const onAct = () => { lastAct = Date.now(); };
+  async function idleCheck() {
+    if (Date.now() - lastAct >= idleMin * 60000) {
       stopIdle();
       try { await api('POST', '/api/admin/logout'); } catch (e) { /* уже вышли */ }
       loginNote = 'Вы долго не пользовались кабинетом, поэтому мы вышли из него. Войдите снова.';
       document.querySelectorAll('.modal').forEach(m => m.remove());
       renderLogin();
-    }, 30000);
+    } else if (Date.now() - lastPing >= 55000) {
+      lastPing = Date.now();
+      api('GET', '/api/admin/me').catch(() => {}); // если сервер уже закрыл вход — api() сам покажет вход
+    }
+  }
+  const onVisible = () => { if (document.visibilityState === 'visible') idleCheck(); };
+  function stopIdle() {
+    clearInterval(idleTimer); idleTimer = null;
+    ACT_EVENTS.forEach(ev => window.removeEventListener(ev, onAct, true));
+    document.removeEventListener('visibilitychange', onVisible);
+  }
+  function startIdle(min) {
+    stopIdle();
+    idleMin = min;
+    lastAct = lastPing = Date.now();
+    ACT_EVENTS.forEach(ev => window.addEventListener(ev, onAct, { capture: true, passive: true }));
+    document.addEventListener('visibilitychange', onVisible);
+    idleTimer = setInterval(idleCheck, 30000);
   }
 
   async function start() {

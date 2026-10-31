@@ -23,6 +23,9 @@ const UPLOAD_DIR = path.join(__dirname, 'uploads');
 const SESSION_DAYS = 30;
 // Вход без галочки «Это моё устройство»: кабинет закрывается после часа без действий и при закрытии браузера
 const IDLE_MIN = 60;
+// …а сервер держит такую сессию, только пока страница кабинета открыта: она «отмечается» каждую минуту.
+// Закрыли вкладку или браузер (даже если браузер потом восстановит вкладки) — через 5 минут нужен пароль.
+const ALIVE_MIN = 5;
 
 const app = express();
 // Доверяем только своему nginx на этом же сервере (127.0.0.1). Раньше было true — тогда адрес посетителя брался
@@ -144,7 +147,7 @@ function requireAuth(req, res, next) {
   req.realtor = realtor;
   req.sessShort = s.short;
   // «Чужое устройство»: пока человек работает, час отсчитывается заново (не чаще раза в 5 минут)
-  if (s.short && s.exp - Date.now() < (IDLE_MIN - 5) * 60000) setSession(req, res, user, false);
+  if (s.short && s.exp - Date.now() < (ALIVE_MIN - 1) * 60000) setSession(req, res, user, false);
   next();
 }
 function ownerOnly(req, res, next) {
@@ -154,7 +157,7 @@ function ownerOnly(req, res, next) {
 // remember = true — «моё устройство»: 30 дней. false — до закрытия браузера и не дольше часа без действий
 function setSession(req, res, user, remember = true) {
   const secure = req.secure ? '; Secure' : '';
-  const token = user ? auth.makeToken(D().secret, user, SESSION_DAYS, !remember, IDLE_MIN * 60000) : '';
+  const token = user ? auth.makeToken(D().secret, user, SESSION_DAYS, !remember, ALIVE_MIN * 60000) : '';
   const age = !user ? '; Max-Age=0' : remember ? `; Max-Age=${SESSION_DAYS * 86400}` : '';
   res.setHeader('Set-Cookie', `sess=${token}; HttpOnly; SameSite=Lax; Path=/${age}${secure}`);
 }
