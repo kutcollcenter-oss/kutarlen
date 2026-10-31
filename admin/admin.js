@@ -18,6 +18,8 @@
   let settings = null;
   let me = null; // { login, role, defaultPassword, realtor: { url, status, plan, count }, product }
   let listFilter = 'all';
+  let listQuery = '';   // поиск в списке квартир
+  let profileTab = 'main'; // открытая вкладка «Профиля»
 
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const cur = type => (cashLike(type) ? settings.currencyCash || '$' : settings.currencyInstallment || 'сом');
@@ -74,6 +76,72 @@
     });
   }
   const confirmBox = (title, text, okText = 'Да', danger = false) => modal({ title, text, okText, danger });
+
+  // ---------- Кабинет как приложение на телефоне (иконка на главном экране) ----------
+  // Android/Chrome сам предлагает установку (beforeinstallprompt) — запоминаем и показываем по нашей кнопке.
+  // На iPhone установки по кнопке нет — показываем, где нажать в Safari. Плашку можно скрыть, она больше не появится.
+  let installPrompt = null;
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; });
+  const isInstalled = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  const installHidden = () => { try { return localStorage.getItem('installHide') === '1'; } catch (e) { return false; } };
+  function installBanner() {
+    if (isInstalled() || installHidden()) return '';
+    return `<div class="install" id="inst">
+      <img src="/img/brand/icon-192.png" alt="" width="44" height="44">
+      <div class="install-txt"><b>Кабинет как приложение</b><span>Иконка на экране телефона — открывается одним нажатием</span></div>
+      <button type="button" class="btn btn-primary" id="instGo">Установить</button>
+      <button type="button" class="install-x" id="instX" aria-label="Скрыть">×</button>
+    </div>`;
+  }
+  function bindInstall() {
+    const go = document.getElementById('instGo'); if (!go) return;
+    document.getElementById('instX').onclick = () => {
+      try { localStorage.setItem('installHide', '1'); } catch (e) {}
+      document.getElementById('inst').remove();
+    };
+    go.onclick = async () => {
+      if (installPrompt) {
+        installPrompt.prompt();
+        const r = await installPrompt.userChoice.catch(() => null);
+        installPrompt = null;
+        if (r && r.outcome === 'accepted') { const b = document.getElementById('inst'); if (b) b.remove(); toast('Кабинет установлен'); }
+        return;
+      }
+      const ua = navigator.userAgent;
+      const ios = /iPhone|iPad|iPod/i.test(ua);
+      const android = /Android/i.test(ua);
+      const html = ios
+        ? '<ol class="howto-list"><li>Откройте кабинет в <b>Safari</b></li><li>Нажмите <b>«Поделиться»</b> — квадрат со стрелкой вверх внизу экрана</li><li>Выберите <b>«На экран «Домой»»</b> и нажмите <b>«Добавить»</b></li></ol>'
+        : android
+          ? '<ol class="howto-list"><li>Откройте кабинет в <b>Chrome</b></li><li>Нажмите <b>⋮</b> — три точки справа вверху</li><li>Выберите <b>«Установить приложение»</b> или <b>«Добавить на главный экран»</b></li></ol>'
+          : '<ol class="howto-list"><li>Откройте кабинет в <b>Chrome</b> или <b>Edge</b></li><li>В адресной строке справа нажмите значок установки <b>⊕</b> (или меню <b>⋮</b> → «Установить»)</li></ol>';
+      modal({ title: 'Как установить кабинет', html, okText: 'Понятно', cancelText: '' });
+    };
+  }
+
+  // «Шторка» действий снизу, как в iOS: actionSheet('Название', [{ key, label, danger }]) → key или null
+  function actionSheet(title, items) {
+    return new Promise(resolve => {
+      const wrap = document.createElement('div');
+      wrap.className = 'modal sheet';
+      wrap.innerHTML = `<div class="sheet-box" role="dialog" aria-modal="true">
+        <div class="sheet-group">
+          ${title ? `<div class="sheet-title">${esc(title)}</div>` : ''}
+          ${items.map(i => `<button type="button" class="sheet-btn${i.danger ? ' danger' : ''}" data-k="${esc(i.key)}">${esc(i.label)}</button>`).join('')}
+        </div>
+        <button type="button" class="sheet-btn sheet-cancel" data-k="">Отмена</button>
+      </div>`;
+      document.body.appendChild(wrap);
+      const close = v => { wrap.remove(); document.removeEventListener('keydown', key); resolve(v); };
+      const key = e => { if (e.key === 'Escape') close(null); };
+      document.addEventListener('keydown', key);
+      wrap.onclick = e => {
+        if (e.target === wrap) return close(null);
+        const b = e.target.closest('[data-k]'); if (b) close(b.dataset.k || null);
+      };
+      requestAnimationFrame(() => wrap.classList.add('open'));
+    });
+  }
 
   async function copy(text, done = 'Ссылка скопирована') {
     try { await navigator.clipboard.writeText(text); toast(done); }
@@ -252,25 +320,51 @@
     aptCount = apts.length;
     const shown = listFilter === 'all' ? apts : apts.filter(a => typeOf(a) === listFilter);
     app.innerHTML = `${nav('list')}<div class="wrap">
+      ${installBanner()}
       <div class="row" style="justify-content:space-between"><h1>Квартиры</h1><a class="btn btn-primary" href="#edit/new" data-add>+ Добавить</a></div>
+      <label class="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="m20 20-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input type="search" id="lq" placeholder="Поиск: ЖК, адрес, площадь" value="${esc(listQuery)}" autocomplete="off"></label>
       ${me.realtor.plan.maxApartments ? `<p class="${apts.length >= me.realtor.plan.maxApartments ? 'warn' : 'hint'}" style="margin-top:-6px">Тариф: ${apts.length} из ${flats(me.realtor.plan.maxApartments)}${apts.length >= me.realtor.plan.maxApartments ? ' — лимит исчерпан, новые добавить нельзя' : ''}</p>` : ''}
       <div class="filters" id="lf">
         <button data-f="all" class="${listFilter === 'all' ? 'on' : ''}">Все ${apts.length}</button>
         ${Object.entries(TYPES).map(([k, v]) => `<button data-f="${k}" class="${listFilter === k ? 'on' : ''}">${v} ${count(k)}</button>`).join('')}
       </div>
-      <div id="items">${shown.map(item).join('') || '<p class="hint">Пока пусто</p>'}</div>
+      <div id="items"></div>
     </div>`;
     bindNav();
+    bindInstall();
+    // Поиск: название, адрес, площадь, город — без перезагрузки страницы, чтобы не терялся курсор в поле
+    const drawItems = () => {
+      const q = listQuery.trim().toLowerCase();
+      const list = q ? shown.filter(a => [a.title, a.address, a.city, a.area, a.computed && a.computed.roomsLabel].join(' ').toLowerCase().includes(q)) : shown;
+      document.getElementById('items').innerHTML = list.map(item).join('')
+        || `<p class="hint">${q ? 'Ничего не найдено' : 'Пока пусто'}</p>`;
+    };
+    drawItems();
+    document.getElementById('lq').oninput = e => { listQuery = e.target.value; drawItems(); };
+    // С клавиатуры: Enter на строке квартиры — открыть на изменение
+    document.getElementById('items').onkeydown = e => { const r = e.target.closest('.apt-row'); if (r && e.key === 'Enter' && e.target === r) location.hash = `#edit/${r.dataset.id}`; };
     document.getElementById('lf').onclick = e => {
       const b = e.target.closest('button'); if (!b) return;
       listFilter = b.dataset.f; renderList();
     };
     document.querySelector('[data-add]').onclick = e => { if (atLimit()) { e.preventDefault(); limitInfo(); } };
     document.getElementById('items').onclick = async e => {
-      const el = e.target.closest('[data-id]'); const act = e.target.closest('[data-act]');
-      if (!el || !act) return;
+      const el = e.target.closest('[data-id]');
+      if (!el) return;
       const id = el.dataset.id;
-      if (act.dataset.act === 'edit') location.hash = `#edit/${id}`;
+      const apt = apts.find(x => x.id === id);
+      // Нажатие на квартиру — открыть на изменение; «⋯» — остальные действия
+      const act = { dataset: { act: e.target.closest('[data-more]') ? '' : 'edit' } };
+      if (act.dataset.act === 'edit') { location.hash = `#edit/${id}`; return; }
+      const pick = await actionSheet(apt && (apt.title || 'Квартира'), [
+        ...(apt && apt.computed.price ? [{ key: 'open', label: 'Открыть на сайте' }] : []),
+        { key: 'dup', label: 'Дублировать' },
+        { key: 'del', label: 'Удалить', danger: true },
+      ]);
+      if (!pick) return;
+      if (pick === 'open') { window.open(apt.computed.url, '_blank'); return; }
+      act.dataset.act = pick;
       if (act.dataset.act === 'dup' && atLimit()) { limitInfo(); return; }
       if (act.dataset.act === 'dup') {
         const a = await api('POST', `/api/admin/apartments/${id}/duplicate`);
@@ -292,17 +386,14 @@
     const line = c.installment
       ? `${money(c.price, k)} · ${money(c.monthly, k)}/мес · ${c.months} мес.`
       : c.price ? money(c.price, k) : '<span style="color:var(--bad)">Цена не указана — на сайте не видна</span>';
-    return `<div class="item" data-id="${a.id}">
+    // Вся строка — кнопка «Изменить»; справа «⋯» с остальными действиями
+    return `<div class="item apt-row" data-id="${a.id}" role="button" tabindex="0">
       ${img}
-      <div><div class="t">${esc(a.title || 'Без названия')} <span class="badge badge-${c.type}">${TYPES[c.type]}</span></div>
+      <div class="apt-row-txt"><div class="t">${esc(a.title || 'Без названия')}</div>
         <div class="s">${c.type === 'land' ? `Участок, ${a.area} сот.` : `${rooms(a.rooms)}, ${a.area} м² · от ${a.floorFrom || '—'} эт.`}</div>
-        <div class="s">${line}</div></div>
-      <div class="acts">
-        <button class="btn" data-act="edit">Изменить</button>
-        <button class="btn" data-act="dup">Дублировать</button>
-        ${c.price ? `<a class="btn" href="${esc(c.url)}" target="_blank">Открыть ↗</a>` : ''}
-        <button class="btn btn-danger" data-act="del">Удалить</button>
-      </div>
+        <div class="s">${line}</div>
+        <span class="badge badge-${c.type}">${TYPES[c.type]}</span></div>
+      <button type="button" class="more-btn" data-more aria-label="Ещё действия">⋯</button>
     </div>`;
   }
 
@@ -586,22 +677,27 @@
     const s = settings;
     const f = (k, label, type = 'text', hint = '') => `<label class="f"><span>${label}</span><input type="${type}" name="${k}" value="${esc(s[k])}">${hint ? `<div class="hint">${hint}</div>` : ''}</label>`;
     const t = (k, label, hint = '') => `<label class="f"><span>${label}</span><textarea name="${k}" rows="6">${esc(s[k])}</textarea>${hint ? `<div class="hint">${hint}</div>` : ''}</label>`;
+    // Вкладки: длинная страница разбита на части. Сохраняется вся форма сразу (кнопка «Сохранить» внизу любой вкладки).
+    const TABS = [['main', 'Основное'], ['texts', 'Тексты сайта'], ['ky', 'Кыргызча'], ['news', 'Новости'], ['pw', 'Пароль']];
     app.innerHTML = `${nav('settings')}<div class="wrap"><h1>Профиль</h1>
+      <div class="filters ptabs" id="ptabs" role="tablist">${TABS.map(([k, l]) => `<button type="button" role="tab" data-t="${k}">${l}</button>`).join('')}</div>
       <form id="sf">
-        <div class="card"><h2 style="margin-top:0">Менеджер</h2>
+        <div class="card" data-ptab="main"><h2 style="margin-top:0">Менеджер</h2>
           <div class="row" style="margin-bottom:12px">
             ${s.photo ? `<img src="${esc(s.photo)}" style="width:72px;height:90px;object-fit:cover;border-radius:10px">` : ''}
             <label class="upload" style="flex:1"><input type="file" id="pf" accept="image/*">+ ${s.photo ? 'Заменить фото' : 'Загрузить своё фото'}</label>
           </div>
           ${f('name', 'Имя')}
           ${f('role', 'Кем работаете', 'text', 'Например: Менеджер строительной компании «Кут»')}
+        </div>
+        <div class="card" data-ptab="texts"><h2 style="margin-top:0">Первый экран и «Обо мне»</h2>
           ${f('heroKicker', 'Надпись над заголовком')}
           ${f('tagline', 'Заголовок первого экрана')}
           ${t('heroPoints', 'Пункты под кнопками', 'Каждый пункт с новой строки, лучше 2–3 коротких')}
           ${t('about', 'Текст «Обо мне»')}
           ${t('stats', 'Цифры доверия', 'Каждая строка: значение | подпись. Например: 3 года | в недвижимости')}
         </div>
-        <div class="card"><h2 style="margin-top:0">Компания и логотип</h2>
+        <div class="card" data-ptab="main"><h2 style="margin-top:0">Компания и логотип</h2>
           ${f('company', 'Компания', 'text', 'Например: Строительная компания «Кут». Можно оставить пустым.')}
           <div class="row" style="margin-bottom:6px">
             ${s.logo ? `<div class="logo-prev"><img src="${esc(s.logo)}" alt=""></div>` : ''}
@@ -610,16 +706,16 @@
           </div>
           <div class="hint">Лучше PNG с прозрачным фоном. Без логотипа на сайте показывается только имя.</div>
         </div>
-        <div class="card"><h2 style="margin-top:0">Контакты</h2>
+        <div class="card" data-ptab="main"><h2 style="margin-top:0">Контакты</h2>
           ${f('whatsapp', 'Номер WhatsApp', 'tel', 'С кодом страны, например +996 550 022 508. Сюда приходят все заявки с сайта.')}
           ${f('instagram', 'Instagram', 'text', 'Ник, например @arlen.kut')}
           ${f('officeAddress', 'Адрес офиса')}
           ${f('officeLink', 'Ссылка на офис в 2ГИС')}
         </div>
-        <div class="card"><h2 style="margin-top:0">Валюта</h2>
+        <div class="card" data-ptab="main"><h2 style="margin-top:0">Валюта</h2>
           <div class="grid2">${f('currencyInstallment', 'Рассрочка')}${f('currencyCash', 'Наличные')}</div>
         </div>
-        <div class="card"><h2 style="margin-top:0">Кыргызская версия сайта</h2>
+        <div class="card" data-ptab="ky"><h2 style="margin-top:0">Кыргызская версия сайта</h2>
           <div class="hint" style="margin:-4px 0 12px">Эти тексты видят клиенты, которые нажали на сайте «Кыр». Пустое поле — покажется русский текст. Серым в поле подсказан ваш русский вариант.</div>
           ${[['heroKicker', 'Надпись над заголовком'], ['tagline', 'Заголовок первого экрана'], ['role', 'Кем работаете'], ['heroPoints', 'Пункты под кнопками', 1],
             ['about', 'Текст «Обо мне»', 1], ['stats', 'Цифры доверия', 1], ['steps', 'Как работает рассрочка — шаги', 1], ['documents', 'Какие документы нужны', 1],
@@ -628,12 +724,12 @@
               ? `<textarea name="${k}Ky" rows="5" placeholder="${esc(s[k])}">${esc(s[k + 'Ky'])}</textarea>`
               : `<input type="text" name="${k}Ky" value="${esc(s[k + 'Ky'])}" placeholder="${esc(s[k])}">`}</label>`).join('')}
         </div>
-        <div class="card"><h2 style="margin-top:0">Новости «Скоро»</h2>
+        <div class="card" data-ptab="news"><h2 style="margin-top:0">Новости «Скоро»</h2>
           <div class="hint" style="margin:-4px 0 10px">Показываются на главной сразу после первого экрана. Под каждой новостью кнопка «Узнать первым» — клиент пишет вам в WhatsApp. До ${NEWS_MAX} новостей.</div>
           <div id="newsList" class="rev-list"></div>
           <button type="button" class="btn btn-block" id="newsAdd">+ Добавить новость</button>
         </div>
-        <div class="card"><h2 style="margin-top:0">Блоки главной</h2>
+        <div class="card" data-ptab="texts"><h2 style="margin-top:0">Блоки главной</h2>
           ${t('steps', 'Как работает рассрочка — шаги', 'Каждый шаг с новой строки')}
           ${t('documents', 'Какие документы нужны', 'Каждый пункт с новой строки')}
           <div class="f"><span>Отзывы клиентов</span>
@@ -646,9 +742,9 @@
           ${t('ctaText', 'Текст финального блока')}
           ${t('privacy', 'Политика конфиденциальности')}
         </div>
-        <div class="savebar"><button class="btn btn-primary">Сохранить</button></div>
+        <div class="savebar" id="psave"><button class="btn btn-primary">Сохранить</button></div>
       </form>
-      <form class="card" id="pwf"><h2 style="margin-top:0">Пароль от кабинета</h2>
+      <form class="card" id="pwf" data-ptab="pw"><h2 style="margin-top:0">Пароль от кабинета</h2>
         <div class="hint" style="margin-bottom:10px">Логин: <b>${esc(me.login)}</b></div>
         <label class="f"><span>Текущий пароль</span><input type="password" name="current" autocomplete="current-password" required></label>
         <label class="f"><span>Новый пароль</span><input type="password" name="next" autocomplete="new-password" minlength="8" required></label>
@@ -657,6 +753,14 @@
       </form>
     </div>`;
     bindNav();
+    const showTab = t => {
+      profileTab = t;
+      document.querySelectorAll('#ptabs [data-t]').forEach(b => { b.classList.toggle('on', b.dataset.t === t); b.setAttribute('aria-selected', b.dataset.t === t); });
+      document.querySelectorAll('[data-ptab]').forEach(el => { el.hidden = el.dataset.ptab !== t; });
+      document.getElementById('psave').hidden = t === 'pw';
+    };
+    document.getElementById('ptabs').onclick = e => { const b = e.target.closest('[data-t]'); if (b) { showTab(b.dataset.t); window.scrollTo(0, 0); } };
+    showTab(profileTab);
     const form = document.getElementById('sf');
     const getReviews = reviewsEditor(s.reviews);
     const getNews = newsEditor(s.news);

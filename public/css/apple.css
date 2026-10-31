@@ -330,3 +330,8 @@ h2 .hl, h1 .hl, .hl { color: var(--accent-text); }
 .howto li::before { width: 34px; height: 34px; font-size: 15px; }
 .howto li + li::after { content: "›"; position: absolute; left: -4px; top: 4px; font-size: 22px; color: #c7c7cc; }
 .hero-initials { background: linear-gradient(135deg, #48484a, #1d1d1f) !important; }
+
+/* Заголовок первого экрана: на телефоне компактнее, чтобы не «распирал» экран (было до 64px) */
+.hero h1 { font-size: clamp(28px, 7.2vw, 54px); line-height: 1.12; letter-spacing: -.03em; margin-bottom: 14px; }
+@media (min-width: 900px) { .hero h1 { font-size: clamp(40px, 4.4vw, 56px); } }
+.section h2, .cta h2 { font-size: clamp(26px, 5.6vw, 44px); }
