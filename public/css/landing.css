@@ -320,3 +320,21 @@ body.lx { --lx-r: 22px; --lx-glass: rgba(21, 36, 27, .72); font-family: Inter, -
 .lx .lx-phone-link { font-size: 19px; font-weight: 600; letter-spacing: 0; }
 .lx .lx-foot { border-top: .5px solid rgba(217, 180, 90, .14); }
 .lx .lx-chips button.on { background: var(--gold2); color: #1b1407; font-weight: 600; }
+
+/* «Уже пользуются N риелторов» — как VIP: крупные фото в золотых кольцах с мягким свечением, число золотом */
+.lx .lx-users { gap: 16px; flex-wrap: wrap; font-size: 16px; }
+.lx .lx-faces { padding: 4px 0; }
+.lx .lx-faces img, .lx .lx-faces i { width: 56px; height: 56px; padding: 2.5px; border: 0;
+  background: linear-gradient(145deg, #fff3c4, #d9b45a 45%, #8a6420) !important; background-clip: padding-box;
+  box-shadow: 0 0 0 3px var(--lx-bg), 0 6px 18px rgba(0, 0, 0, .45), 0 0 22px rgba(217, 180, 90, .28) !important;
+  transition: transform .25s ease; position: relative; }
+.lx .lx-faces img { object-fit: cover; }
+.lx .lx-faces i { color: #1b1407; font-size: 20px; font-weight: 700; }
+.lx .lx-faces > * + * { margin-left: -14px; }
+.lx .lx-faces > *:hover { transform: translateY(-4px) scale(1.06); z-index: 2; }
+.lx .lx-faces .lx-more-faces { font-size: 15px; background: linear-gradient(145deg, #2a3a2e, #15241b) !important; color: var(--gold2);
+  box-shadow: 0 0 0 3px var(--lx-bg), inset 0 0 0 1.5px var(--gold), 0 6px 18px rgba(0, 0, 0, .45) !important; }
+.lx .lx-users > span { color: var(--lx-muted); }
+.lx .lx-users > span b { display: block; font-size: 22px; font-weight: 700; letter-spacing: -.02em;
+  background: linear-gradient(90deg, var(--gold2), var(--gold)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+@media (max-width: 400px) { .lx .lx-faces img, .lx .lx-faces i { width: 48px; height: 48px; } .lx .lx-faces > * + * { margin-left: -12px; } }
