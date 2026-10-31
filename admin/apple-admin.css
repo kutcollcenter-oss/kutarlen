@@ -343,3 +343,8 @@ select option { background: #2c2c2e; color: #fff; }
 .howto-list b { color: #fff; }
 /* Открыт как приложение (с иконки): шапка уходит под «чёлку» телефона */
 @media (display-mode: standalone) { .top { padding-top: env(safe-area-inset-top); } }
+
+/* Вход: галочка «Это моё устройство» и сообщение «долго не пользовались» */
+.login .remember { font-weight: 500; font-size: 15px; margin-top: 2px; }
+.login .remember-hint { margin: 0 0 14px; font-size: 13px; line-height: 1.4; }
+.login .note-box { margin: 0 0 14px; padding: 12px 14px; border-radius: 12px; background: rgba(255, 159, 10, .14); color: #ffd60a; font-size: 14px; line-height: 1.4; }

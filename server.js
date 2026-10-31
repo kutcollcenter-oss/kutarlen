@@ -21,6 +21,8 @@ const analytics = require('./lib/analytics');
 const PORT = process.env.PORT || 3000;
 const UPLOAD_DIR = path.join(__dirname, 'uploads');
 const SESSION_DAYS = 30;
+// Вход без галочки «Это моё устройство»: кабинет закрывается после часа без действий и при закрытии браузера
+const IDLE_MIN = 60;
 
 const app = express();
 // Доверяем только своему nginx на этом же сервере (127.0.0.1). Раньше было true — тогда адрес посетителя брался
@@ -134,21 +136,27 @@ function cookies(req) {
   return Object.fromEntries((req.headers.cookie || '').split(';').map(c => c.trim().split('=')).filter(p => p[0]));
 }
 function requireAuth(req, res, next) {
-  const user = auth.readToken(D().secret, cookies(req).sess, id => D().users.find(u => u.id === id));
+  const s = auth.readSession(D().secret, cookies(req).sess, id => D().users.find(u => u.id === id));
+  const user = s && s.user;
   const realtor = user && realtorById(user.realtorId);
   if (!user || !realtor) return res.status(401).json({ error: 'auth' });
   req.user = user;
   req.realtor = realtor;
+  req.sessShort = s.short;
+  // «Чужое устройство»: пока человек работает, час отсчитывается заново (не чаще раза в 5 минут)
+  if (s.short && s.exp - Date.now() < (IDLE_MIN - 5) * 60000) setSession(req, res, user, false);
   next();
 }
 function ownerOnly(req, res, next) {
   if (req.user.role !== 'owner') return res.status(403).json({ error: 'Только для владельца' });
   next();
 }
-function setSession(req, res, user) {
+// remember = true — «моё устройство»: 30 дней. false — до закрытия браузера и не дольше часа без действий
+function setSession(req, res, user, remember = true) {
   const secure = req.secure ? '; Secure' : '';
-  const token = user ? auth.makeToken(D().secret, user, SESSION_DAYS) : '';
-  res.setHeader('Set-Cookie', `sess=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${user ? SESSION_DAYS * 86400 : 0}${secure}`);
+  const token = user ? auth.makeToken(D().secret, user, SESSION_DAYS, !remember, IDLE_MIN * 60000) : '';
+  const age = !user ? '; Max-Age=0' : remember ? `; Max-Age=${SESSION_DAYS * 86400}` : '';
+  res.setHeader('Set-Cookie', `sess=${token}; HttpOnly; SameSite=Lax; Path=/${age}${secure}`);
 }
 
 // Защита от перебора паролей:
@@ -379,11 +387,19 @@ app.post('/api/admin/login', async (req, res) => {
   }
   fails.delete(req.ip);
   loginFails.delete(login);
-  setSession(req, res, user);
+  setSession(req, res, user, !!req.body.remember);
   res.json({ ok: true });
 });
 
 app.post('/api/admin/logout', (req, res) => { setSession(req, res, null); res.json({ ok: true }); });
+
+// «Выйти на всех других устройствах»: все старые сессии этого логина перестают действовать, текущая остаётся
+app.post('/api/admin/logout-all', requireAuth, (req, res) => {
+  req.user.sessVer = crypto.randomBytes(6).toString('hex');
+  db.save();
+  setSession(req, res, req.user, !req.sessShort);
+  res.json({ ok: true });
+});
 
 // Для страницы входа: название сервиса и WhatsApp владельца («открыть кабинет», «техподдержка»)
 app.get('/api/public/product', (req, res) => {
@@ -396,6 +412,7 @@ app.get('/api/admin/me', requireAuth, (req, res) => {
     login: req.user.login,
     role: req.user.role,
     defaultPassword: !!req.user.defaultPassword,
+    short: !!req.sessShort, idleMin: IDLE_MIN,
     realtor: {
       id: r.id, slug: r.slug, url: siteUrl(req, r), name: r.settings.name,
       status: statusOf(r), plan: isOwnerRealtor(r) ? { paidUntil: '', maxApartments: 0 } : r.plan, count: aptsOf(r.id).length,
@@ -410,7 +427,7 @@ app.post('/api/admin/password', requireAuth, (req, res) => {
   if (typeof next !== 'string' || next.length < 8) return res.status(400).json({ error: 'Новый пароль — минимум 8 символов' });
   Object.assign(req.user, auth.hashPassword(next), { defaultPassword: false });
   db.save();
-  setSession(req, res, req.user); // старые сессии на других устройствах закрываются
+  setSession(req, res, req.user, !req.sessShort); // старые сессии на других устройствах закрываются
   res.json({ ok: true });
 });
 

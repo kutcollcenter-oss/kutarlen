@@ -170,7 +170,10 @@
   const fmtPhone = p => String(p || '').replace(/\D/g, '').replace(/^(\d{3})(\d{3})(\d{3})(\d{3})$/, '+$1 $2 $3 $4');
   const waTo = (p, text) => `https://wa.me/${String(p).replace(/\D/g, '')}?text=${encodeURIComponent(text)}`;
 
+  // Почему снова показан вход (например, «долго не пользовались») — показывается один раз
+  let loginNote = '';
   async function renderLogin() {
+    stopIdle();
     const preLogin = esc(new URLSearchParams(location.search).get('u') || '');
     app.innerHTML = `<div class="auth">
       <section class="auth-cover">
@@ -191,6 +194,9 @@
           <h2>Вход в кабинет</h2>
           <label class="f"><span>Логин</span><input type="text" id="lg" autocomplete="username" autocapitalize="none" spellcheck="false" required value="${preLogin}"></label>
           <label class="f"><span>Пароль</span><input type="password" id="pw" autocomplete="current-password" required></label>
+          <label class="check remember"><input type="checkbox" id="rm"> <span>Это мой телефон или компьютер — не выходить</span></label>
+          <p class="hint remember-hint">На чужом устройстве не ставьте галочку: кабинет сам закроется через час без действий или когда закроете браузер.</p>
+          ${loginNote ? `<p class="note-box">${esc(loginNote)}</p>` : ''}
           <div class="err" id="le"></div>
           <button class="btn btn-primary btn-block">Войти</button>
         </form>
@@ -212,10 +218,11 @@
         </div>
         <a class="auth-phone" href="${esc(waTo(p.whatsapp, 'Здравствуйте!'))}" target="_blank" rel="noopener">WhatsApp ${esc(fmtPhone(p.whatsapp))}</a>`;
     }).catch(() => {});
+    loginNote = '';
     document.getElementById('lf').onsubmit = async e => {
       e.preventDefault();
       try {
-        await api('POST', '/api/admin/login', { login: document.getElementById('lg').value, password: document.getElementById('pw').value });
+        await api('POST', '/api/admin/login', { login: document.getElementById('lg').value, password: document.getElementById('pw').value, remember: document.getElementById('rm').checked });
         start();
       } catch (err) { showErr('le', err.message); }
     };
@@ -751,6 +758,10 @@
         <div class="err" id="pwErr"></div>
         <button class="btn">Сменить пароль</button>
       </form>
+      <div class="card" data-ptab="pw"><h2 style="margin-top:0">Устройства</h2>
+        <p class="hint" style="margin-bottom:14px">Заходили в кабинет с чужого ноутбука или телефона и забыли выйти? Нажмите — там кабинет закроется и попросит логин и пароль. Здесь вы останетесь.</p>
+        <button type="button" class="btn" id="logoutAll">Выйти на всех других устройствах</button>
+      </div>
     </div>`;
     bindNav();
     const showTab = t => {
@@ -785,6 +796,11 @@
     upload('lf2', '/api/admin/settings/logo', 'logo', 'Логотип обновлён');
     const del = document.getElementById('logoDel');
     if (del) del.onclick = async () => { settings = await api('DELETE', '/api/admin/settings/logo'); renderSettings(); };
+    document.getElementById('logoutAll').onclick = async () => {
+      if (!(await confirmBox('Выйти на других устройствах?', 'На всех других телефонах и компьютерах кабинет попросит логин и пароль. Здесь вы останетесь в кабинете.', 'Выйти на других'))) return;
+      await api('POST', '/api/admin/logout-all');
+      toast('Готово: на других устройствах кабинет закрыт');
+    };
     document.getElementById('pwf').onsubmit = async e => {
       e.preventDefault();
       const d = Object.fromEntries(new FormData(e.target));
@@ -1131,9 +1147,37 @@
     } catch (e) { if (e.message !== 'auth') toast(e.message); }
   }
 
+  // ---------- Вход на чужом устройстве: выход после часа без действий ----------
+  // Пока человек работает (нажимает, печатает, листает), раз в 5 минут кабинет «отмечается» на сервере, и час отсчитывается заново.
+  // Если час ничего не происходило — выходим и показываем вход, чтобы на оставленном ноутбуке не было видно кабинета.
+  let idleTimer = null, lastAct = Date.now(), lastPing = Date.now();
+  const ACT_EVENTS = ['pointerdown', 'keydown', 'scroll', 'touchstart'];
+  function onAct() {
+    lastAct = Date.now();
+    if (Date.now() - lastPing > 5 * 60000) { lastPing = Date.now(); api('GET', '/api/admin/me').catch(() => {}); }
+  }
+  function stopIdle() {
+    clearInterval(idleTimer); idleTimer = null;
+    ACT_EVENTS.forEach(ev => window.removeEventListener(ev, onAct, true));
+  }
+  function startIdle(min) {
+    stopIdle();
+    lastAct = lastPing = Date.now();
+    ACT_EVENTS.forEach(ev => window.addEventListener(ev, onAct, { capture: true, passive: true }));
+    idleTimer = setInterval(async () => {
+      if (Date.now() - lastAct < min * 60000) return;
+      stopIdle();
+      try { await api('POST', '/api/admin/logout'); } catch (e) { /* уже вышли */ }
+      loginNote = 'Вы долго не пользовались кабинетом, поэтому мы вышли из него. Войдите снова.';
+      document.querySelectorAll('.modal').forEach(m => m.remove());
+      renderLogin();
+    }, 30000);
+  }
+
   async function start() {
     try {
       me = await api('GET', '/api/admin/me');
+      if (me.short) startIdle(me.idleMin || 60); else stopIdle();
       // Пришли по ссылке «/имя/admin» другого менеджера — показываем вход, а не текущий кабинет
       const want = new URLSearchParams(location.search).get('u');
       if (want && want !== me.login) { renderLogin(); return; }
