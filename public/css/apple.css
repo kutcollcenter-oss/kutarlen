@@ -343,3 +343,19 @@ img.logo-plate { background: var(--logo-bg) !important; border-radius: 10px !imp
 .brand img.logo-plate, .hero-badge img.logo-plate { height: 42px; max-width: 150px; padding: 6px 10px; }
 .office-logo.logo-plate { max-height: 78px; max-width: 200px; padding: 9px 14px; border-radius: 14px !important; }
 .pl-logo.logo-plate { max-height: 130px; max-width: 210px; padding: 14px 20px; border-radius: 18px !important; }
+
+/* Шаги «Как купить»: номера — просто светлые цифры, без кружков, чтобы их не принимали за кнопки */
+.howto ol { gap: 0; }
+.howto li { gap: 4px; }
+.howto li::before { width: auto; height: auto; background: none !important; border-radius: 0 !important;
+  color: #c7c7cc; font-size: 30px; font-weight: 300; line-height: 1; font-variant-numeric: tabular-nums; }
+.howto li + li::after { content: ""; left: -14px; top: 15px; width: 28px; height: 1px; background: #d1d1d6; }
+
+/* Ползунки — как переключатель iPhone: толстая зелёная полоса и белый овальный бегунок с тенью */
+input.range { background: linear-gradient(to right, #34c759 var(--p), #e5e5ea var(--p)) center / 100% 8px no-repeat; border-radius: 8px !important; }
+.dual::before { height: 8px; top: 18px; border-radius: 8px !important;
+  background: linear-gradient(to right, #e5e5ea var(--lo), #34c759 var(--lo), #34c759 var(--hi), #e5e5ea var(--hi)); }
+input[type=range]::-webkit-slider-thumb { width: 44px; height: 28px; margin-top: -11px; border: 0; background: #fff;
+  border-radius: 14px !important; box-shadow: 0 0 0 .5px rgba(0, 0, 0, .06), 0 3px 8px rgba(0, 0, 0, .15), 0 3px 1px rgba(0, 0, 0, .06) !important; }
+input[type=range]::-moz-range-thumb { width: 44px; height: 28px; border: 0; background: #fff;
+  border-radius: 14px !important; box-shadow: 0 0 0 .5px rgba(0, 0, 0, .06), 0 3px 8px rgba(0, 0, 0, .15), 0 3px 1px rgba(0, 0, 0, .06) !important; }

@@ -338,3 +338,8 @@ body.lx { --lx-r: 22px; --lx-glass: rgba(21, 36, 27, .72); font-family: Inter, -
 .lx .lx-users > span b { display: block; font-size: 22px; font-weight: 700; letter-spacing: -.02em;
   background: linear-gradient(90deg, var(--gold2), var(--gold)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 @media (max-width: 400px) { .lx .lx-faces img, .lx .lx-faces i { width: 48px; height: 48px; } .lx .lx-faces > * + * { margin-left: -12px; } }
+
+/* Ползунок калькулятора — овальный бегунок как у переключателя iPhone, полоса толще (цвета страницы те же) */
+.lx .lx-calc-in input[type=range] { background: linear-gradient(to right, var(--gold) var(--p), rgba(255, 255, 255, .15) var(--p)) center / 100% 8px no-repeat; border-radius: 8px !important; }
+.lx .lx-calc-in input[type=range]::-webkit-slider-thumb { width: 44px; height: 28px; margin-top: -11px; border-radius: 14px !important; }
+.lx .lx-calc-in input[type=range]::-moz-range-thumb { width: 44px; height: 28px; border-radius: 14px !important; }
