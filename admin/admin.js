@@ -29,6 +29,8 @@
   // 1 квартира, 2 квартиры, 5 квартир
   const plural = (n, one, few, many) => { const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 10 || b >= 20) ? few : many; };
   const flats = n => `${n} ${plural(n, 'квартира', 'квартиры', 'квартир')}`;
+  // Выбор города в окнах копирования квартир
+  const citySelect = () => `<label class="f" style="margin:14px 0 4px"><span>Какие квартиры</span><select id="mCity"><option value="">Все города</option><option>Бишкек</option><option>Ош</option></select></label>`;
 
   // Текст ошибки в элемент формы; если формы уже нет на экране (например, сессия истекла) — всплывающим сообщением
   const showErr = (id, msg) => { const el = document.getElementById(id); if (el) el.textContent = msg; else if (msg && msg !== 'auth') toast(msg); };
@@ -993,6 +995,7 @@
             <button class="btn" data-act="date">Дата…</button>
             <button class="btn" data-act="limit">Лимит…</button>`}
             ${x.role === 'owner' || !myInstallment ? '' : '<button class="btn" data-act="copy">Скопировать мои квартиры</button>'}
+            ${x.role === 'owner' || !x.apartments ? '' : '<button class="btn" data-act="take">Забрать квартиры себе</button>'}
             <button class="btn${x.partnerCta ? ' btn-on' : ''}" data-act="cta" title="Блок внизу сайта менеджера, ведёт на kvartiry.asia">«Хотите такой же сайт?»: ${x.partnerCta ? 'показан ✓' : 'скрыт'}</button>
             <button class="btn" data-act="stats">Аналитика</button>
             ${x.role === 'owner' ? '' : x.blocked
@@ -1091,13 +1094,25 @@
           }
           case 'copy': {
             const room = x.plan.maxApartments ? Math.max(0, x.plan.maxApartments - x.apartments) : null;
-            if (!(await confirmBox(`Скопировать ваши квартиры «${x.name}»?`,
-              `У менеджера появятся копии ваших квартир в рассрочку (${flats(myInstallment)}), наличные не копируются. Уже скопированные не повторятся.${room !== null ? ` Свободно мест по лимиту: ${room}.` : ''} Свои копии менеджер сможет менять и удалять — ваши квартиры не изменятся.`,
-              'Скопировать'))) return;
-            const r = await api('POST', `/api/owner/realtors/${x.id}/copy-apartments`);
+            const asked = modal({ title: `Скопировать ваши квартиры «${x.name}»?`,
+              text: `У менеджера появятся копии ваших квартир в рассрочку, наличные не копируются. Квартиры, которые у него уже есть, не повторятся.${room !== null ? ` Свободно мест по лимиту: ${room}.` : ''} Свои копии менеджер сможет менять и удалять — ваши квартиры не изменятся.`,
+              html: citySelect(), okText: 'Скопировать' });
+            const city = document.getElementById('mCity');
+            if (!(await asked)) return;
+            const r = await api('POST', `/api/owner/realtors/${x.id}/copy-apartments`, { city: city.value });
             toast(r.copied
               ? `Скопировано: ${flats(r.copied)}${r.notFit ? `, не поместилось по лимиту: ${r.notFit}` : ''}`
-              : r.notFit ? 'Лимит менеджера заполнен — расширьте лимит' : 'Все ваши квартиры у менеджера уже есть');
+              : r.notFit ? 'Лимит менеджера заполнен — расширьте лимит' : 'Все эти квартиры у менеджера уже есть');
+            break;
+          }
+          case 'take': {
+            const asked = modal({ title: `Забрать квартиры «${x.name}» себе?`,
+              text: 'В вашем кабинете появятся копии его квартир, которые сейчас на сайте. У менеджера ничего не изменится. Квартиры, которые у вас уже есть, не повторятся.',
+              html: citySelect(), okText: 'Забрать' });
+            const city = document.getElementById('mCity');
+            if (!(await asked)) return;
+            const r = await api('POST', `/api/owner/realtors/${x.id}/take-apartments`, { city: city.value });
+            toast(r.copied ? `Добавлено вам: ${flats(r.copied)}${r.same ? `, уже были: ${r.same}` : ''}` : 'Все эти квартиры у вас уже есть');
             break;
           }
           case 'stats': anRealtor = x.role === 'owner' ? '' : x.id; location.hash = '#analytics'; return;

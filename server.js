@@ -12,7 +12,7 @@ const seed = require('./lib/seed');
 const { LANGS, KY_KEYS, langOk, localizeSettings } = require('./lib/i18n');
 const { kyText, kyTag } = require('./lib/ky-fill');
 const { migrateHandover, pendingHandover, dropHandoverTags } = require('./lib/handover');
-const { publicApt, kindLabel, unitOf, money, isListed, typeOf, isCashType, TYPES, CITIES } = require('./lib/calc');
+const { publicApt, kindLabel, unitOf, money, isListed, typeOf, isCashType, cityOf, TYPES, CITIES } = require('./lib/calc');
 const { resolveMap } = require('./lib/maps');
 const pages = require('./lib/pages');
 const auth = require('./lib/auth');
@@ -683,19 +683,26 @@ app.post('/api/owner/realtors', requireAuth, ownerOnly, (req, res) => {
   res.json({ realtor: realtorRow(r, req, {}), password, copied }); // пароль показывается один раз
 });
 
-// Стартовый набор новому менеджеру: копии квартир владельца в рассрочку (наличные не копируются).
-// Копий не больше лимита тарифа. Фото общие — файлы не дублируются, удаление копии их не трогает.
-// Копии квартир владельца в рассрочку (наличные не копируются).
-// Уже скопированные раньше не повторяются (по copiedFrom); копий не больше свободного места в лимите.
+// Одна и та же квартира: тот же тип, город, ЖК, комнаты, площадь и этаж (цена и фото могут отличаться)
+const aptSig = a => [typeOf(a), cityOf(a), String(a.title || '').trim().toLowerCase(), a.rooms || 0, Number(a.area) || 0, a.floorFrom || 0].join('|');
+
+// Копии квартир в кабинет r. Не повторяются: уже скопированные (copiedFrom), такие же квартиры (aptSig)
+// и копии из прошлой версии (по названию, площади и главному фото). Не больше свободного места в лимите r.
 // Фото общие — файлы не дублируются, удаление копии их не трогает.
-function copyOwnerApartments(owner, r) {
+function copyApartmentsTo(r, list, useLimit = true) {
   const mine = aptsOf(r.id);
   const already = new Set(mine.map(a => a.copiedFrom).filter(Boolean));
-  // Копии из прошлой версии без copiedFrom узнаём по названию, площади и главному фото
-  const sig = a => `${a.title}|${a.area}|${(a.photos || [])[0] || ''}`;
-  const mineSigs = new Set(mine.map(sig));
-  const src = aptsOf(owner.id).filter(a => isVisible(a) && !isCashType(typeOf(a)) && !already.has(a.id) && !mineSigs.has(sig(a)));
-  const free = Number(r.plan.maxApartments) ? Math.max(0, Number(r.plan.maxApartments) - mine.length) : Infinity;
+  const oldSig = a => `${a.title}|${a.area}|${(a.photos || [])[0] || ''}`;
+  const mineOld = new Set(mine.map(oldSig));
+  const mineSig = new Set(mine.map(aptSig));
+  const src = [];
+  for (const a of list) {
+    if (already.has(a.id) || mineOld.has(oldSig(a)) || mineSig.has(aptSig(a))) continue;
+    mineSig.add(aptSig(a)); // и в самом списке одинаковые не берём дважды
+    src.push(a);
+  }
+  const limit = useLimit ? Number(r.plan && r.plan.maxApartments) : 0;
+  const free = limit ? Math.max(0, limit - mine.length) : Infinity;
   const take = src.slice(0, free);
   for (const a of take) {
     D().apartments.push({
@@ -704,7 +711,13 @@ function copyOwnerApartments(owner, r) {
       ...(a.map ? { map: { ...a.map } } : {}),
     });
   }
-  return { copied: take.length, already: already.size, notFit: src.length - take.length };
+  return { copied: take.length, same: list.length - src.length, notFit: src.length - take.length };
+}
+const inCity = city => a => !CITIES.includes(city) || cityOf(a) === city;
+
+// Квартиры владельца в рассрочку (наличные не копируются) — менеджеру r. city — только этот город.
+function copyOwnerApartments(owner, r, city) {
+  return copyApartmentsTo(r, aptsOf(owner.id).filter(a => isVisible(a) && !isCashType(typeOf(a)) && inCity(city)(a)));
 }
 
 // Кнопка «Скопировать мои квартиры» в карточке менеджера
@@ -712,9 +725,20 @@ app.post('/api/owner/realtors/:id/copy-apartments', requireAuth, ownerOnly, (req
   const r = realtorById(req.params.id);
   if (!r) return res.status(404).json({ error: 'not found' });
   if (r.id === req.realtor.id) return res.status(400).json({ error: 'Это ваш собственный кабинет' });
-  const result = copyOwnerApartments(req.realtor, r);
+  const result = copyOwnerApartments(req.realtor, r, req.body && req.body.city);
   db.save();
   res.json({ ...result, apartments: aptsOf(r.id).length });
+});
+
+// Кнопка «Забрать квартиры себе»: копии квартир менеджера (все виды, только что на сайте) — в кабинет владельца.
+// У менеджера ничего не меняется. Такие же квартиры у владельца не повторяются.
+app.post('/api/owner/realtors/:id/take-apartments', requireAuth, ownerOnly, (req, res) => {
+  const r = realtorById(req.params.id);
+  if (!r) return res.status(404).json({ error: 'not found' });
+  if (r.id === req.realtor.id) return res.status(400).json({ error: 'Это ваш собственный кабинет' });
+  const result = copyApartmentsTo(req.realtor, aptsOf(r.id).filter(a => isVisible(a) && inCity(req.body && req.body.city)(a)), false);
+  db.save();
+  res.json(result);
 });
 
 function ownedRealtor(req, res) {
