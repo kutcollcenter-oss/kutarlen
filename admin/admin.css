@@ -541,3 +541,8 @@ select option { background: var(--s2); color: var(--ink); }
 :is(#sf, #pwf) .f > span { font-family: inherit; font-size: 15px; font-weight: 500; text-transform: none; letter-spacing: 0; color: rgba(255, 255, 255, .88); margin-bottom: 6px; }
 :is(#sf, #pwf) .hint { font-size: 14px; line-height: 1.5; color: rgba(255, 255, 255, .72); }
 :is(#sf, #pwf) ::placeholder { color: rgba(255, 255, 255, .42); }
+
+/* «Приведите менеджера — 20 дней в подарок» */
+.refer { border-radius: 4px; padding: 14px 16px; margin-top: 12px; background: #fffaf0; border: 1px solid #f3dfb5; }
+.refer-t { font-weight: 700; font-size: 16px; }
+.refer p { margin: 6px 0 0; font-size: 14px; color: var(--muted); }

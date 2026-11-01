@@ -269,8 +269,9 @@
         <div class="hint" style="margin-top:6px">Вход в кабинет с телефона: <b>${esc(r.url)}/admin</b></div>
       </div>` : '';
     const plan = active === 'list' || active === 'settings' ? tariffBox() : '';
-    if (!warn.length && !link && !plan) return '';
-    return `<div class="wrap wrap-banner">${warn.join('')}${plan}${link}</div>`;
+    const refer = active === 'list' && !location.hash.startsWith('#edit') ? referBox() : '';
+    if (!warn.length && !link && !plan && !refer) return '';
+    return `<div class="wrap wrap-banner">${warn.join('')}${plan}${refer}${link}</div>`;
   }
 
   function bindNav() {
@@ -307,6 +308,19 @@
       ${prices ? `<div class="tariff-row"><span>Продление</span><b>${prices}</b></div>` : ''}
       ${extra ? `<div class="tariff-row"><span>Доп. квартира</span><b>${nf.format(extra)} сом в месяц</b></div>` : ''}
       ${renew ? `<div class="tariff-btns"><a class="btn btn-primary" href="${renew}" target="_blank" rel="noopener">Продлить</a><a class="btn" href="${more}" target="_blank" rel="noopener">Добавить квартиры</a></div>` : ''}
+    </div>`;
+  }
+
+  // «Приведите менеджера — 20 дней в подарок»: пригласить знакомого и сообщить владельцу, кого привели
+  function referBox() {
+    if (isOwner() || !me.realtor.url) return '';
+    const partner = new URL(me.realtor.url).origin + '/partner';
+    const invite = `https://wa.me/?text=${encodeURIComponent(`Привет! У меня теперь свой сайт с квартирами и калькулятором рассрочки — клиенты сами выбирают и пишут в WhatsApp. Посмотри: ${me.realtor.url}\nХочешь такой же — вот здесь: ${partner}`)}`;
+    const tell = waOwner('Здравствуйте! По моей рекомендации подключается новый менеджер: (имя и телефон). Прошу 20 дней в подарок.');
+    return `<div class="refer">
+      <div class="refer-t">🎁 Приведите менеджера — 20 дней в подарок</div>
+      <p>Порекомендуйте сайт знакомому риелтору или менеджеру. Когда он подключится, вам добавим 20 дней подписки бесплатно.</p>
+      <div class="tariff-btns"><a class="btn btn-primary" href="${invite}" target="_blank" rel="noopener">Пригласить в WhatsApp</a>${tell ? `<a class="btn" href="${tell}" target="_blank" rel="noopener">Сообщить, кого пригласили</a>` : ''}</div>
     </div>`;
   }
 
@@ -913,6 +927,13 @@
   }
 
   // ---------- Владелец: менеджеры ----------
+  // +n дней к оплате: от даты окончания, а если она уже прошла — от сегодня
+  const addDays = (from, n) => {
+    const today = new Date().toISOString().slice(0, 10);
+    const d = new Date(`${from && from >= today ? from : today}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + n);
+    return d.toISOString().slice(0, 10);
+  };
   const addMonths = (from, n) => {
     const today = new Date().toISOString().slice(0, 10);
     const d = new Date(`${from && from >= today ? from : today}T00:00:00Z`);
@@ -992,10 +1013,12 @@
           <div class="acts">
             ${x.role === 'owner' ? '' : `<button class="btn" data-act="m1">+1 мес</button>
             <button class="btn" data-act="m3">+3 мес</button>
+            <button class="btn" data-act="gift" title="Подарок за приведённого менеджера">+20 дней 🎁</button>
+            <button class="btn" data-act="minus" title="Сократить срок на месяц">−1 мес</button>
             <button class="btn" data-act="date">Дата…</button>
             <button class="btn" data-act="limit">Лимит…</button>`}
-            ${x.role === 'owner' || !myInstallment ? '' : '<button class="btn" data-act="copy">Скопировать мои квартиры</button>'}
-            ${x.role === 'owner' || !x.apartments ? '' : '<button class="btn" data-act="take">Забрать квартиры себе</button>'}
+            ${x.role === 'owner' || !myInstallment ? '' : '<button class="btn" data-act="copy">Копировать мои квартиры ему</button>'}
+            ${x.role === 'owner' || !x.apartments ? '' : '<button class="btn" data-act="take">Копировать его квартиры мне</button>'}
             <button class="btn${x.partnerCta ? ' btn-on' : ''}" data-act="cta" title="Блок внизу сайта менеджера, ведёт на kvartiry.asia">«Хотите такой же сайт?»: ${x.partnerCta ? 'показан ✓' : 'скрыт'}</button>
             <button class="btn" data-act="stats">Аналитика</button>
             ${x.role === 'owner' ? '' : x.blocked
@@ -1063,6 +1086,18 @@
           case 'm1': await put({ paidUntil: addMonths(x.plan.paidUntil, 1) }); toast('Продлено на месяц'); break;
           case 'cta': await put({ partnerCta: !x.partnerCta }); toast(x.partnerCta ? 'Призыв скрыт с сайта' : 'Призыв показан на сайте'); break;
           case 'm3': await put({ paidUntil: addMonths(x.plan.paidUntil, 3) }); toast('Продлено на 3 месяца'); break;
+          case 'gift': {
+            const v = addDays(x.plan.paidUntil, 20);
+            if (!(await confirmBox(`Подарить «${x.name}» 20 дней?`, `Подарок за приведённого менеджера. Оплачено будет до ${fmtDate(v)}.`, 'Подарить'))) return;
+            await put({ paidUntil: v }); toast(`Подарено 20 дней: до ${fmtDate(v)}`); break;
+          }
+          case 'minus': {
+            if (!x.plan.paidUntil) { toast('Срок не ограничен — задайте дату кнопкой «Дата…»'); return; }
+            const d = new Date(`${x.plan.paidUntil}T00:00:00Z`); d.setUTCMonth(d.getUTCMonth() - 1);
+            const v = d.toISOString().slice(0, 10);
+            if (!(await confirmBox(`Сократить срок «${x.name}» на месяц?`, `Было: до ${fmtDate(x.plan.paidUntil)}. Станет: до ${fmtDate(v)}.${v < new Date().toISOString().slice(0, 10) ? ' Эта дата уже прошла — сайт менеджера сразу отключится.' : ''} Точную дату можно задать кнопкой «Дата…».`, 'Сократить', true))) return;
+            await put({ paidUntil: v }); toast(`Срок сокращён: до ${fmtDate(v)}`); break;
+          }
           case 'date': {
             const v = await modal({
               title: `Оплачено до — ${x.name}`, text: 'Сайт работает до этой даты включительно. Очистите поле — будет без ограничения срока.',
@@ -1094,8 +1129,8 @@
           }
           case 'copy': {
             const room = x.plan.maxApartments ? Math.max(0, x.plan.maxApartments - x.apartments) : null;
-            const asked = modal({ title: `Скопировать ваши квартиры «${x.name}»?`,
-              text: `У менеджера появятся копии ваших квартир в рассрочку, наличные не копируются. Квартиры, которые у него уже есть, не повторятся.${room !== null ? ` Свободно мест по лимиту: ${room}.` : ''} Свои копии менеджер сможет менять и удалять — ваши квартиры не изменятся.`,
+            const asked = modal({ title: `Копировать ваши квартиры менеджеру «${x.name}»?`,
+              text: `У вас все квартиры останутся. У менеджера появятся их копии (только рассрочка, наличные не копируются). Квартиры, которые у него уже есть, не повторятся.${room !== null ? ` Свободно мест по лимиту: ${room}.` : ''} Свои копии менеджер сможет менять и удалять — ваши квартиры от этого не изменятся.`,
               html: citySelect(), okText: 'Скопировать' });
             const city = document.getElementById('mCity');
             if (!(await asked)) return;
@@ -1106,9 +1141,9 @@
             break;
           }
           case 'take': {
-            const asked = modal({ title: `Забрать квартиры «${x.name}» себе?`,
-              text: 'В вашем кабинете появятся копии его квартир, которые сейчас на сайте. У менеджера ничего не изменится. Квартиры, которые у вас уже есть, не повторятся.',
-              html: citySelect(), okText: 'Забрать' });
+            const asked = modal({ title: `Копировать квартиры «${x.name}» вам?`,
+              text: 'У менеджера все квартиры останутся — ничего не удаляется. В вашем кабинете появятся их копии (только те, что сейчас на сайте). Квартиры, которые у вас уже есть, не повторятся.',
+              html: citySelect(), okText: 'Копировать' });
             const city = document.getElementById('mCity');
             if (!(await asked)) return;
             const r = await api('POST', `/api/owner/realtors/${x.id}/take-apartments`, { city: city.value });
