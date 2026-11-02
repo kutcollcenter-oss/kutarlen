@@ -387,3 +387,8 @@ select option { background: #2c2c2e; color: #fff; }
 .qscan-a { border: 1px dashed rgba(255, 255, 255, .25); border-radius: 14px !important; padding: 12px; margin-bottom: 14px; }
 .qscan-a .qscan-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
 .qscan-a label.btn { cursor: pointer; }
+
+/* «Новости»: подсказка, что очередь включена */
+.news-q-note { border: 1px solid rgba(48, 209, 88, .45); background: rgba(48, 209, 88, .1); border-radius: 12px !important; padding: 10px 12px; margin-bottom: 12px; font-size: 14px; line-height: 1.45; }
+.news-q-note b { display: block; margin-bottom: 2px; }
+.qwant-a .qwish-a { grid-column: 1 / -1; }

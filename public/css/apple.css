@@ -426,3 +426,26 @@ input[type=range]::-moz-range-thumb { width: 44px; height: 28px; border: 0; back
 .qscan-msg:empty { display: none; }
 .qscan-bad { color: #d70015; }
 .qf input.qfilled { background: #fffbe6; }
+
+/* «Скоро»: карточка записи в очередь на новый ЖК */
+.news-queue { background: linear-gradient(160deg, #eaf3ff 0%, #fff 70%); border: 1.5px solid #0071e3 !important; }
+.news-queue-tag { display: inline-block; align-self: flex-start; font-size: 12px; font-weight: 700; letter-spacing: .02em; color: #fff; background: #0071e3; padding: 4px 10px; border-radius: 999px !important; margin-bottom: 10px; }
+.news-queue .news-btn { background: #0071e3; border-color: #0071e3; color: #fff; }
+
+/* Очередь: пожелания под каждой квартирой, кабинет клиента */
+.qwant { margin-bottom: 14px; }
+.qwish { grid-column: 1 / -1; font: inherit; font-size: 15px; min-height: 44px; padding: 0 14px; border: 1px solid #d1d1d6; background: #fff; color: var(--ink); border-radius: 12px !important; }
+.qwish:focus { outline: none; border-color: var(--ink); }
+.qscan-found { background: #fff; border: 1.5px solid #0071e3; border-radius: 12px !important; padding: 12px; }
+.qscan-found b { display: block; margin-bottom: 4px; }
+.qscan-found .btn, .qdone .btn { display: inline-flex; margin-top: 10px; }
+.qback { display: inline-block; margin: 4px 0 6px; color: #0071e3; font-weight: 600; text-decoration: none; }
+.qhub { display: grid; gap: 12px; }
+.qhub-item { display: flex; align-items: center; gap: 14px; text-decoration: none; color: var(--ink); margin: 0; }
+.qhub-item b { display: block; font-size: 18px; letter-spacing: -.01em; }
+.qhub-item small { display: block; color: var(--muted); font-size: 14px; margin-top: 2px; }
+.qhub-i { font-size: 28px; line-height: 1; }
+.qhub-item i { margin-left: auto; font-style: normal; font-size: 22px; color: #0071e3; }
+.qdel-ask { margin-top: 14px; border: 1.5px solid #d70015; border-radius: 14px !important; padding: 14px; background: #fff5f5; }
+.qdel-ask p { margin: 4px 0 10px; font-size: 14px; color: var(--muted); }
+.qdel-yes { background: #d70015 !important; color: #fff !important; border-color: #d70015 !important; }

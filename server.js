@@ -90,7 +90,7 @@ const siteUrl = (req, r) => `${base(req)}/${r.slug}`;
 // Язык сайта клиента: выбор хранится в cookie lang (ru — по умолчанию, ky — кыргызский). Роботы поиска видят русский.
 const langOf = req => langOk(cookies(req).lang);
 // Тексты профиля на языке страницы: на кыргызской версии — кыргызские варианты (если менеджер их заполнил)
-const ctxOf = (r, req) => ({ s: localizeSettings(r.settings, langOf(req)), base: base(req), prefix: `/${r.slug}`, slug: r.slug, partnerCta: r.partnerCta !== false, lang: langOf(req), queue: queueAllowed(r) ? D().queueConf || {} : {} });
+const ctxOf = (r, req) => ({ s: localizeSettings(r.settings, langOf(req)), base: base(req), prefix: `/${r.slug}`, slug: r.slug, partnerCta: r.partnerCta !== false, lang: langOf(req), queue: queueAllowed(r) ? { ...queueConf(), open: true } : {} });
 const pub = (r, a, req, lang = langOf(req)) => publicApt(a, r.settings, base(req), `/${r.slug}`, lang);
 const aptLabel = a => `${a.title ? a.title + ' · ' : ''}${kindLabel(a)}, ${a.area} ${unitOf(a)}`;
 
@@ -336,10 +336,14 @@ app.get('/:slug/admin', (req, res) => {
 });
 
 // Очередь на новый ЖК — страница записи на сайте менеджера (пока владелец не открыл запись — «скоро»)
-app.get('/:slug/ochered', (req, res) => {
+// Кабинет клиента: /ochered — выбор, /ochered/zapis — записаться, /ochered/proverka — проверить свою запись
+const QUEUE_VIEWS = { '': 'hub', zapis: 'join', proverka: 'check' };
+app.get(['/:slug/ochered', '/:slug/ochered/:view'], (req, res, next) => {
+  const view = QUEUE_VIEWS[req.params.view || ''];
+  if (!view) return next();
   const r = siteOf(req, res); if (!r) return;
   if (!queueAllowed(r)) return res.status(404).send(pages.renderInvalid(D().product, base(req)));
-  res.send(pages.renderQueue(ctxOf(r, req), queueConf(), queue.CONSENT_TEXT));
+  res.send(pages.renderQueue(ctxOf(r, req), { ...queueConf(), open: true }, queue.CONSENT_TEXT, view));
 });
 
 app.get('/:slug/privacy', (req, res) => {
@@ -429,6 +433,7 @@ app.get('/api/admin/me', requireAuth, (req, res) => {
     defaultPassword: !!req.user.defaultPassword,
     short: !!req.sessShort, idleMin: IDLE_MIN,
     // Вкладка «Очередь»: владельцу — всегда, менеджеру — если ему включён доступ или у него уже есть клиенты
+    queueSite: queueAllowed(r), // запись в очередь на его сайте включена владельцем
     queueOn: req.user.role === 'owner' || queueAllowed(r) || (D().queue || []).some(q => q.realtorId === r.id),
     realtor: {
       id: r.id, slug: r.slug, url: siteUrl(req, r), name: r.settings.name,
@@ -835,7 +840,6 @@ const managerOf = (id, req) => { const m = realtorById(id); return m ? { name: m
 app.post('/api/queue/:slug/join', (req, res) => {
   const r = realtorBySlug(String(req.params.slug).toLowerCase());
   if (!r || !statusOf(r).active || !queueAllowed(r)) return res.status(404).json({ error: 'Сайт менеджера не найден' });
-  if (!queueConf().open) return res.status(403).json({ error: 'Запись в очередь ещё не открыта' });
   if (queue.tooMany(req.ip, (req.body || {}).inn)) return res.status(429).json({ error: 'Слишком много неверных попыток. Попробуйте позже (через 15–60 минут).' });
   const b = req.body || {};
   const { data, errors } = queue.validate(b);
@@ -897,13 +901,20 @@ function scanTooMany(ip) {
   if (scanHits.size > 5000) scanHits.clear();
   return list.length > 20;
 }
-function doScan(req, res) {
+// site — сайт менеджера, где клиент сканирует. Если по ИНН и № карты клиент уже в очереди — сразу говорим, у кого.
+function doScan(req, res, site) {
   if (scanTooMany(req.ip)) return res.status(429).json({ error: 'Слишком много сканов. Попробуйте позже или заполните поля вручную.' });
   scanUpload(req, res, async err => {
     if (err) return res.status(400).json({ error: 'Фото слишком большое. Нужны 2 фото до 15 МБ.' });
     if (!req.files || !req.files.length) return res.status(400).json({ error: 'Выберите фото ID-карты' });
     try {
-      res.json(await idscan.scan(req.files.map(f => f.buffer)));
+      const got = await idscan.scan(req.files.map(f => f.buffer));
+      const had = got.inn && byInn(got.inn);
+      if (had && (site ? queue.owns(had, got.inn, got.idNo) : true)) {
+        if (site) return res.json({ queued: { code: had.realtorId === site.id ? 'mine' : 'other', manager: managerOf(had.realtorId, req) } });
+        got.queuedAt = nameOf(had.realtorId); // в кабинете: менеджеру — у кого уже этот клиент
+      }
+      res.json(got);
     } catch (e) {
       console.error('scan:', e.message);
       res.status(500).json({ error: 'Не получилось распознать. Заполните поля вручную.' });
@@ -912,10 +923,10 @@ function doScan(req, res) {
 }
 app.post('/api/queue/:slug/scan', (req, res) => {
   const r = realtorBySlug(String(req.params.slug).toLowerCase());
-  if (!r || !statusOf(r).active || !queueAllowed(r) || !queueConf().open) return res.status(404).json({ error: 'Запись в очередь не открыта' });
-  doScan(req, res);
+  if (!r || !statusOf(r).active || !queueAllowed(r)) return res.status(404).json({ error: 'Запись в очередь не открыта' });
+  doScan(req, res, r);
 });
-app.post('/api/admin/queue/scan', requireAuth, doScan);
+app.post('/api/admin/queue/scan', requireAuth, (req, res) => doScan(req, res, null));
 
 // Кабинет: менеджер видит своих клиентов, владелец — всех
 const isOwnerReq = req => req.user.role === 'owner';
