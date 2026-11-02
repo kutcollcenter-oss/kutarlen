@@ -278,7 +278,10 @@
   function bindNav() {
     document.getElementById('logout').onclick = async () => { await api('POST', '/api/admin/logout'); renderLogin(); };
     app.querySelectorAll('[data-copy]').forEach(b => { b.onclick = () => copy(b.dataset.copy); });
+    app.querySelectorAll('[data-copy-text]').forEach(b => { b.onclick = () => copy(b.dataset.copyText, 'Текст со ссылкой скопирован'); });
   }
+  // Ссылка с приветствием — готовое сообщение для клиентов
+  const withText = url => `Здравствуйте! Все мои квартиры с ценами и расчётом рассрочки здесь: ${url}`;
 
   // ---------- Лимит тарифа ----------
   // Лимит исчерпан: добавить и дублировать нельзя, остальное работает как обычно —
@@ -919,7 +922,7 @@
 
       ${anRealtor ? '' : `<div class="card"><h2 style="margin-top:0">Ссылки с метками</h2>
         <p class="hint" style="margin-top:0">Ставьте разные ссылки в разные места — и в «Откуда приходят» будет видно, какой канал приносит заявки.</p>
-        ${sources.map(([k, label]) => `<div class="tagrow"><span>${label}</span><code>${esc(myUrl)}?src=${k}</code><button class="btn" data-copy="${esc(myUrl)}?src=${k}">Копировать</button></div>`).join('')}
+        ${sources.map(([k, label]) => `<div class="tagrow"><span>${label}</span><code>${esc(myUrl)}?src=${k}</code><button class="btn" data-copy="${esc(myUrl)}?src=${k}">Копировать</button><button class="btn" data-copy-text="${esc(withText(`${myUrl}?src=${k}`))}" title="Ссылка с приветствием — для сообщений, статуса, сторис">С текстом</button></div>`).join('')}
       </div>`}
     </div>`;
     bindNav();
