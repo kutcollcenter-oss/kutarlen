@@ -354,3 +354,36 @@ select option { background: #2c2c2e; color: #fff; }
   box-shadow: inset 0 0 0 1px rgba(255, 214, 10, .22); }
 .refer-t { color: #ffd60a; letter-spacing: -.01em; }
 .refer p { color: rgba(235, 235, 245, .7); line-height: 1.4; }
+
+/* ---------- Очередь на новый ЖК ---------- */
+.qconf-f { display: grid; gap: 12px; margin-bottom: 14px; }
+.qconf-f .btn { justify-self: start; }
+.qcounts { display: flex; flex-wrap: wrap; gap: 8px; }
+.qcount { border: 0; background: var(--s2); color: var(--ink); font: inherit; font-size: 14px; padding: 8px 12px; border-radius: 999px !important; cursor: pointer; }
+.qcount b { margin-left: 4px; }
+.qcount.on { background: #fff; color: #000; }
+.qcount.over b, .qmine-n.over b { color: #ff6961; }
+.qmine-n { font-size: 17px; }
+.qtools { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; margin: 18px 0 8px; align-items: center; }
+@media (max-width: 700px) { .qtools { grid-template-columns: 1fr 1fr; } .qtools .search { grid-column: 1 / -1; } }
+.qtotal { margin-bottom: 10px; }
+.qrow { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.qrow-main { min-width: 0; }
+.qrow-main .m { color: var(--muted); font-size: 14px; margin-top: 3px; }
+.qrow-main a { color: inherit; }
+.qrow-acts { display: flex; gap: 8px; flex: none; }
+@media (max-width: 600px) { .qrow { flex-direction: column; align-items: stretch; } .qrow-acts .btn { flex: 1; } }
+.qgrid-a { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; margin-bottom: 8px; }
+@media (max-width: 600px) { .qgrid-a { grid-template-columns: 1fr; } }
+.qwant-a { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-bottom: 8px; }
+.qerr { display: block; font-style: normal; font-size: 13px; color: #ff6961; }
+.qerr:empty { display: none; }
+.qconsent-a { margin: 14px 0 10px; color: var(--muted); font-size: 14px; }
+.qconsent-a summary { cursor: pointer; color: var(--ink); }
+.back { display: inline-block; color: var(--muted); text-decoration: none; margin: 4px 0 8px; }
+.empty { text-align: center; color: var(--muted); padding: 30px 10px; }
+
+/* Очередь: заполнить по фото ID-карты */
+.qscan-a { border: 1px dashed rgba(255, 255, 255, .25); border-radius: 14px !important; padding: 12px; margin-bottom: 14px; }
+.qscan-a .qscan-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.qscan-a label.btn { cursor: pointer; }

@@ -11,3 +11,6 @@ data/
 uploads/
 .claude/
 skills-lock.json
+
+# Языки для сканирования паспорта (скачиваются сами при первом скане)
+ocr-cache/
