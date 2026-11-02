@@ -278,7 +278,7 @@ app.get('/map/2gis', (req, res) => {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
   var p = [${lat}, ${lng}];
-  var map = L.map('map', { center: p, zoom: 17, scrollWheelZoom: false, attributionControl: true });
+  var map = L.map('map', { center: p, zoom: 15, scrollWheelZoom: false, attributionControl: true });
   L.tileLayer('https://tile{s}.maps.2gis.com/tiles?x={x}&y={y}&z={z}&v=1', {
     subdomains: '0123', maxZoom: 18, attribution: '&copy; <a href="https://2gis.kg" target="_blank" rel="noopener">2ГИС</a>'
   }).addTo(map);
