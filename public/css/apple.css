@@ -450,12 +450,12 @@ input[type=range]::-moz-range-thumb { width: 44px; height: 28px; border: 0; back
 .qdel-ask p { margin: 4px 0 10px; font-size: 14px; color: var(--muted); }
 .qdel-yes { background: #d70015 !important; color: #fff !important; border-color: #d70015 !important; }
 
-/* Метки на фото («Рассрочка», «Сдача: …», «Бизнес класс») — заметные: тёмный плотный фон, белый жирный текст, тень.
-   Видны и на светлых планировках, и на тёмных фото. «Скидка» — красная. */
+/* Метки на фото («Сдача: …», «Бизнес класс», «Срочно») — бело-серые, но заметные:
+   белый фон, тёмно-серый жирный текст, серая рамка и тень. «Скидка» — красная. */
 .tags { gap: 6px; }
-.tag { font-size: 13px; font-weight: 700; padding: 6px 12px; color: #fff; background: rgba(29, 29, 31, .86);
-  border: 1px solid rgba(255, 255, 255, .22); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
-  box-shadow: 0 3px 10px rgba(0, 0, 0, .3) !important; }
-.tag-inst { background: #000; color: #fff; }
-.tag-sale { background: #e5302a; color: #fff; }
+.tag { font-size: 13px; font-weight: 700; padding: 6px 12px; color: #3a3a3c; background: #fff;
+  border: 1px solid #c7c7cc; -webkit-backdrop-filter: none; backdrop-filter: none;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, .22) !important; }
+.tag-inst { background: #fff; color: #3a3a3c; }
+.tag-sale { background: #e5302a; color: #fff; border-color: #e5302a; }
 @media (max-width: 600px) { .card-photo .tag { font-size: 12px; padding: 5px 10px; } }
