@@ -459,3 +459,9 @@ input[type=range]::-moz-range-thumb { width: 44px; height: 28px; border: 0; back
 .tag-inst { background: #fff; color: #3a3a3c; }
 .tag-sale { background: #e5302a; color: #fff; border-color: #e5302a; }
 @media (max-width: 600px) { .card-photo .tag { font-size: 12px; padding: 5px 10px; } }
+
+/* Зелёные кнопки WhatsApp («Хочу эту квартиру» и др.) — мягкие: светлее, лёгкий перелив, небольшая тень */
+.btn-wa, .card-actions .btn-want, .apt-cta, .cta .btn-wa {
+  background: linear-gradient(180deg, #3cc061 0%, #2ea44f 100%); font-weight: 600;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .3), 0 4px 12px rgba(46, 164, 79, .22) !important; }
+.btn-wa:hover, .card-actions .btn-want:hover { background: linear-gradient(180deg, #34b458 0%, #289546 100%); }
