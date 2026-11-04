@@ -449,3 +449,13 @@ input[type=range]::-moz-range-thumb { width: 44px; height: 28px; border: 0; back
 .qdel-ask { margin-top: 14px; border: 1.5px solid #d70015; border-radius: 14px !important; padding: 14px; background: #fff5f5; }
 .qdel-ask p { margin: 4px 0 10px; font-size: 14px; color: var(--muted); }
 .qdel-yes { background: #d70015 !important; color: #fff !important; border-color: #d70015 !important; }
+
+/* Метки на фото («Рассрочка», «Сдача: …», «Бизнес класс») — заметные: тёмный плотный фон, белый жирный текст, тень.
+   Видны и на светлых планировках, и на тёмных фото. «Скидка» — красная. */
+.tags { gap: 6px; }
+.tag { font-size: 13px; font-weight: 700; padding: 6px 12px; color: #fff; background: rgba(29, 29, 31, .86);
+  border: 1px solid rgba(255, 255, 255, .22); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, .3) !important; }
+.tag-inst { background: #000; color: #fff; }
+.tag-sale { background: #e5302a; color: #fff; }
+@media (max-width: 600px) { .card-photo .tag { font-size: 12px; padding: 5px 10px; } }
