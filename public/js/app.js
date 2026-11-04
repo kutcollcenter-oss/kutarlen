@@ -121,7 +121,7 @@
 
   const st = { type: 'installment' };
   let B;
-  // Город: null — все города. Всё остальное в фильтре (ползунки, комнаты) считается по квартирам выбранного города.
+  // Город: null — город не выбран (на сайте квартиры одного города). Всё остальное в фильтре (ползунки, комнаты) считается по квартирам выбранного города.
   st.city = null;
   const ofType = () => APTS.filter(a => a.type === st.type && (!st.city || a.city === st.city));
 
@@ -399,10 +399,12 @@
     }
   }
 
-  // Города: кнопки «Все города» и каждый город, где есть квартиры. Один город — переключателя нет.
+  // Города: кнопка на каждый город, где есть квартиры, сразу выбран первый (Бишкек). «Все города» нет.
+  // Один город — переключателя нет.
   const cities = ['Бишкек', 'Ош'].filter(c => APTS.some(a => a.city === c));
   if (cities.length > 1) {
-    $('fCity').innerHTML = ['', ...cities].map(c => `<button type="button" data-v="${esc(c)}" class="${c ? '' : 'on'}">${c ? esc(c) : L('allCities')}</button>`).join('');
+    st.city = cities[0];
+    $('fCity').innerHTML = cities.map((c, i) => `<button type="button" data-v="${esc(c)}" class="${i ? '' : 'on'}">${esc(c)}</button>`).join('');
     $('fCity').hidden = false;
     $('fCity').addEventListener('click', e => {
       const b = e.target.closest('button'); if (!b) return;
@@ -423,6 +425,8 @@
   if (shownTabs.length % 2) shownTabs[shownTabs.length - 1].classList.add('wide');
   if (TYPE_ORDER.filter(has).length < 2) $('fType').hidden = true;
   if (!has(st.type)) st.type = TYPE_ORDER.find(has) || 'installment';
+  // В выбранном сразу городе нет квартир этой категории — берём ту, что в нём есть
+  if (!ofType().length) st.type = TYPE_ORDER.find(t => APTS.some(a => a.type === t && (!st.city || a.city === st.city))) || st.type;
   reset();
   syncInputs();
   update();
