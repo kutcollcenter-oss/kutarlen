@@ -380,6 +380,19 @@
       .sort(SORTS[$('sort').value]);
     const wordsKey = { commercial: 'wordsCommercial', land: 'wordsLand' }[st.type] || 'wordsApartment';
     $('count').textContent = L('found', { n: list.length, word: plural(wordsKey, list.length) });
+    // Сводка выбора на кнопке «Подобрать» и число на кнопке листа
+    if ($('fSum')) {
+      const parts = [
+        st.down != null && L('fDownTo', { x: money(st.down, c) }),
+        st.monthly != null && L('fMonthlyTo', { x: money(st.monthly, c) }),
+        st.rooms.size && L('fRoomsSel', { x: [...st.rooms].sort().map(r => (r === '4' ? '4+' : r)).join(', ') }),
+        B && B.area && (st.area[0] > B.area.min || st.area[1] < B.area.max) && L('fAreaSel', { a: n(st.area[0]), b: n(st.area[1]) }),
+      ].filter(Boolean);
+      $('fSum').textContent = parts.join(' · ') || L('fAll');
+      $('fBadge').hidden = !parts.length;
+      $('fBadge').textContent = parts.length;
+      $('fDone').textContent = L('fShow', { n: list.length });
+    }
     if (list.length) {
       $('cards').innerHTML = list.map(card).join('');
       window.RS.slides($('cards').querySelectorAll('.card-photo'));
@@ -424,6 +437,31 @@
   const shownTabs = [...$('fType').querySelectorAll('button')].filter(b => !b.hidden);
   if (shownTabs.length % 2) shownTabs[shownTabs.length - 1].classList.add('wide');
   if (TYPE_ORDER.filter(has).length < 2) $('fType').hidden = true;
+  // ---------- Компактный подбор ----------
+  // Над фильтром — вкладки (город, тип) и строка-кнопка «Подобрать» со сводкой выбора.
+  // На телефоне сам фильтр — лист снизу: открывается кнопкой, внизу «Показать: N». На компьютере фильтр как раньше.
+  const filterEl = $('filter');
+  const ftop = document.createElement('div');
+  ftop.className = 'ftop';
+  filterEl.before(ftop);
+  ftop.append($('fCity'), $('fType'));
+  ftop.insertAdjacentHTML('beforeend', `<button type="button" class="fbar" id="fOpen" aria-controls="filter" aria-expanded="false">
+    <span class="fbar-i" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.3"/><circle cx="9" cy="17" r="2.3"/></svg></span>
+    <span class="fbar-t"><b>${L('fPick')}</b><small id="fSum"></small></span><i class="fbar-n" id="fBadge" hidden></i><span class="fbar-go" aria-hidden="true">›</span></button>`);
+  filterEl.insertAdjacentHTML('afterbegin', `<div class="fsheet-head"><b>${L('fSheet')}</b><button type="button" class="fsheet-x" id="fClose" aria-label="${L('fClose')}">×</button></div>`);
+  filterEl.insertAdjacentHTML('beforeend', '<div class="fsheet-foot"><button type="button" class="btn btn-lg" id="fDone"></button></div>');
+  document.body.insertAdjacentHTML('beforeend', '<div class="fshade" id="fShade" hidden></div>');
+  const sheet = open => {
+    filterEl.classList.toggle('open', open);
+    $('fShade').hidden = !open;
+    document.documentElement.classList.toggle('fsheet-open', open);
+    $('fOpen').setAttribute('aria-expanded', String(open));
+    if (!open) $('count').scrollIntoView({ block: 'start', behavior: 'smooth' });
+  };
+  $('fOpen').onclick = () => sheet(true);
+  ['fClose', 'fDone', 'fShade'].forEach(id => { $(id).onclick = () => sheet(false); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && filterEl.classList.contains('open')) sheet(false); });
+
   if (!has(st.type)) st.type = TYPE_ORDER.find(has) || 'installment';
   // В выбранном сразу городе нет квартир этой категории — берём ту, что в нём есть
   if (!ofType().length) st.type = TYPE_ORDER.find(t => APTS.some(a => a.type === t && (!st.city || a.city === st.city))) || st.type;

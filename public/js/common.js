@@ -281,6 +281,23 @@
       el.dataset.i = 0;
       el.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') el.dataset.hover = 1; });
       el.addEventListener('pointerleave', () => { delete el.dataset.hover; });
+      // Листание пальцем: провели влево/вправо — следующее/предыдущее фото; переход по карточке при этом не срабатывает
+      let x0 = null, y0 = 0, side = false;
+      el.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; side = false; el.dataset.hover = 1; }, { passive: true });
+      el.addEventListener('touchmove', e => {
+        if (x0 === null) return;
+        const dx = e.touches[0].clientX - x0, dy = e.touches[0].clientY - y0;
+        if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy)) side = true;
+      }, { passive: true });
+      el.addEventListener('touchend', e => {
+        if (x0 !== null && side) {
+          const dx = e.changedTouches[0].clientX - x0, n = el.querySelectorAll('.cp-track img').length;
+          if (Math.abs(dx) > 35) { showSlide(el, (+el.dataset.i + (dx < 0 ? 1 : -1) + n) % n); el.swiped = Date.now(); }
+        }
+        x0 = null;
+        setTimeout(() => { delete el.dataset.hover; }, 5000); // после листания не перелистываем сами 5 секунд
+      });
+      el.addEventListener('click', e => { if (el.swiped && Date.now() - el.swiped < 500) { e.preventDefault(); e.stopPropagation(); } }, true);
       if (slideIo) slideIo.observe(el); else shown.add(el);
     });
   };

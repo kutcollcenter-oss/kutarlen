@@ -518,3 +518,92 @@ h2 .hl, h1 .hl, .hl { color: var(--gold); }
 .cta { background: radial-gradient(120% 90% at 20% 0%, #3a2e1f 0%, #1c160f 60%, #120e09 100%) !important; }
 .cta h2 .hl, .cta .hl { color: var(--gold-light); }
 .hero-initials { background: radial-gradient(120% 90% at 25% 10%, #3a2e1f 0%, #1c160f 70%) !important; color: var(--gold-light) !important; }
+/* В Playfair Display нет кыргызских букв Ө, Ү, Ң — на кыргызской версии заголовки шрифтом Prata (тот же «журнальный» стиль, один вес) */
+html:lang(ky) h1, html:lang(ky) h2 { font-family: 'Prata', Georgia, serif; font-weight: 400; }
+
+/* =====================================================================
+   Часть 1 (05.11.2026): компактный подбор, новые карточки, «Обо мне»
+   ===================================================================== */
+/* Вкладки над фильтром и строка-кнопка «Подобрать» */
+.ftop { display: grid; gap: 10px; margin-bottom: 16px; }
+.ftop .seg { margin: 0; }
+.fbar { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; border: 0; cursor: pointer; padding: 12px 14px 12px 12px;
+  border-radius: var(--r-lg) !important; background: var(--card); box-shadow: var(--sh-1) !important; color: var(--ink); font: inherit;
+  transition: transform .15s ease; }
+.fbar:active { transform: scale(.98); }
+.fbar-i { flex: none; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: #fff;
+  background: linear-gradient(180deg, #c9a364 0%, #a8834a 100%); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 3px 10px rgba(168, 131, 74, .35); }
+.fbar-i svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; }
+.fbar-t { flex: 1; min-width: 0; }
+.fbar-t b { display: block; font-size: 17px; font-weight: 700; }
+.fbar-t small { display: block; color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+.fbar-n { flex: none; font-style: normal; min-width: 24px; height: 24px; padding: 0 7px; border-radius: 12px !important; background: var(--gold); color: #fff;
+  font-size: 13px; font-weight: 700; display: grid; place-items: center; }
+.fbar-go { flex: none; font-size: 26px; color: #c9b28a; line-height: 1; }
+.fsheet-head, .fsheet-foot { display: none; }
+
+/* Телефон и планшет: фильтр — лист снизу */
+@media (max-width: 899px) {
+  .filter { position: fixed; left: 0; right: 0; bottom: 0; z-index: 70; max-height: 88svh; overflow: auto; overscroll-behavior: contain; margin: 0;
+    padding: 0 18px !important; border: 0 !important; border-radius: 26px 26px 0 0 !important; background: var(--card);
+    box-shadow: 0 -14px 44px rgba(40, 28, 10, .22) !important; transform: translateY(105%); visibility: hidden;
+    transition: transform .38s cubic-bezier(.2, .8, .2, 1), visibility 0s linear .38s; }
+  .filter.open { transform: none; visibility: visible; transition: transform .38s cubic-bezier(.2, .8, .2, 1); }
+  .fsheet-head { display: flex; position: sticky; top: 0; z-index: 2; align-items: center; justify-content: space-between; padding: 22px 0 10px;
+    background: var(--card); }
+  .fsheet-head::before { content: ''; position: absolute; top: 8px; left: 50%; width: 40px; height: 5px; margin-left: -20px; border-radius: 3px; background: #ddd2bf; }
+  .fsheet-head b { font-family: var(--serif); font-size: 24px; font-weight: 700; }
+  html:lang(ky) .fsheet-head b { font-family: 'Prata', Georgia, serif; font-weight: 400; }
+  .fsheet-x { width: 36px; height: 36px; border-radius: 50% !important; border: 0; background: var(--soft); font-size: 22px; line-height: 1; cursor: pointer; color: var(--ink); }
+  .fsheet-foot { display: block; position: sticky; bottom: 0; z-index: 2; padding: 14px 0 calc(16px + env(safe-area-inset-bottom));
+    background: linear-gradient(180deg, rgba(255, 253, 248, 0), var(--card) 34%); }
+  .fsheet-foot .btn { width: 100%; color: #fff; border: 0; background: linear-gradient(180deg, #c9a364 0%, #a8834a 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 3px 0 #7d5f30, 0 10px 22px rgba(168, 131, 74, .35) !important; }
+  .fshade { position: fixed; inset: 0; z-index: 69; background: rgba(20, 14, 6, .45); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
+  html.fsheet-open { overflow: hidden; }
+}
+@media (min-width: 900px) { .fbar, .fshade { display: none !important; } }
+
+/* Карточки: фото на всю ширину сверху, точки-«таблетка», платёж крупно «журнальным» шрифтом */
+.card-photo { margin: 0 !important; border-radius: var(--r-lg) var(--r-lg) 0 0 !important; }
+.cp-dots { left: 50%; right: auto; transform: translateX(-50%); gap: 5px; padding: 5px 8px; border-radius: 999px !important;
+  background: rgba(20, 14, 6, .38); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.cp-dots i { width: 6px; height: 6px; background: rgba(255, 255, 255, .6); box-shadow: none; transition: width .3s ease, background .3s ease; }
+.cp-dots i.on { width: 16px; border-radius: 3px !important; background: #fff; transform: none; }
+.card-body { padding-top: 16px; }
+.card-price { align-items: baseline; }
+.card-price b { font-family: var(--serif); font-size: 34px; font-weight: 700; letter-spacing: -.01em; }
+html:lang(ky) .card-price b { font-family: 'Prata', Georgia, serif; font-weight: 400; }
+.card-price span { color: var(--gold); font-weight: 600; }
+.pay-line { background: #f7efe1 !important; border-left: 3px solid var(--gold); }
+.feats span:not(.feats-ppm) { background: var(--soft); padding: 5px 11px 5px 8px; border-radius: 999px !important; }
+
+/* «Обо мне»: фото кружком с золотой каймой, цифры доверия — крупно золотом */
+.about-ava { display: block; width: 112px; height: 112px; border-radius: 50% !important; object-fit: cover; object-position: 50% 15%; margin: 0 0 16px;
+  border: 3px solid #fff; box-shadow: 0 0 0 2px var(--gold), 0 10px 26px rgba(80, 60, 20, .22) !important; }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (min-width: 900px) { .stats { grid-template-columns: repeat(4, 1fr); gap: 14px; } }
+.stat { padding: 18px 16px !important; }
+.stat b { display: block; font-family: var(--serif); color: var(--gold); font-size: 27px; font-weight: 700; line-height: 1.1; margin-bottom: 4px; }
+html:lang(ky) .stat b { font-family: 'Prata', Georgia, serif; font-weight: 400; }
+.stat span { color: var(--muted); line-height: 1.35; }
+.insta-link { background: var(--card); border: 1px solid #eadfca !important; }
+/* Остатки холодного серого из старого стиля → тёплые тона */
+.catalog, .reviews-sec, .about { background: var(--bg); }
+.seg, .lang-sw, #fType { background: rgba(140, 110, 60, .1); }
+.chips button { background: rgba(140, 110, 60, .08); }
+.chips button:hover { background: rgba(140, 110, 60, .14); }
+.qdel { background: var(--soft); }
+.fbar-i { border-radius: 50% !important; }
+/* Выбранные кнопки фильтра и полосы ползунков — золото (как «Подобрать»), бегунок остаётся белым «как у iPhone» */
+.chips button.on { color: #fff; background: linear-gradient(180deg, #c9a364 0%, #a8834a 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 4px 12px rgba(168, 131, 74, .3) !important; }
+input.range { background: linear-gradient(to right, #b8924f var(--p), #e7dfd1 var(--p)) center / 100% 8px no-repeat; }
+.dual::before { background: linear-gradient(to right, #e7dfd1 var(--lo), #b8924f var(--lo), #b8924f var(--hi), #e7dfd1 var(--hi)); }
+/* Цены и цифры доверия — ровные цифры одной высоты (у шрифта с засечками по умолчанию «книжные») */
+.card-price b, .stat b, .calc-main b { font-variant-numeric: lining-nums tabular-nums; }
+/* Кружок «Обо мне»: лицо крупно — фото увеличено внутри круга (на фото менеджера лицо обычно в верхней трети) */
+.about-ava { display: block; position: relative; overflow: hidden; width: 116px; height: 116px; padding: 0; object-fit: initial; }
+.about-ava img { position: absolute; left: 50%; top: 0; width: 210%; max-width: none; height: auto; transform: translate(-50%, -14%); }
+.stat svg { color: var(--gold) !important; }
+@media (min-width: 900px) { .ftop .seg { max-width: 620px; } }
