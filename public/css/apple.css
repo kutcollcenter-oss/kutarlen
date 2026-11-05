@@ -607,3 +607,65 @@ input.range { background: linear-gradient(to right, #b8924f var(--p), #e7dfd1 va
 .about-ava img { position: absolute; left: 50%; top: 0; width: 210%; max-width: none; height: auto; transform: translate(-50%, -14%); }
 .stat svg { color: var(--gold) !important; }
 @media (min-width: 900px) { .ftop .seg { max-width: 620px; } }
+
+/* =====================================================================
+   Часть 2 (05.11.2026): «Скоро», отзывы, шаги рассрочки, шапка поверх фото
+   ===================================================================== */
+/* «Скоро»: фото на всю ширину карточки, заголовок белым поверх фото (как на первом экране) */
+.news-photo { position: relative; aspect-ratio: 4 / 3 !important; }
+.news-photo img { height: 100% !important; object-fit: cover !important; }
+.news-photo:has(.news-cap)::after { content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 40%, rgba(20, 14, 6, .55) 72%, rgba(20, 14, 6, .85) 100%); }
+.news-cap { position: absolute; left: 20px; right: 20px; bottom: 16px; z-index: 1; margin: 0; color: #fff;
+  font-family: var(--serif); font-size: 25px; line-height: 1.15; font-weight: 700; text-shadow: 0 2px 16px rgba(0, 0, 0, .4); }
+html:lang(ky) .news-cap { font-family: 'Prata', Georgia, serif; font-weight: 400; }
+.news-body h3 { font-family: var(--serif); }
+html:lang(ky) .news-body h3 { font-family: 'Prata', Georgia, serif; font-weight: 400; }
+
+/* Несколько новостей и отзывы — листаются вбок пальцем, следующая карточка выглядывает справа */
+@media (max-width: 759px) {
+  .news:has(> :nth-child(2)), .reviews:has(> :nth-child(2)) { display: flex; overflow-x: auto; gap: 14px; scroll-snap-type: x mandatory;
+    margin: 20px -16px 0; padding: 4px 16px 18px; scroll-padding: 0 16px; scrollbar-width: none; }
+  .news:has(> :nth-child(2))::-webkit-scrollbar, .reviews:has(> :nth-child(2))::-webkit-scrollbar { display: none; }
+  .news:has(> :nth-child(2)) > *, .reviews:has(> :nth-child(2)) > * { flex: 0 0 86%; scroll-snap-align: start; }
+}
+
+/* Отзывы: крупная золотая кавычка, золотые звёзды, инициалы в золотом кружке */
+.review { position: relative; padding-top: 30px !important; }
+.review::before { content: '“'; position: absolute; top: -6px; right: 18px; font-family: var(--serif); font-size: 96px; line-height: 1;
+  color: var(--gold); opacity: .28; pointer-events: none; }
+.stars { color: var(--gold) !important; letter-spacing: 2px; font-size: 15px; }
+.review blockquote { font-size: 17px; line-height: 1.5; }
+.review .avatar { background: linear-gradient(180deg, #c9a364 0%, #a8834a 100%) !important; color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 3px 8px rgba(168, 131, 74, .3); }
+
+/* Шаги рассрочки: на одной золотой линии — путь от 1 к последнему шагу */
+.steps { gap: 0 !important; counter-reset: s; }
+.steps li { position: relative; background: none !important; box-shadow: none !important; border-radius: 0 !important;
+  padding: 2px 0 30px 62px !important; font-size: 17px; line-height: 1.45; }
+.steps li::before { position: absolute; left: 0; top: -6px; margin: 0 !important; width: 42px !important; height: 42px !important; font-size: 17px; z-index: 1; }
+.steps li::after { content: ''; position: absolute; left: 20px; top: 40px; bottom: -4px; width: 2px; border-radius: 2px;
+  background: linear-gradient(180deg, #c9a364, #e6d9c2); }
+.steps li:last-child { padding-bottom: 6px !important; }
+.steps li:last-child::after { display: none; }
+@media (min-width: 860px) {
+  .steps { grid-template-columns: none !important; grid-auto-flow: column; grid-auto-columns: 1fr; }
+  .steps li { padding: 62px 28px 0 0 !important; }
+  .steps li::before { top: 0; }
+  .steps li::after { left: 50px; right: 8px; top: 20px; bottom: auto; width: auto; height: 2px; background: linear-gradient(90deg, #c9a364, #e6d9c2); }
+}
+
+/* Шапка на телефоне поверх фото первого экрана: прозрачная, текст белый (шапка и так уезжает при прокрутке) */
+@media (max-width: 899px) {
+  body:has(.hero-cover) .topbar { position: absolute; left: 0; right: 0; top: 0; z-index: 30; border: 0 !important;
+    background: linear-gradient(180deg, rgba(10, 7, 3, .5) 0%, rgba(10, 7, 3, 0) 100%) !important;
+    -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none !important; }
+  body:has(.hero-cover) .topbar .brand b, body:has(.hero-cover) .topbar .brand small { color: #fff; text-shadow: 0 1px 8px rgba(0, 0, 0, .35); }
+  body:has(.hero-cover) .topbar .brand small { opacity: .85; }
+  body:has(.hero-cover) .lang-sw { background: rgba(255, 255, 255, .2) !important; -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+  body:has(.hero-cover) .lang-sw a { color: #fff; }
+  body:has(.hero-cover) .lang-sw a.on { color: var(--ink); background: #fff; }
+  .hero.hero-cover { min-height: 100svh; }
+}
+/* Буквы, которых нет в Playfair (Ө Ү Ң в кыргызских словах на русской версии), берутся из похожего Prata */
+:root { --serif: 'Playfair Display', 'Prata', Georgia, 'Times New Roman', serif; }
