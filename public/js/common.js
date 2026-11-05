@@ -343,8 +343,20 @@
       lb.querySelector('.lb-prev').addEventListener('click', () => lbGo(-1));
       lb.querySelector('.lb-next').addEventListener('click', () => lbGo(1));
       lb.querySelector('.lb-close').addEventListener('click', () => RS.lightboxClose());
-      // Нажатие мимо фото закрывает просмотр
-      strip.addEventListener('click', e => { if (e.target.tagName !== 'IMG') RS.lightboxClose(); });
+      // Нажатие мимо фото закрывает просмотр. Нажатие на фото — увеличить в этом месте (планировку видно подробно),
+      // двигать пальцем; ещё нажатие — снова целиком. Пока фото увеличено, соседние фото не листаются.
+      strip.addEventListener('click', e => {
+        if (e.target.tagName !== 'IMG') { RS.lightboxClose(); return; }
+        const img = e.target, slide = img.closest('.lb-slide'), r = img.getBoundingClientRect();
+        const fx = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), fy = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
+        const on = !slide.classList.contains('zoom');
+        slide.classList.toggle('zoom', on);
+        lb.classList.toggle('lb-zoomed', on);
+        if (on) requestAnimationFrame(() => {
+          slide.scrollLeft = fx * slide.scrollWidth - slide.clientWidth / 2;
+          slide.scrollTop = fy * slide.scrollHeight - slide.clientHeight / 2;
+        });
+      });
       // Esc: закрываем сами, чтобы успела сыграть анимация закрытия
       lb.addEventListener('cancel', e => { e.preventDefault(); RS.lightboxClose(); });
       lb.addEventListener('keydown', e => {
@@ -355,6 +367,7 @@
     const strip = lb.querySelector('.lb-strip');
     strip.innerHTML = srcs.map((s, i) => `<div class="lb-slide"><img src="${RS.esc(s)}" alt="${RS.t('lbAlt', { i: i + 1, n: srcs.length })}" ${Math.abs(i - start) > 1 ? 'loading="lazy"' : ''}></div>`).join('');
     lb.classList.toggle('lb-one', srcs.length < 2);
+    lb.classList.remove('lb-zoomed');
     const more = lb.querySelector('.lb-more');
     more.hidden = !opts.href;
     if (opts.href) { more.href = opts.href; more.textContent = opts.label || RS.t('more'); }

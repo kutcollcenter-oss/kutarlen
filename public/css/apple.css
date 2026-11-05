@@ -669,3 +669,75 @@ html:lang(ky) .news-body h3 { font-family: 'Prata', Georgia, serif; font-weight:
 }
 /* Буквы, которых нет в Playfair (Ө Ү Ң в кыргызских словах на русской версии), берутся из похожего Prata */
 :root { --serif: 'Playfair Display', 'Prata', Georgia, 'Times New Roman', serif; }
+
+/* =====================================================================
+   Часть 3 (06.11.2026): страница квартиры, вопросы, подвал, просмотр фото
+   ===================================================================== */
+/* Страница квартиры: фото во всю ширину экрана на телефоне и крупнее — но по-прежнему целиком (планировки не режем) */
+@media (max-width: 899px) {
+  .apt-page .gallery-wrap { margin-left: -16px; margin-right: -16px; } /* ровно на отступ страницы (.wrap — 16px) */
+  .apt-page .gallery { border-radius: 0 !important; background: #fffdf8; }
+  .apt-page .gallery img { aspect-ratio: 1 / 1; background: #fffdf8; }
+  .apt-page .gallery-wrap .tags { left: 16px; }
+  .apt-page .gallery-count { right: 16px; }
+}
+.apt-page .gallery img { background: #fffdf8; }
+.apt h1 { font-size: clamp(30px, 8vw, 44px); line-height: 1.1; }
+/* Калькулятор: тёплая карточка, платёж крупно «журнальным» шрифтом */
+.calc-main { background: linear-gradient(180deg, #f7efe1 0%, #f3ead9 100%); }
+.calc-main b { font-family: var(--serif); font-weight: 700; letter-spacing: -.01em; }
+html:lang(ky) .calc-main b { font-family: 'Prata', Georgia, serif; font-weight: 400; }
+.calc-rows > div { border-top-color: var(--line); }
+.calc-input { background: var(--soft); }
+
+/* Просмотр фото на весь экран: нажатие увеличивает в этом месте, фото можно двигать пальцем */
+.lb-slide img { cursor: zoom-in; }
+.lb-slide.zoom { display: block; overflow: auto; padding: 0; -webkit-overflow-scrolling: touch; }
+.lb-slide.zoom img { max-width: none; max-height: none; width: 250%; height: auto; cursor: zoom-out; }
+.lb-zoomed .lb-strip { overflow-x: hidden; scroll-snap-type: none; }
+.lb-zoomed .lb-prev, .lb-zoomed .lb-next { display: none; }
+
+/* Частые вопросы: золотой «+», при раскрытии поворачивается в «×» */
+.faq details { background: var(--card); box-shadow: var(--sh-1) !important; }
+.faq summary::after { content: "+"; display: grid; place-items: center; color: #fff !important; font-size: 20px; line-height: 1;
+  background: linear-gradient(180deg, #c9a364 0%, #a8834a 100%) !important; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 3px 8px rgba(168, 131, 74, .3);
+  transition: transform .3s ease; }
+.faq details[open] summary::after { transform: rotate(45deg); }
+
+/* Подвал: тёпло-тёмный (шоколад), призыв «Хотите такой же сайт?» — светлая карточка, ссылки бежевые */
+.fx { --fx-bg: #1c160f; --fx-text: #f4efe6; --fx-muted: #b9a88a; --fx-line: rgba(255, 255, 255, .12);
+  background: radial-gradient(120% 80% at 15% 0%, #2f2519 0%, #1c160f 55%, #140f0a 100%) !important; color: #f4efe6; }
+.fx-bottom { border-top-color: rgba(255, 255, 255, .12) !important; }
+.fx-legal a, .fx-copy { color: #b9a88a !important; }
+.fx-legal a:hover { color: var(--gold-light) !important; }
+.fx-cta { background: #fffdf8; }
+@media (max-width: 1023px) {
+  body:has(> .fx, > footer.fx) { padding-bottom: 0; }
+  .fx { padding-bottom: calc(110px + env(safe-area-inset-bottom)) !important; }
+}
+@media (max-width: 899px) { .apt { grid-template-columns: minmax(0, 1fr); } .apt-page .gallery-wrap { min-width: 0; } }
+/* «Оплата наличными»: тёплая карточка с золотой полосой, «Выгодно» и подчёркивание экономии — золото.
+   Когда взноса хватает на покупку целиком (.hit) — карточка тёпло-тёмная (шоколад) с золотом */
+.cash-offer { background: #f7efe1 !important; border-color: #d9c39b !important; border-left-color: var(--gold) !important; }
+.co-badge { background: linear-gradient(180deg, #c9a364 0%, #a8834a 100%) !important; color: #fff !important; border-radius: 999px !important;
+  font-family: var(--sans) !important; font-weight: 700; letter-spacing: .06em; }
+.co-head b { font-family: var(--serif); font-weight: 700; font-variant-numeric: lining-nums; }
+html:lang(ky) .co-head b { font-family: 'Prata', Georgia, serif; font-weight: 400; }
+.co-mark { --mark: #e3c48e; }
+.cash-offer.hit { background: radial-gradient(120% 90% at 20% 0%, #3a2e1f 0%, #1c160f 70%) !important; border-color: #3a2e1f !important; border-left-color: var(--gold) !important; }
+.cash-offer.hit .co-save b, .cash-offer.hit .co-head b { color: #fff; }
+/* Очередь и «Кабинет клиента»: синие остатки → золото */
+.qadd, .qback { color: var(--gold); }
+.qhub-item i { color: var(--gold); }
+.qhub-i { width: 52px; height: 52px; flex: none; border-radius: 50% !important; display: grid; place-items: center; font-size: 24px;
+  background: linear-gradient(180deg, #f3e6cd 0%, #e6d3ad 100%); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7), 0 3px 10px rgba(168, 131, 74, .25); }
+.qhub-item b { font-family: var(--serif); font-size: 20px; }
+html:lang(ky) .qhub-item b { font-family: 'Prata', Georgia, serif; font-weight: 400; }
+.qscan-found { border-color: var(--gold); }
+.news-queue { background: linear-gradient(160deg, #f7ecd7 0%, #fffdf8 70%) !important; border: 1.5px solid #d9c39b !important; }
+.news-queue-tag { background: linear-gradient(180deg, #c9a364 0%, #a8834a 100%) !important; }
+.news-queue .news-btn { background: linear-gradient(180deg, #c9a364 0%, #a8834a 100%) !important; border-color: #a8834a !important; color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 4px 12px rgba(168, 131, 74, .3) !important; }
+.news-queue h3 { font-family: var(--serif); }
+html:lang(ky) .news-queue h3 { font-family: 'Prata', Georgia, serif; font-weight: 400; }
+.qconsent { background: var(--soft) !important; }
