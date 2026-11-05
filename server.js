@@ -195,6 +195,10 @@ app.get(['/admin/', '/admin/index.html'], (req, res) => {
 app.use('/admin', express.static(path.join(__dirname, 'admin')));
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1h' }));
 
+// Скрытая страница владельца: учёт доходов и расходов (kvartiry.asia/money, вход по цифровому паролю)
+require('./lib/money').mount(app, { D, save: () => db.save(), cookies, newId: () => db.newId(),
+  isOwner: req => { const s = auth.readSession(D().secret, cookies(req).sess, id => D().users.find(u => u.id === id)); return !!(s && s.user.role === 'owner'); } });
+
 // ---------- Публичная часть ----------
 // Главная домена: страница продукта (или сайт выбранного менеджера — настраивается владельцем)
 // Главная домена — сайт менеджера, выбранного владельцем (по умолчанию — сайт самого владельца):
