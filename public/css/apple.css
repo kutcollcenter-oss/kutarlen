@@ -465,3 +465,56 @@ input[type=range]::-moz-range-thumb { width: 44px; height: 28px; border: 0; back
   background: linear-gradient(180deg, #3cc061 0%, #2ea44f 100%); font-weight: 600;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .3), 0 4px 12px rgba(46, 164, 79, .22) !important; }
 .btn-wa:hover, .card-actions .btn-want:hover { background: linear-gradient(180deg, #34b458 0%, #289546 100%); }
+
+/* =====================================================================
+   «Фото и золото» (выбор 05.11.2026, по мотивам лучших сайтов недвижимости):
+   тёплый песочный фон, «журнальные» заголовки с засечками (Playfair Display), золотой акцент.
+   Если у менеджера есть фото — на телефоне оно на весь первый экран, текст белый поверх (класс hero-cover).
+   Зелёный по-прежнему только у WhatsApp и «Хочу эту квартиру».
+   ===================================================================== */
+:root { --bg: #f4efe6; --soft: #efe7da; --card: #fffdf8; --line: #e6dccb; --gold: #a8834a; --gold-dark: #8a6d3b; --gold-light: #e8c98f;
+  --accent-text: var(--gold); --serif: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --sh-1: 0 1px 2px rgba(80, 60, 20, .05), 0 6px 20px rgba(80, 60, 20, .07);
+  --sh-2: 0 2px 6px rgba(80, 60, 20, .06), 0 14px 36px rgba(80, 60, 20, .12);
+  --glass: rgba(251, 248, 242, .7); --glass-edge: rgba(255, 255, 255, .8); }
+body { background: var(--bg); }
+.hero { background: linear-gradient(180deg, #fbf8f2 0%, var(--bg) 100%); }
+.news-sec, .steps-sec, .faq-sec { background: #fbf8f2; }
+.preloader { background: #fbf8f2; }
+h1, h2 { font-family: var(--serif); font-weight: 700; letter-spacing: -.005em; }
+.hero h1 { letter-spacing: -.01em; }
+h2 .hl, h1 .hl, .hl { color: var(--gold); }
+.pill { background: #fff; color: var(--gold-dark); border: 1px solid #eadfca; box-shadow: none !important; }
+.hero-points li::before { color: var(--gold); }
+.howto li::before { color: #c9b28a; }
+.howto li + li::after { background: #e3d6bf; }
+.faq summary::after { background: #fbf8f2; }
+
+/* Фото на весь первый экран — телефон и планшет */
+@media (max-width: 899px) {
+  .hero.hero-cover { position: relative; padding: 0; background: #14110d; overflow: hidden; min-height: calc(100svh - 60px); display: flex; }
+  .hero.hero-cover .hero-in { display: block; position: static; width: 100%; padding-bottom: 0; }
+  .hero.hero-cover .hero-media { position: absolute; inset: 0; max-width: none; width: auto; margin: 0; z-index: 0; border: 0; }
+  .hero.hero-cover .hero-photo { height: 100%; aspect-ratio: auto; min-height: 0; border-radius: 0 !important; box-shadow: none !important; }
+  .hero.hero-cover .hero-photo img { object-position: 50% 12%; }
+  /* Затемнение книзу — под текстом фон тёмный, лицо остаётся светлым */
+  .hero.hero-cover .hero-media::after { content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, .06) 28%, rgba(20, 14, 6, .62) 50%, rgba(20, 14, 6, .9) 70%, rgba(20, 14, 6, .96) 100%); }
+  .hero.hero-cover .hero-badge { display: none; }
+  .hero.hero-cover .hero-text { position: relative; z-index: 2; padding: 44svh 0 34px; color: #fff; }
+  .hero.hero-cover h1, .hero.hero-cover h1 .w > span { color: #fff; text-shadow: 0 2px 24px rgba(0, 0, 0, .45); }
+  .hero.hero-cover h1 .hl > span { color: var(--gold-light); }
+  .hero.hero-cover .pill { background: rgba(255, 255, 255, .16); color: #fff; border: 1px solid rgba(255, 255, 255, .32);
+    -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+  .hero.hero-cover .howto li { color: #fff; }
+  .hero.hero-cover .howto li::before { color: var(--gold-light); font-weight: 400; }
+  .hero.hero-cover .howto li + li::after { background: rgba(255, 255, 255, .35); }
+  .hero.hero-cover .hero-points li { color: rgba(255, 255, 255, .92); }
+  .hero.hero-cover .hero-points li::before { color: var(--gold-light); }
+}
+/* Единый стиль: номера шагов золотые, тёмный блок с призывом — тёпло-тёмный (шоколад), заголовок в нём со светлым золотом */
+.steps li::before { background: linear-gradient(180deg, #c29a5b 0%, #a8834a 100%) !important; color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 3px 8px rgba(168, 131, 74, .3); }
+.cta { background: radial-gradient(120% 90% at 20% 0%, #3a2e1f 0%, #1c160f 60%, #120e09 100%) !important; }
+.cta h2 .hl, .cta .hl { color: var(--gold-light); }
+.hero-initials { background: radial-gradient(120% 90% at 25% 10%, #3a2e1f 0%, #1c160f 70%) !important; color: var(--gold-light) !important; }
