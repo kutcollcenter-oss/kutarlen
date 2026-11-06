@@ -258,6 +258,20 @@
   .h3row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
   .h3row h3 { margin: 0; } .h3row .muted { font-size: 12px; }
   .set-row { padding: 12px 0; }
+/* Круги чуть меньше (было 64 px), подписи компактнее */
+  .tile .c { width: 54px; height: 54px; font-size: 26px; --edge: 4px; }
+  .ring { width: 64px; height: 64px; }
+  .ring .c { width: 52px; height: 52px; font-size: 24px; }
+  .tile .n { font-size: 13px; }
+  .tile .s { font-size: 13px; }
+  .grid { padding: 12px 4px 4px; }
+  /* Сумма 0 — «погасший» круг: серый, без блеска и почти без тени */
+  .tile.zero .c { filter: grayscale(1) brightness(.62); opacity: .55;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25), 0 2px 0 rgba(0, 0, 0, .5), 0 3px 8px rgba(0, 0, 0, .35); }
+  .tile.zero .c::before { opacity: .35; }
+  .tile.zero .s { color: #636366; font-weight: 600; }
+  .tile.zero .n { color: #8e8e93; }
+  .tile.zero:active .c { opacity: .8; }
 </style>
 </head>
 <body>
@@ -383,7 +397,9 @@
   }
 
   // Круг с суммой. ring = { p, color, sub } — кольцо прогресса (лимит категории, накопление цели) и подпись под суммой
-  const tile = (name, icon, color, sum, attrs, ring) => `<button type="button" class="tile${ring ? ' has-ring' : ''}" ${attrs}><span class="n">${esc(name)}</span>${ring
+  // Сумма 0 — круг «погасший» (серый и приглушённый), чтобы глаз сразу находил, где есть деньги
+  const isZero = sum => /^(\$0|0 сом)$/.test(String(sum).trim());
+  const tile = (name, icon, color, sum, attrs, ring) => `<button type="button" class="tile${ring ? ' has-ring' : ''}${isZero(sum) ? ' zero' : ''}" ${attrs}><span class="n">${esc(name)}</span>${ring
     ? `<span class="ring" style="--p:${Math.min(100, Math.round(ring.p * 100))};--rc:${ring.color}"><span class="c" style="--c:${esc(color)}">${esc(icon)}</span></span>`
     : `<span class="c" style="--c:${esc(color)}">${esc(icon)}</span>`}<span class="s${String(sum).startsWith('−') ? ' neg' : ''}">${sum}</span>${ring && ring.sub ? `<span class="sub" style="color:${ring.subColor || '#8e8e93'}">${ring.sub}</span>` : ''}</button>`;
   const addTile = what => `<button type="button" class="tile add" data-add="${what}"><span class="n">+</span><span class="c">+</span><span class="s">&nbsp;</span></button>`;
