@@ -741,3 +741,18 @@ html:lang(ky) .qhub-item b { font-family: 'Prata', Georgia, serif; font-weight: 
 .news-queue h3 { font-family: var(--serif); }
 html:lang(ky) .news-queue h3 { font-family: 'Prata', Georgia, serif; font-weight: 400; }
 .qconsent { background: var(--soft) !important; }
+
+/* Нижнее меню прячется вниз при прокрутке вниз и возвращается при прокрутке вверх (common.js) */
+.tabbar { transition: translate .35s cubic-bezier(.2, .8, .2, 1), opacity .3s ease; }
+.tabbar.tb-hide { translate: 0 calc(100% + 24px + env(safe-area-inset-bottom)); opacity: 0; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .tabbar { transition: none; } }
+/* Ноутбук: имя менеджера в шапке заметное — крупно «журнальным» шрифтом, должность под ним золотистым */
+@media (min-width: 1024px) {
+  .topbar .wrap { height: 72px; }
+  .topbar .brand { gap: 14px; }
+  .topbar .brand b { font-family: var(--serif); font-size: 28px; font-weight: 700; letter-spacing: -.005em; line-height: 1.1; }
+  html:lang(ky) .topbar .brand b { font-family: 'Prata', Georgia, serif; font-weight: 400; }
+  .topbar .brand small { font-size: 13px; color: var(--gold-dark); margin-top: 2px; }
+  .topbar .brand img { height: 44px; width: auto; max-width: 160px; }
+}
+.news-queue-check { display: inline-block; margin-top: 12px; color: var(--gold-dark); font-weight: 600; font-size: 15px; text-decoration: underline; text-underline-offset: 4px; }

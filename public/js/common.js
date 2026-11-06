@@ -435,3 +435,22 @@
     }
   }
 })();
+
+// Нижнее меню (телефон, планшет): прокрутка вниз — прячется, вверх — появляется.
+// Вверху страницы и у самого низа меню всегда видно; пока открыт лист «Подбор» — не трогаем.
+(function () {
+  // Меню ищем при прокрутке: скрипт может загрузиться раньше, чем меню появится на странице
+  let last = window.scrollY, run = 0;
+  window.addEventListener('scroll', () => {
+    const bar = document.querySelector('.tabbar');
+    if (!bar) return;
+    const y = window.scrollY, d = y - last;
+    last = y;
+    const root = document.documentElement;
+    if (root.classList.contains('fsheet-open') || root.classList.contains('lb-on')) return;
+    if (y < 80 || window.innerHeight + y >= root.scrollHeight - 40) { bar.classList.remove('tb-hide'); run = 0; return; }
+    run = Math.sign(d) === Math.sign(run) ? run + d : d; // сколько подряд прокрутили в одну сторону
+    if (run > 24) bar.classList.add('tb-hide');
+    else if (run < -24) bar.classList.remove('tb-hide');
+  }, { passive: true });
+})();
