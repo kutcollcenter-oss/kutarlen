@@ -14,7 +14,7 @@ const seed = require('./lib/seed');
 const { LANGS, KY_KEYS, langOk, localizeSettings } = require('./lib/i18n');
 const { kyText, kyTag } = require('./lib/ky-fill');
 const { migrateHandover, pendingHandover, dropHandoverTags } = require('./lib/handover');
-const { publicApt, kindLabel, unitOf, money, isListed, typeOf, isCashType, cityOf, TYPES, CITIES } = require('./lib/calc');
+const { publicApt, waLink, kindLabel, unitOf, money, isListed, typeOf, isCashType, cityOf, TYPES, CITIES } = require('./lib/calc');
 const { resolveMap } = require('./lib/maps');
 const pages = require('./lib/pages');
 const auth = require('./lib/auth');
@@ -80,6 +80,8 @@ const userOf = r => D().users.find(u => u.realtorId === r.id);
 const isOwnerRealtor = r => D().users.some(u => u.role === 'owner' && u.realtorId === r.id);
 // Очередь на новый ЖК на сайте — только у тех, кому владелец включил (на его собственном сайте её нет)
 const queueAllowed = r => !!r && r.queueAccess === true;
+// ИИ-помощник на сайте — только у тех, кому владелец включил его кнопкой в «Менеджерах» (и у него самого тоже)
+const aiAllowed = r => !!r && r.aiAccess === true;
 const statusOf = r => (isOwnerRealtor(r) ? { active: true, code: 'unlimited', label: 'Владелец — без ограничений' } : tenants.status(r));
 const slugTaken = (slug, except) => D().realtors.some(r => r !== except && (r.slug === slug || (r.oldSlugs || []).includes(slug)));
 const aptsOf = rid => D().apartments.filter(a => a.realtorId === rid);
@@ -90,7 +92,7 @@ const siteUrl = (req, r) => `${base(req)}/${r.slug}`;
 // Язык сайта клиента: выбор хранится в cookie lang (ru — по умолчанию, ky — кыргызский). Роботы поиска видят русский.
 const langOf = req => langOk(cookies(req).lang);
 // Тексты профиля на языке страницы: на кыргызской версии — кыргызские варианты (если менеджер их заполнил)
-const ctxOf = (r, req) => ({ s: localizeSettings(r.settings, langOf(req)), base: base(req), prefix: `/${r.slug}`, slug: r.slug, partnerCta: r.partnerCta !== false, lang: langOf(req), queue: queueAllowed(r) ? { ...queueConf(), open: true } : {} });
+const ctxOf = (r, req) => ({ s: localizeSettings(r.settings, langOf(req)), base: base(req), prefix: `/${r.slug}`, slug: r.slug, partnerCta: r.partnerCta !== false, lang: langOf(req), ai: aiChat.ready() && aiAllowed(r), queue: queueAllowed(r) ? { ...queueConf(), open: true } : {} });
 const pub = (r, a, req, lang = langOf(req)) => publicApt(a, r.settings, base(req), `/${r.slug}`, lang);
 const aptLabel = a => `${a.title ? a.title + ' · ' : ''}${kindLabel(a)}, ${a.area} ${unitOf(a)}`;
 
@@ -198,6 +200,11 @@ app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1h' }));
 // Скрытая страница владельца: учёт доходов и расходов (kvartiry.asia/money, вход по цифровому паролю)
 require('./lib/money').mount(app, { D, save: () => db.save(), cookies, newId: () => db.newId(),
   isOwner: req => { const s = auth.readSession(D().secret, cookies(req).sess, id => D().users.find(u => u.id === id)); return !!(s && s.user.role === 'owner'); } });
+
+// ИИ-помощник на сайтах менеджеров (ключ и включение — у владельца в кабинете)
+const aiChat = require('./lib/aichat').mount(app, { D, save: () => db.save(), requireAuth, ownerOnly, waLink, money,
+  siteFor: slug => { const r = realtorBySlug(slug); return r && statusOf(r).active && aiAllowed(r) ? r : null; },
+  listFor: (r, lang, req) => aptsOf(r.id).filter(isVisible).map(a => pub(r, a, req, lang)) });
 
 // ---------- Публичная часть ----------
 // Главная домена: страница продукта (или сайт выбранного менеджера — настраивается владельцем)
@@ -669,7 +676,7 @@ function realtorRow(r, req, stats) {
     id: r.id, name: r.settings.name, slug: r.slug, url: siteUrl(req, r), login: u ? u.login : '',
     role: u ? u.role : '', status: statusOf(r), plan: r.plan, blocked: !!r.blocked, note: r.note || '',
     createdAt: r.createdAt, apartments: aptsOf(r.id).length, visitors30: st.visitors, wa30: st.wa, lastActivity: st.last,
-    partnerCta: r.partnerCta !== false, queueAccess: queueAllowed(r),
+    partnerCta: r.partnerCta !== false, queueAccess: queueAllowed(r), aiAccess: aiAllowed(r),
   };
 }
 
@@ -779,6 +786,7 @@ app.put('/api/owner/realtors/:id', requireAuth, ownerOnly, (req, res) => {
   if ('note' in b) r.note = String(b.note || '').slice(0, 300);
   if ('partnerCta' in b) r.partnerCta = !!b.partnerCta;
   if ('queueAccess' in b) r.queueAccess = b.queueAccess === true;
+  if ('aiAccess' in b) r.aiAccess = b.aiAccess === true;
   if ('slug' in b) {
     const slug = String(b.slug || '').trim().toLowerCase();
     if (slug !== r.slug) {

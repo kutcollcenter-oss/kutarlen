@@ -965,7 +965,7 @@
 
   async function renderRealtors() {
     if (!isOwner()) { location.hash = '#list'; return; }
-    const [list, product, mine] = await Promise.all([api('GET', '/api/owner/realtors'), api('GET', '/api/owner/product'), api('GET', '/api/admin/apartments')]);
+    const [list, product, mine, ai] = await Promise.all([api('GET', '/api/owner/realtors'), api('GET', '/api/owner/product'), api('GET', '/api/admin/apartments'), api('GET', '/api/owner/aichat')]);
     // Сколько квартир в рассрочку скопируется новому менеджеру (наличные не копируются)
     const myInstallment = mine.filter(a => a.computed.installment || (!cashLike(typeOf(a)) && a.computed.price)).length;
     const others = list.filter(x => x.role !== 'owner');
@@ -1026,6 +1026,7 @@
             ${x.role === 'owner' || !x.apartments ? '' : '<button class="btn" data-act="take">Копировать его квартиры мне</button>'}
             <button class="btn${x.partnerCta ? ' btn-on' : ''}" data-act="cta" title="Блок внизу сайта менеджера, ведёт на kvartiry.asia">«Хотите такой же сайт?»: ${x.partnerCta ? 'показан ✓' : 'скрыт'}</button>
             <button class="btn${x.queueAccess ? ' btn-on' : ''}" data-act="queue" title="Запись клиентов в очередь на новый ЖК на сайте">Очередь на ЖК на сайте: ${x.queueAccess ? 'включена ✓' : 'выключена'}</button>
+            <button class="btn${x.aiAccess ? ' btn-on' : ''}" data-act="ai" title="ИИ-помощник «Спросить» на сайте этого менеджера">ИИ-помощник: ${x.aiAccess ? 'включён ✓' : 'выключен'}</button>
             <button class="btn" data-act="stats">Аналитика</button>
             ${x.role === 'owner' ? '' : x.blocked
               ? '<button class="btn btn-danger-fill" data-act="block">Заблокирован · Разблокировать</button>'
@@ -1061,6 +1062,41 @@
           <button class="btn btn-primary">Сохранить</button> <a class="btn" href="/partner" target="_blank">Открыть ↗</a>
         </form>
       </details>
+      <details class="card" id="aiCard"><summary><b>ИИ-помощник на сайтах</b> · ${ai.on && ai.providers.some(p => p.hasKey) ? `работает ✓ · у ${list.filter(x => x.aiAccess).length} из ${list.length}` : 'выключен'}</summary>
+        <form id="aifm" style="margin-top:12px">
+          <div class="hint" style="margin-bottom:10px">На сайтах выбранных менеджеров появляется золотая кнопка «Спросить». ИИ ведёт себя как опытный продавец и психолог: выясняет, что нужно человеку, отвечает про квартиры этого менеджера, снимает сомнения и ведёт в WhatsApp. Видит, что гость смотрел на сайте. Переписка нигде не сохраняется.<br><b>Кому показывать</b> — кнопкой «ИИ-помощник» у каждого менеджера в списке выше (и у вас тоже). Сейчас включён у: ${list.filter(x => x.aiAccess).map(x => esc(x.name)).join(', ') || 'ни у кого'}.</div>
+          <div class="kpis" style="margin-bottom:12px">
+            <div class="kpi"><span>Разговоров</span><b>${ai.month.chats}</b><small>в этом месяце</small></div>
+            <div class="kpi"><span>Ответов ИИ</span><b>${ai.month.msgs}</b><small>${ai.providers.filter(p => p.used).map(p => `${({ gemini: 'Gemini', groq: 'Groq', claude: 'Claude' })[p.id]}: ${p.used}`).join(' · ') || 'в этом месяце'}</small></div>
+            <div class="kpi"><span>Потрачено</span><b>$${ai.month.cost.toFixed(2)}</b><small>Gemini и Groq — бесплатно</small></div>
+          </div>
+          <label class="f" style="display:flex;gap:10px;align-items:center"><input type="checkbox" name="on" ${ai.on ? 'checked' : ''} style="width:auto"> <span style="margin:0">Помощник работает</span></label>
+
+          ${ai.providers.map((p, i) => `<div style="border:1px solid var(--line,#e5e5ea);border-radius:14px;padding:12px 14px;margin:0 0 12px">
+            <div style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;margin-bottom:8px"><b>${i + 1}. ${esc(p.name)}</b>
+              <span class="hint" style="margin:0">${p.free ? 'бесплатно, с дневным лимитом' : 'платно, только если бесплатные не ответили'}${p.hasKey ? ` · ключ …${esc(p.keyEnd)}${p.resting ? ' · сейчас на перерыве (лимит)' : ' ✓'}` : ' · не подключён'}</span></div>
+            <div class="grid2">
+              <label class="f"><span>Ключ</span><input name="key_${p.id}" type="password" autocomplete="off" placeholder="${p.hasKey ? 'Оставьте пустым, чтобы не менять' : 'Вставьте ключ'}"></label>
+              <label class="f"><span>Модель</span><input type="text" name="model_${p.id}" value="${esc(p.model)}" placeholder="${esc(p.defaultModel)}" data-was="${esc(p.model)}"></label>
+            </div>
+            <div class="hint" style="margin:-6px 0 0">${{
+              gemini: 'Где взять ключ: aistudio.google.com → войти через Google → «Get API key» → «Create API key». Бесплатно, карта не нужна. На бесплатном тарифе Google может использовать переписку для улучшения своих моделей.',
+              groq: 'Где взять ключ: console.groq.com → войти → «API Keys» → «Create API Key». Бесплатно, карта не нужна. Запасной: отвечает, когда у Gemini кончился лимит.',
+              claude: 'Не обязательно. console.anthropic.com → Billing (пополнить) → API Keys. Примерно $0.005–0.01 за разговор, тратится не больше бюджета ниже.',
+            }[p.id]}${p.hasKey ? ` <a href="#" data-delkey="${p.id}">Удалить ключ</a>` : ''}</div>
+          </div>`).join('')}
+
+          <div class="grid2">
+            <label class="f"><span>Бюджет Claude в месяц, $</span><input name="budget" inputmode="decimal" value="${ai.budget}"></label>
+            <label class="f"><span>Сообщений в день с одного телефона</span><input name="ipLimit" inputmode="numeric" value="${ai.ipLimit}"></label>
+            <label class="f"><span>Всего ответов в день</span><input name="dayLimit" inputmode="numeric" value="${ai.dayLimit}"></label>
+          </div>
+          <label class="f"><span>Знания ИИ (о застройщике, компании — ИИ расскажет, если клиент спросит)</span><textarea name="knowledge" rows="10">${esc(ai.knowledge)}</textarea></label>
+          <div class="hint" style="margin:-6px 0 12px">Когда все лимиты исчерпаны, помощник предлагает клиенту написать в WhatsApp. <a href="#" id="aiKnowReset">Вернуть текст про «Кут» по умолчанию</a></div>
+          <div class="err" id="aiErr"></div>
+          <button class="btn btn-primary">Сохранить</button>
+        </form>
+      </details>
     </div>`;
     bindNav();
 
@@ -1074,6 +1110,41 @@
         await renderRealtors();
         showCredentials(res.realtor, res.realtor.login, res.password, `Кабинет для «${res.realtor.name}» создан${res.copied ? ` · скопировано ${flats(res.copied)}` : ''}`);
       } catch (err) { showErr('nfErr', err.message); }
+    };
+
+    const aiForm = document.getElementById('aifm');
+    const aiSave = async (d, ok) => {
+      const btn = aiForm.querySelector('.btn-primary');
+      btn.disabled = true; btn.textContent = 'Проверяю…';
+      try {
+        await api('PUT', '/api/owner/aichat', d); toast(ok);
+        await renderRealtors(); document.getElementById('aiCard').open = true;
+      } catch (err) { showErr('aiErr', err.message); btn.disabled = false; btn.textContent = 'Сохранить'; }
+    };
+    aiForm.onsubmit = e => {
+      e.preventDefault();
+      const f = aiForm;
+      const d = { on: f.on.checked, budget: f.budget.value, ipLimit: f.ipLimit.value, dayLimit: f.dayLimit.value, knowledge: f.knowledge.value, providers: {} };
+      for (const p of ai.providers) {
+        const x = {};
+        const k = f['key_' + p.id].value.trim(); if (k) x.key = k;
+        const m = f['model_' + p.id]; if (m.value.trim() !== m.dataset.was) x.model = m.value.trim();
+        if (Object.keys(x).length) d.providers[p.id] = x;
+      }
+      aiSave(d, d.on ? 'ИИ-помощник сохранён' : 'Сохранено, помощник выключен');
+    };
+    aiForm.onclick = async e => {
+      const del = e.target.closest('[data-delkey]');
+      if (del) {
+        e.preventDefault();
+        if (!(await confirmBox('Удалить этот ключ?', 'Этот ИИ перестанет отвечать на сайтах. Остальные подключённые продолжат работать.', 'Удалить', true))) return;
+        aiSave({ providers: { [del.dataset.delkey]: { key: null } } }, 'Ключ удалён');
+      }
+      if (e.target.id === 'aiKnowReset') {
+        e.preventDefault();
+        if (!(await confirmBox('Вернуть текст по умолчанию?', 'Ваши изменения в «Знаниях ИИ» заменятся историей компании «Кут».', 'Вернуть'))) return;
+        aiSave({ knowledgeReset: true }, 'Текст про «Кут» возвращён');
+      }
     };
 
     document.getElementById('pfm').onsubmit = async e => {
@@ -1091,6 +1162,7 @@
         switch (act.dataset.act) {
           case 'm1': await put({ paidUntil: addMonths(x.plan.paidUntil, 1) }); toast('Продлено на месяц'); break;
           case 'cta': await put({ partnerCta: !x.partnerCta }); toast(x.partnerCta ? 'Призыв скрыт с сайта' : 'Призыв показан на сайте'); break;
+          case 'ai': await put({ aiAccess: !x.aiAccess }); toast(x.aiAccess ? 'ИИ-помощник выключен на сайте' : 'ИИ-помощник включён на сайте'); break;
           case 'queue': await put({ queueAccess: !x.queueAccess }); toast(x.queueAccess ? 'Очередь выключена у менеджера' : 'Очередь включена у менеджера'); break;
           case 'm3': await put({ paidUntil: addMonths(x.plan.paidUntil, 3) }); toast('Продлено на 3 месяца'); break;
           case 'gift': {
