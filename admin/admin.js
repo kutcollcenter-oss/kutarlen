@@ -1076,8 +1076,8 @@
             <div style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;margin-bottom:8px"><b>${i + 1}. ${esc(p.name)}</b>
               <span class="hint" style="margin:0">${p.free ? 'бесплатно, с дневным лимитом' : 'платно, только если бесплатные не ответили'}${p.hasKey ? ` · ключ …${esc(p.keyEnd)}${p.resting ? ' · сейчас на перерыве (лимит)' : ' ✓'}` : ' · не подключён'}</span></div>
             <div class="grid2">
-              <label class="f"><span>Ключ</span><input name="key_${p.id}" type="password" autocomplete="off" placeholder="${p.hasKey ? 'Оставьте пустым, чтобы не менять' : 'Вставьте ключ'}"></label>
-              <label class="f"><span>Модель</span><input type="text" name="model_${p.id}" value="${esc(p.model)}" placeholder="${esc(p.defaultModel)}" data-was="${esc(p.model)}"></label>
+              <label class="f"><span>Ключ</span><input name="key_${p.id}" type="password" autocomplete="new-password" placeholder="${p.hasKey ? 'Оставьте пустым, чтобы не менять' : 'Вставьте ключ'}"></label>
+              <label class="f"><span>Модель</span><input type="text" autocomplete="off" data-lpignore="true" name="model_${p.id}" value="${esc(p.model)}" placeholder="${esc(p.defaultModel)}" data-was="${esc(p.model)}"></label>
             </div>
             <div class="hint" style="margin:-6px 0 0">${{
               gemini: 'Где взять ключ: aistudio.google.com → войти через Google → «Get API key» → «Create API key». Бесплатно, карта не нужна. На бесплатном тарифе Google может использовать переписку для улучшения своих моделей.',
