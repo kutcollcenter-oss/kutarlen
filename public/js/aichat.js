@@ -106,7 +106,7 @@
   let busy = false;
 
   // Текст ИИ: **жирный**, переносы строк; коды [[apt:ID]] убираем — вместо них карточки
-  const fmt = t => esc(String(t).replace(/[ \t]*\[\[apt:[\w-]+\]\][ \t]*\n?/g, '').replace(/\n{3,}/g, '\n\n').trim())
+  const fmt = t => esc(String(t).replace(/[ \t]*\[\[apt:[\w-]+\]\][ \t]*\n?/g, '').replace(/[ \t ​]+\n/g, '\n').replace(/\n{2,}/g, '\n').trim())
     .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
   const card = c => `<div class="ai-card">
       <a class="ai-card-main" href="${esc(c.url)}">
