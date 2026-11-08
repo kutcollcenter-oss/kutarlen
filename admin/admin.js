@@ -1181,7 +1181,7 @@
           <summary><b>${esc(c.name)}</b> <span class="hint" style="margin:0">· ${fmtWhen(c.at)} · ${c.msgs.filter(m => m.r === 'u').length} вопр.${c.wants ? ` · ищет: ${esc(c.wants)}` : ''}</span><div style="margin-top:4px">«${esc(first.slice(0, 120))}»</div></summary>
           <div style="margin-top:10px">${c.msgs.map((m, i) => m.r === 'u'
             ? `<div style="margin:8px 0 4px"><b>Клиент:</b> ${esc(m.t)}</div>`
-            : `<div style="margin:0 0 8px;padding:8px 10px;border-radius:10px;background:var(--soft,#f5f5f7)"><b>ИИ:</b> ${esc(m.t).replace(/\n/g, '<br>')}${m.c && m.c.length ? `<div class="hint" style="margin:4px 0 0">+ показал квартир: ${m.c.length}</div>` : ''}
+            : `<div style="margin:0 0 8px;padding:8px 10px;border-radius:10px;background:var(--soft,#f5f5f7)"><b>${m.p === 'шаблон' ? 'Сайт (без ИИ — лимиты кончились)' : 'ИИ'}:</b> ${esc(m.t).replace(/\n/g, '<br>')}${m.c && m.c.length ? `<div class="hint" style="margin:4px 0 0">+ показал квартир: ${m.c.length}</div>` : ''}
                 <a href="#" class="hint" data-teach="${esc(m.id || '')}" data-q="${esc((c.msgs[i - 1] || {}).t || '')}" style="display:inline-block;margin-top:6px">Научить: ответил не так</a></div>`).join('')}</div>
         </details>`;
       }).join('') : '<div class="hint">Пока разговоров нет.</div>';
