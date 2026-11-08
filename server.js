@@ -92,7 +92,7 @@ const siteUrl = (req, r) => `${base(req)}/${r.slug}`;
 // Язык сайта клиента: выбор хранится в cookie lang (ru — по умолчанию, ky — кыргызский). Роботы поиска видят русский.
 const langOf = req => langOk(cookies(req).lang);
 // Тексты профиля на языке страницы: на кыргызской версии — кыргызские варианты (если менеджер их заполнил)
-const ctxOf = (r, req) => ({ s: localizeSettings(r.settings, langOf(req)), base: base(req), prefix: `/${r.slug}`, slug: r.slug, partnerCta: r.partnerCta !== false, lang: langOf(req), ai: aiChat.ready() && aiAllowed(r), queue: queueAllowed(r) ? { ...queueConf(), open: true } : {} });
+const ctxOf = (r, req) => ({ s: localizeSettings(r.settings, langOf(req)), base: base(req), prefix: `/${r.slug}`, slug: r.slug, partnerCta: r.partnerCta !== false, lang: langOf(req), ai: aiChat.ready() && aiAllowed(r) && (aiChat.logging() ? 'log' : true), queue: queueAllowed(r) ? { ...queueConf(), open: true } : {} });
 const pub = (r, a, req, lang = langOf(req)) => publicApt(a, r.settings, base(req), `/${r.slug}`, lang);
 const aptLabel = a => `${a.title ? a.title + ' · ' : ''}${kindLabel(a)}, ${a.area} ${unitOf(a)}`;
 

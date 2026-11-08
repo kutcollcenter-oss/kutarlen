@@ -1064,13 +1064,14 @@
       </details>
       <details class="card" id="aiCard"><summary><b>ИИ-помощник на сайтах</b> · ${ai.on && ai.providers.some(p => p.hasKey) ? `работает ✓ · у ${list.filter(x => x.aiAccess).length} из ${list.length}` : 'выключен'}</summary>
         <form id="aifm" style="margin-top:12px">
-          <div class="hint" style="margin-bottom:10px">На сайтах выбранных менеджеров появляется золотая кнопка «Спросить». ИИ ведёт себя как опытный продавец и психолог: выясняет, что нужно человеку, отвечает про квартиры этого менеджера, снимает сомнения и ведёт в WhatsApp. Видит, что гость смотрел на сайте. Переписка нигде не сохраняется.<br><b>Кому показывать</b> — кнопкой «ИИ-помощник» у каждого менеджера в списке выше (и у вас тоже). Сейчас включён у: ${list.filter(x => x.aiAccess).map(x => esc(x.name)).join(', ') || 'ни у кого'}.</div>
+          <div class="hint" style="margin-bottom:10px">На сайтах выбранных менеджеров появляется золотая кнопка «Спросить». ИИ ведёт себя как опытный продавец и психолог: выясняет, что нужно человеку, отвечает про квартиры этого менеджера, снимает сомнения и ведёт в WhatsApp. Видит, что гость смотрел на сайте. ${ai.saveChats ? 'Разговоры хранятся 30 дней — ниже их можно прочитать и научить ИИ, где он ответил не так.' : 'Разговоры не сохраняются.'}<br><b>Кому показывать</b> — кнопкой «ИИ-помощник» у каждого менеджера в списке выше (и у вас тоже). Сейчас включён у: ${list.filter(x => x.aiAccess).map(x => esc(x.name)).join(', ') || 'ни у кого'}.</div>
           <div class="kpis" style="margin-bottom:12px">
             <div class="kpi"><span>Разговоров</span><b>${ai.month.chats}</b><small>в этом месяце</small></div>
             <div class="kpi"><span>Ответов ИИ</span><b>${ai.month.msgs}</b><small>${ai.providers.filter(p => p.used).map(p => `${({ gemini: 'Gemini', groq: 'Groq', claude: 'Claude' })[p.id]}: ${p.used}`).join(' · ') || 'в этом месяце'}</small></div>
             <div class="kpi"><span>Потрачено</span><b>$${ai.month.cost.toFixed(2)}</b><small>Gemini и Groq — бесплатно</small></div>
           </div>
           <label class="f" style="display:flex;gap:10px;align-items:center"><input type="checkbox" name="on" ${ai.on ? 'checked' : ''} style="width:auto"> <span style="margin:0">Помощник работает</span></label>
+          <label class="f" style="display:flex;gap:10px;align-items:center"><input type="checkbox" name="saveChats" ${ai.saveChats ? 'checked' : ''} style="width:auto"> <span style="margin:0">Сохранять разговоры 30 дней (чтобы видеть ошибки ИИ и учить его; клиент видит об этом строчку в чате)</span></label>
 
           ${ai.providers.map((p, i) => `<div style="border:1px solid var(--line,#e5e5ea);border-radius:14px;padding:12px 14px;margin:0 0 12px">
             <div style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;margin-bottom:8px"><b>${i + 1}. ${esc(p.name)}</b>
@@ -1096,6 +1097,21 @@
           <div class="err" id="aiErr"></div>
           <button class="btn btn-primary">Сохранить</button>
         </form>
+        <div id="aiTeach" style="margin-top:22px;border-top:1px solid var(--line,#e5e5ea);padding-top:16px">
+          <b>Уроки для ИИ</b> <span class="hint" style="margin:0">· ${ai.lessons.length} из 40</span>
+          <div class="hint" style="margin:6px 0 10px">Урок — «на такой вопрос отвечай так». ИИ читает уроки перед каждым ответом. Проще всего учить из разговоров ниже: у ответа ИИ нажмите «Научить» и напишите, как надо было ответить.</div>
+          ${ai.lessons.map(l => `<div style="border:1px solid var(--line,#e5e5ea);border-radius:12px;padding:10px 12px;margin:0 0 8px">
+            <div class="hint" style="margin:0 0 4px">Клиент: «${esc(l.q)}»</div><div>→ ${esc(l.a)}</div>
+            <a href="#" data-dellesson="${esc(l.id)}" class="hint" style="display:inline-block;margin-top:6px">Удалить урок</a></div>`).join('')}
+          <form id="aiLessonFm" style="margin-top:10px">
+            <label class="f"><span>Вопрос клиента</span><input name="q" maxlength="300" placeholder="Например: а можно без первоначального взноса?"></label>
+            <label class="f"><span>Как правильно ответить</span><textarea name="a" rows="3" maxlength="600" placeholder="Например: совсем без взноса нет, самый низкий взнос — 500 000 сом. Менеджер подберёт вариант в WhatsApp."></textarea></label>
+            <div class="err" id="aiLessonErr"></div>
+            <button class="btn">Добавить урок</button>
+          </form>
+          <div style="margin-top:22px"><b>Разговоры клиентов</b> <span class="hint" style="margin:0">· ${ai.chats}</span></div>
+          ${ai.saveChats ? `<div style="margin-top:8px"><button type="button" class="btn" id="aiChatsBtn">Показать разговоры</button>${ai.chats ? ' <a href="#" id="aiChatsDel" class="hint">Удалить все</a>' : ''}</div><div id="aiChats" style="margin-top:10px"></div>` : '<div class="hint">Сохранение разговоров выключено.</div>'}
+        </div>
       </details>
     </div>`;
     bindNav();
@@ -1124,7 +1140,7 @@
     aiForm.onsubmit = e => {
       e.preventDefault();
       const f = aiForm;
-      const d = { on: f.on.checked, budget: f.budget.value, ipLimit: f.ipLimit.value, dayLimit: f.dayLimit.value, knowledge: f.knowledge.value, providers: {} };
+      const d = { on: f.on.checked, saveChats: f.saveChats.checked, budget: f.budget.value, ipLimit: f.ipLimit.value, dayLimit: f.dayLimit.value, knowledge: f.knowledge.value, providers: {} };
       for (const p of ai.providers) {
         const x = {};
         const k = f['key_' + p.id].value.trim(); if (k) x.key = k;
@@ -1144,6 +1160,58 @@
         e.preventDefault();
         if (!(await confirmBox('Вернуть текст по умолчанию?', 'Ваши изменения в «Знаниях ИИ» заменятся историей компании «Кут».', 'Вернуть'))) return;
         aiSave({ knowledgeReset: true }, 'Текст про «Кут» возвращён');
+      }
+    };
+
+    // Уроки и журнал разговоров
+    const reopenAi = async () => { await renderRealtors(); document.getElementById('aiCard').open = true; document.getElementById('aiTeach').scrollIntoView({ block: 'start' }); };
+    const addLesson = async (q, a, errId) => {
+      try { await api('POST', '/api/owner/aichat/lessons', { q, a }); toast('Урок добавлен — ИИ учтёт его со следующего ответа'); await reopenAi(); }
+      catch (err) { showErr(errId, err.message); }
+    };
+    document.getElementById('aiLessonFm').onsubmit = e => { e.preventDefault(); addLesson(e.target.q.value, e.target.a.value, 'aiLessonErr'); };
+    const fmtWhen = t => new Date(t).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    const showChats = async () => {
+      const box = document.getElementById('aiChats');
+      box.innerHTML = '<div class="hint">Загружаю…</div>';
+      const chats = await api('GET', '/api/owner/aichat/chats');
+      box.innerHTML = chats.length ? chats.map(c => {
+        const first = (c.msgs.find(m => m.r === 'u') || {}).t || '';
+        return `<details style="border:1px solid var(--line,#e5e5ea);border-radius:12px;padding:10px 12px;margin:0 0 8px">
+          <summary><b>${esc(c.name)}</b> <span class="hint" style="margin:0">· ${fmtWhen(c.at)} · ${c.msgs.filter(m => m.r === 'u').length} вопр.${c.wants ? ` · ищет: ${esc(c.wants)}` : ''}</span><div style="margin-top:4px">«${esc(first.slice(0, 120))}»</div></summary>
+          <div style="margin-top:10px">${c.msgs.map((m, i) => m.r === 'u'
+            ? `<div style="margin:8px 0 4px"><b>Клиент:</b> ${esc(m.t)}</div>`
+            : `<div style="margin:0 0 8px;padding:8px 10px;border-radius:10px;background:var(--soft,#f5f5f7)"><b>ИИ:</b> ${esc(m.t).replace(/\n/g, '<br>')}${m.c && m.c.length ? `<div class="hint" style="margin:4px 0 0">+ показал квартир: ${m.c.length}</div>` : ''}
+                <a href="#" class="hint" data-teach="${esc(m.id || '')}" data-q="${esc((c.msgs[i - 1] || {}).t || '')}" style="display:inline-block;margin-top:6px">Научить: ответил не так</a></div>`).join('')}</div>
+        </details>`;
+      }).join('') : '<div class="hint">Пока разговоров нет.</div>';
+    };
+    document.getElementById('aiTeach').onclick = async e => {
+      const t = e.target;
+      if (t.id === 'aiChatsBtn') { showChats().catch(err => toast(err.message)); return; }
+      if (t.id === 'aiChatsDel') {
+        e.preventDefault();
+        if (!(await confirmBox('Удалить все разговоры?', 'Журнал очистится. Уроки останутся.', 'Удалить', true))) return;
+        await api('DELETE', '/api/owner/aichat/chats'); toast('Разговоры удалены'); await reopenAi(); return;
+      }
+      const del = t.closest('[data-dellesson]');
+      if (del) {
+        e.preventDefault();
+        await api('DELETE', `/api/owner/aichat/lessons/${encodeURIComponent(del.dataset.dellesson)}`); toast('Урок удалён'); await reopenAi(); return;
+      }
+      const teach = t.closest('[data-teach]');
+      if (teach) {
+        e.preventDefault();
+        if (teach.nextElementSibling && teach.nextElementSibling.classList.contains('ai-teach-fm')) { teach.nextElementSibling.remove(); return; }
+        const fm = document.createElement('form');
+        fm.className = 'ai-teach-fm'; fm.style.marginTop = '8px';
+        const eid = 'teachErr' + Math.random().toString(36).slice(2, 7);
+        fm.innerHTML = `<label class="f"><span>Вопрос клиента</span><input name="q" maxlength="300"></label>
+          <label class="f"><span>Как правильно ответить</span><textarea name="a" rows="3" maxlength="600" placeholder="Напишите, что ИИ должен был сказать"></textarea></label>
+          <div class="err" id="${eid}"></div><button class="btn btn-primary">Запомнить урок</button>`;
+        fm.q.value = teach.dataset.q;
+        fm.onsubmit = ev => { ev.preventDefault(); addLesson(fm.q.value, fm.a.value, eid); };
+        teach.after(fm); fm.a.focus();
       }
     };
 

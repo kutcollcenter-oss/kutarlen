@@ -1,5 +1,6 @@
 // ИИ-помощник на сайте менеджера: кнопка внизу справа и окно чата.
-// Разговор хранится только в этой вкладке (sessionStorage) — на сервере переписка не сохраняется.
+// Разговор хранится в этой вкладке (sessionStorage). Если владелец включил журнал (D.aiLog),
+// сервер сохраняет текст разговора на 30 дней, чтобы владелец видел ошибки ИИ и учил его.
 (function () {
   const D = window.__DATA__ || {};
   if (!D.ai || !D.slug) return;
@@ -12,7 +13,7 @@
     helloSeen: 'Салам! Бир нече батирди карап чыктыңыз — салыштырып, бюджетиңизге ылайыгын тандоого жардам берейинби?', tip: 'Тандоого жардам берейинби? Айлык төлөмдү эсептеп берем',
     chips: ['Батир тандоо', 'Алгачкы төлөм канча?', 'Бөлүп төлөө кандай?', '1 бөлмөлүү барбы?'],
     wa: 'WhatsApp', more: 'Толугураак', month: '/ай', err: 'Байланыш жок. Кайра аракет кылыңыз.', send: 'Жөнөтүү', close: 'Жабуу',
-    note: 'ИИ жаңылышы мүмкүн — так маалыматты менеджер WhatsAppта берет.', waAbout: 'Ушул батир боюнча',
+    note: 'ИИ жаңылышы мүмкүн — так маалыматты менеджер WhatsAppта берет.', noteLog: ' Жардамчы жакшыраак болушу үчүн кат алышуу сакталат.', waAbout: 'Ушул батир боюнча',
   } : {
     fab: 'Спросить', title: 'Помощник', sub: 'ИИ-помощник · онлайн', ph: 'Напишите вопрос…',
     hello: `Здравствуйте! Я помощник ${s.name ? `менеджера ${s.name}` : 'менеджера'}. Помогу подобрать квартиру — напишите бюджет или сколько комнат нужно.`,
@@ -20,7 +21,7 @@
     helloSeen: 'Здравствуйте! Вижу, вы посмотрели несколько квартир — помочь сравнить и выбрать под ваш бюджет?', tip: 'Помочь с выбором? Посчитаю платёж под ваш бюджет',
     chips: ['Подобрать квартиру', 'Какой первый взнос?', 'Как работает рассрочка?', 'Есть 1-комнатные?'],
     wa: 'WhatsApp', more: 'Подробнее', month: '/мес', err: 'Нет связи. Попробуйте ещё раз.', send: 'Отправить', close: 'Закрыть',
-    note: 'ИИ может ошибаться — точные условия подтвердит менеджер в WhatsApp.', waAbout: 'Про эту квартиру',
+    note: 'ИИ может ошибаться — точные условия подтвердит менеджер в WhatsApp.', noteLog: ' Переписка сохраняется, чтобы помощник отвечал лучше.', waAbout: 'Про эту квартиру',
   };
   const aptId = D.apartment ? D.apartment.id : '';
   const KEY = `aichat:${D.slug}`;
@@ -30,6 +31,9 @@
 
   let msgs = [];   // { role: 'user'|'assistant', content, cards? }
   try { msgs = JSON.parse(sessionStorage.getItem(KEY) || '[]'); } catch (e) {}
+  // Номер разговора — чтобы ответы одного разговора лежали в журнале вместе
+  let chatId = '';
+  try { chatId = sessionStorage.getItem(KEY + ':id') || ''; if (!chatId) { chatId = Math.random().toString(36).slice(2, 12) + Date.now().toString(36); sessionStorage.setItem(KEY + ':id', chatId); } } catch (e) {}
   const store = () => { try { sessionStorage.setItem(KEY, JSON.stringify(msgs.slice(-30))); } catch (e) {} };
 
   // ---------- Что гость делает на сайте (только в этой вкладке; уходит ИИ вместе с вопросом) ----------
@@ -95,7 +99,7 @@
       <textarea rows="1" maxlength="800" placeholder="${T.ph}" aria-label="${T.ph}"></textarea>
       <button type="submit" aria-label="${T.send}"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3.4 20.4 21 12 3.4 3.6 3.4 10l12.6 2-12.6 2z"/></svg></button>
     </form>
-    <div class="ai-note">${T.note}</div>`;
+    <div class="ai-note">${T.note}${D.aiLog ? T.noteLog : ''}</div>`;
   const shade = document.createElement('div'); shade.className = 'ai-shade';
   document.body.append(shade, box, fab);
 
@@ -128,7 +132,14 @@
   function render() {
     const hello = { role: 'assistant', content: greeting() };
     log.innerHTML = [hello, ...msgs].map(bubble).join('') + (busy ? '<div class="ai-msg ai-bot"><div class="ai-txt ai-dots"><i></i><i></i><i></i></div></div>' : '');
-    chips.innerHTML = msgs.length ? '' : T.chips.map(c => `<button type="button">${esc(c)}</button>`).join('');
+    // Подсказки: в начале — общие, потом — те, что сервер предложил к последнему ответу
+    const last = msgs[msgs.length - 1];
+    const list = !msgs.length ? T.chips : !busy && last.role === 'assistant' ? last.chips || [] : [];
+    chips.innerHTML = list.map(c => `<button type="button">${esc(c)}</button>`).join('');
+    // Кнопка WhatsApp вверху: с итогом разговора (что ищет клиент, какие квартиры показали)
+    const waTop = box.querySelector('.ai-wa');
+    const lastWa = [...msgs].reverse().find(m => m.wa);
+    if (waTop && lastWa) waTop.href = lastWa.wa;
     log.scrollTop = log.scrollHeight;
   }
 
@@ -143,11 +154,13 @@
     try {
       const r = await fetch(`/api/chat/${encodeURIComponent(D.slug)}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lang: D.lang, apt: aptId, greeting: greeting(), journey: journey(), messages: msgs.map(m => ({ role: m.role, content: m.content })) }),
+        body: JSON.stringify({ lang: D.lang, apt: aptId, chatId, greeting: greeting(), journey: journey(),
+          shown: msgs.flatMap(m => (m.cards || []).map(c => c.id)).slice(-3),
+          messages: msgs.map(m => ({ role: m.role, content: m.content })) }),
       });
       const d = await r.json();
       if (!r.ok || !d.reply) throw new Error();
-      msgs.push({ role: 'assistant', content: d.reply, cards: d.cards || [] });
+      msgs.push({ role: 'assistant', content: d.reply, cards: d.cards || [], chips: (d.chips || []).slice(0, 3), wa: /^https:\/\/wa\.me\//.test(d.wa || '') ? d.wa : '' });
     } catch (e) {
       msgs.pop(); input.value = text; grow();
       msgs.push({ role: 'assistant', content: T.err, local: true });
