@@ -188,6 +188,8 @@
   fab.onclick = () => { hideTip(); open(true); };
   shade.onclick = () => open(false);
   box.querySelector('.ai-x').onclick = () => open(false);
+  // Колёсико мыши над подсказками листает их вбок
+  chips.addEventListener('wheel', e => { if (chips.scrollWidth > chips.clientWidth && Math.abs(e.deltaY) > Math.abs(e.deltaX)) { chips.scrollLeft += e.deltaY; e.preventDefault(); } }, { passive: false });
   chips.onclick = e => { const b = e.target.closest('button'); if (b) send(b.textContent); };
   form.onsubmit = e => { e.preventDefault(); send(input.value); };
   input.addEventListener('input', grow);
