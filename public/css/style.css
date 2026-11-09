@@ -476,7 +476,7 @@ input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 1px sol
 .preloader {
   position: fixed; inset: 0; z-index: 100; background: var(--bg);
   display: grid; place-items: center;
-  transition: transform .6s var(--ease-out);
+  transition: transform .45s var(--ease-out);
 }
 .no-pl .preloader, html:not(.js) .preloader { display: none; }
 .pl-done .preloader { transform: translateY(-100%); }
@@ -517,7 +517,7 @@ input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 1px sol
 .hero-photo img { transform-origin: 50% 30%; }
 .js:not(.ready) .hero-photo { clip-path: inset(100% 0 0 0); }
 .js:not(.ready) .hero-photo img { transform: scale(1.25); }
-.ready .hero-photo { clip-path: inset(0 0 0 0); transition: clip-path 1s var(--ease-out); }
+.ready .hero-photo { clip-path: inset(0 0 0 0); transition: clip-path .7s var(--ease-out); }
 .ready .hero-photo img { transform: scale(1); transition: transform 2.2s var(--ease-out) .15s; }
 
 /* Галерея на странице квартиры — та же шторка */

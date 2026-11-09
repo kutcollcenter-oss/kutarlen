@@ -132,14 +132,19 @@
   const pre = document.getElementById('preloader');
   const ready = () => root.classList.add('ready');
   if (pre && !root.classList.contains('no-pl') && !calm) {
-    const minTime = new Promise(r => setTimeout(r, 600)); // заставка короткая: клиент из Instagram не должен ждать
-    const loaded = new Promise(r => (document.readyState === 'complete' ? r() : window.addEventListener('load', r, { once: true })));
-    const maxTime = new Promise(r => setTimeout(r, 1800)); // не держим заставку дольше 1,8 с на медленном интернете
+    // Заставка короткая: клиент из Instagram не должен ждать. Ждём только фото первого экрана
+    // (а не всю страницу с фото квартир и счётчиками) — и не дольше 0,9 с на медленном интернете
+    const minTime = new Promise(r => setTimeout(r, 350));
+    const heroImg = document.querySelector('.hero-photo img');
+    const loaded = heroImg && !heroImg.complete
+      ? new Promise(r => { heroImg.addEventListener('load', r, { once: true }); heroImg.addEventListener('error', r, { once: true }); })
+      : Promise.resolve();
+    const maxTime = new Promise(r => setTimeout(r, 900));
     Promise.race([Promise.all([minTime, loaded]), maxTime]).then(() => {
       root.classList.add('pl-done');
       try { sessionStorage.setItem('pl', '1'); } catch (e) {}
-      setTimeout(ready, 150);
-      setTimeout(() => pre.remove(), 1200);
+      setTimeout(ready, 100);
+      setTimeout(() => pre.remove(), 800);
     });
   } else {
     if (pre) pre.remove();
