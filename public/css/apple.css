@@ -605,6 +605,8 @@ input.range { background: linear-gradient(to right, #b8924f var(--p), #e7dfd1 va
 /* Кружок «Обо мне»: лицо крупно — фото увеличено внутри круга (на фото менеджера лицо обычно в верхней трети) */
 .about-ava { display: block; position: relative; overflow: hidden; width: 116px; height: 116px; padding: 0; object-fit: initial; }
 .about-ava img { position: absolute; left: 50%; top: 0; width: 210%; max-width: none; height: auto; transform: translate(-50%, -14%); }
+/* Лицо выбрано в кабинете: точка (fx, fy) фото — в центре кружка, фото увеличено в fz/100 раз */
+.about-ava.ava-set img { top: 50%; width: calc(var(--fz) * 1%); transform: translate(calc(var(--fx) * -1%), calc(var(--fy) * -1%)); }
 .stat svg { color: var(--gold) !important; }
 @media (min-width: 900px) { .ftop .seg { max-width: 620px; } }
 

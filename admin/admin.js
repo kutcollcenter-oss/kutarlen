@@ -714,6 +714,18 @@
             ${s.photo ? `<img src="${esc(s.photo)}" style="width:72px;height:90px;object-fit:cover;border-radius:10px">` : ''}
             <label class="upload" style="flex:1"><input type="file" id="pf" accept="image/*">+ ${s.photo ? 'Заменить фото' : 'Загрузить своё фото'}</label>
           </div>
+          ${s.photo ? `<div class="f" id="avaPick"><span>Лицо в кружке «Обо мне»</span>
+            <div class="hint" style="margin:0 0 10px">Нажмите на фото точно на лицо, потом ползунком приблизьте. Справа — как будет на сайте. Потом «Сохранить».</div>
+            <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap">
+              <div style="position:relative;cursor:crosshair;line-height:0;max-width:220px"><img id="avaSrc" src="${esc(s.photo)}" alt="" style="width:100%;border-radius:12px;display:block">
+                <i id="avaDot" style="position:absolute;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 2px #a8834a,0 2px 6px rgba(0,0,0,.4);pointer-events:none"></i></div>
+              <div style="text-align:center">
+                <span id="avaPrev" style="display:block;position:relative;overflow:hidden;width:116px;height:116px;border-radius:50%;border:3px solid #a8834a;background:#eee"><img src="${esc(s.photo)}" alt="" style="position:absolute;left:50%;top:50%;max-width:none;height:auto"></span>
+                <label style="display:block;margin-top:12px;font-size:13px">Приблизить<br><input type="range" id="avaZoom" min="100" max="400" step="5" style="width:140px"></label>
+              </div>
+            </div>
+            <input type="hidden" name="photoX" value="${esc(s.photoX)}"><input type="hidden" name="photoY" value="${esc(s.photoY)}"><input type="hidden" name="photoZoom" value="${esc(s.photoZoom)}">
+          </div>` : ''}
           ${f('name', 'Имя')}
           ${f('role', 'Кем работаете', 'text', 'Например: Менеджер строительной компании «Кут»')}
         </div>
@@ -812,6 +824,30 @@
       };
     };
     upload('pf', '/api/admin/settings/photo', 'photo', 'Фото обновлено');
+    // Выбор лица для кружка «Обо мне»
+    const pick = document.getElementById('avaPick');
+    if (pick) {
+      const fx = form.photoX, fy = form.photoY, fz = form.photoZoom;
+      if (fx.value === '') { fx.value = 50; fy.value = 30; }
+      if (fz.value === '') fz.value = 210;
+      const zoom = document.getElementById('avaZoom');
+      const drawAva = () => {
+        zoom.value = fz.value;
+        const dot = document.getElementById('avaDot');
+        dot.style.left = fx.value + '%'; dot.style.top = fy.value + '%';
+        const im = document.querySelector('#avaPrev img');
+        im.style.width = fz.value + '%';
+        im.style.transform = `translate(-${fx.value}%, -${fy.value}%)`;
+      };
+      document.getElementById('avaSrc').onclick = e => {
+        const r = e.currentTarget.getBoundingClientRect();
+        fx.value = Math.round(((e.clientX - r.left) / r.width) * 100);
+        fy.value = Math.round(((e.clientY - r.top) / r.height) * 100);
+        drawAva();
+      };
+      zoom.oninput = () => { fz.value = zoom.value; drawAva(); };
+      drawAva();
+    }
     upload('lf2', '/api/admin/settings/logo', 'logo', 'Логотип обновлён');
     const del = document.getElementById('logoDel');
     if (del) del.onclick = async () => { settings = await api('DELETE', '/api/admin/settings/logo'); renderSettings(); };

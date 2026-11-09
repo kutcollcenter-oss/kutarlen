@@ -589,7 +589,7 @@ app.delete('/api/admin/apartments/:id', requireAuth, (req, res) => {
 
 // ---------- Кабинет: настройки своего сайта ----------
 const SETTINGS_KEYS = ['name', 'role', 'company', 'tagline', 'about', 'stats', 'whatsapp', 'instagram', 'officeAddress', 'officeLink',
-  'currencyInstallment', 'currencyCash', 'heroKicker', 'heroPoints', 'ctaTitle', 'ctaText', 'steps', 'documents', 'reviews', 'faq', 'privacy',
+  'currencyInstallment', 'currencyCash', 'heroKicker', 'heroPoints', 'ctaTitle', 'ctaText', 'steps', 'documents', 'reviews', 'faq', 'privacy', 'photoX', 'photoY', 'photoZoom',
   ...KY_KEYS.map(k => k + 'Ky')]; // кыргызские варианты текстов профиля
 // Раздел «Уведомления и внешние счётчики» убран: Telegram-бот, Google Analytics, Метрика, пиксель не используются.
 // Браузер подставлял туда логин и пароль от кабинета, поэтому старые значения стираем при запуске (см. ниже).
@@ -633,6 +633,8 @@ app.post('/api/admin/settings/photo', requireAuth, upload.single('photo'), async
   if (!req.file) return res.status(400).json({ error: 'Нет файла' });
   const name = await savePhoto(req.file.buffer);
   req.realtor.settings.photo = `/uploads/${name}.webp`;
+  // Новое фото — лицо в кружке «Обо мне» выбирается заново
+  for (const k of ['photoX', 'photoY', 'photoZoom']) delete req.realtor.settings[k];
   db.save();
   res.json(req.realtor.settings);
 });
