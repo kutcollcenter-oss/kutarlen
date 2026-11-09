@@ -21,11 +21,7 @@
   $('heroPhoto').innerHTML = S.photo
     ? `<img src="${esc(S.photo)}" alt="${esc(S.name)}" fetchpriority="high">`
     : `<div class="hero-initials">${esc(S.name.split(/\s+/).map(w => w[0]).join('').slice(0, 2))}</div>`;
-  const waGeneral = wa(L('waGeneral'));
-  $('ctaWa').href = waGeneral;
-  $('ctaWa').insertAdjacentHTML('afterbegin', D.waIcon);
-  $('ctaTitle').textContent = S.ctaTitle;
-  $('ctaText').textContent = S.ctaText || '';
+  // Нижний блок «Выберите квартиру — и напишите» заполняет сервер (одинаковый у всех менеджеров)
   $('heroKicker').textContent = S.heroKicker || '';
   $('heroKicker').hidden = !S.heroKicker;
   $('heroPoints').innerHTML = lines(S.heroPoints).map(p => `<li>${esc(p)}</li>`).join('');
