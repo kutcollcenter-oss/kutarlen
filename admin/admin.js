@@ -714,20 +714,9 @@
             ${s.photo ? `<img src="${esc(s.photo)}" style="width:72px;height:90px;object-fit:cover;border-radius:10px">` : ''}
             <label class="upload" style="flex:1"><input type="file" id="pf" accept="image/*">+ ${s.photo ? 'Заменить фото' : 'Загрузить своё фото'}</label>
           </div>
-          ${s.photo ? `<div class="f" id="avaPick"><span>Лицо в кружке «Обо мне»</span>
-            <div class="hint" style="margin:0 0 10px">Нажмите на фото точно на лицо, потом ползунком приблизьте. Справа — как будет на сайте. Потом «Сохранить».</div>
-            <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap">
-              <div style="position:relative;cursor:crosshair;line-height:0;max-width:220px"><img id="avaSrc" src="${esc(s.photo)}" alt="" style="width:100%;border-radius:12px;display:block">
-                <i id="avaDot" style="position:absolute;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 2px #a8834a,0 2px 6px rgba(0,0,0,.4);pointer-events:none"></i></div>
-              <div style="text-align:center">
-                <span id="avaPrev" style="display:block;position:relative;overflow:hidden;width:116px;height:116px;border-radius:50%;border:3px solid #a8834a;background:#eee"><img src="${esc(s.photo)}" alt="" style="position:absolute;left:50%;top:50%;max-width:none;height:auto"></span>
-                <label style="display:block;margin-top:12px;font-size:13px">Приблизить<br><input type="range" id="avaZoom" min="100" max="400" step="5" style="width:140px"></label>
-              </div>
-            </div>
-            <input type="hidden" name="photoX" value="${esc(s.photoX)}"><input type="hidden" name="photoY" value="${esc(s.photoY)}"><input type="hidden" name="photoZoom" value="${esc(s.photoZoom)}">
-          </div>` : ''}
           ${f('name', 'Имя')}
           ${f('role', 'Кем работаете', 'text', 'Например: Менеджер строительной компании «Кут»')}
+          ${me.kutSite ? `<label class="f" style="display:flex;gap:10px;align-items:flex-start"><input type="checkbox" name="kutShow" ${s.kutShow === 'on' ? 'checked' : ''} style="width:auto;margin-top:3px"> <span style="margin:0">Показывать на сайте блок «Достижения компании» — сданные и строящиеся дома «Кут» (после «Обо мне»)</span></label>` : ''}
         </div>
         <div class="card" data-ptab="texts"><h2 style="margin-top:0">Первый экран и «Обо мне»</h2>
           ${f('heroKicker', 'Надпись над заголовком')}
@@ -810,6 +799,7 @@
       e.preventDefault();
       // Поля карточек отзывов и новостей без name — в форму не попадают; они собираются из карточек
       const data = Object.fromEntries(new FormData(form));
+      if (form.kutShow) data.kutShow = form.kutShow.checked ? 'on' : ''; // снятая галочка тоже сохраняется
       data.reviews = getReviews();
       data.news = getNews();
       settings = await api('PUT', '/api/admin/settings', data);
@@ -824,30 +814,6 @@
       };
     };
     upload('pf', '/api/admin/settings/photo', 'photo', 'Фото обновлено');
-    // Выбор лица для кружка «Обо мне»
-    const pick = document.getElementById('avaPick');
-    if (pick) {
-      const fx = form.photoX, fy = form.photoY, fz = form.photoZoom;
-      if (fx.value === '') { fx.value = 50; fy.value = 30; }
-      if (fz.value === '') fz.value = 210;
-      const zoom = document.getElementById('avaZoom');
-      const drawAva = () => {
-        zoom.value = fz.value;
-        const dot = document.getElementById('avaDot');
-        dot.style.left = fx.value + '%'; dot.style.top = fy.value + '%';
-        const im = document.querySelector('#avaPrev img');
-        im.style.width = fz.value + '%';
-        im.style.transform = `translate(-${fx.value}%, -${fy.value}%)`;
-      };
-      document.getElementById('avaSrc').onclick = e => {
-        const r = e.currentTarget.getBoundingClientRect();
-        fx.value = Math.round(((e.clientX - r.left) / r.width) * 100);
-        fy.value = Math.round(((e.clientY - r.top) / r.height) * 100);
-        drawAva();
-      };
-      zoom.oninput = () => { fz.value = zoom.value; drawAva(); };
-      drawAva();
-    }
     upload('lf2', '/api/admin/settings/logo', 'logo', 'Логотип обновлён');
     const del = document.getElementById('logoDel');
     if (del) del.onclick = async () => { settings = await api('DELETE', '/api/admin/settings/logo'); renderSettings(); };
@@ -1059,6 +1025,7 @@
             ${x.role === 'owner' || !myInstallment ? '' : '<button class="btn" data-act="copy">Копировать мои квартиры ему</button>'}
             ${x.role === 'owner' || !x.apartments ? '' : '<button class="btn" data-act="take">Копировать его квартиры мне</button>'}
             <button class="btn${x.partnerCta ? ' btn-on' : ''}" data-act="cta" title="Блок внизу сайта менеджера, ведёт на kvartiry.asia">«Хотите такой же сайт?»: ${x.partnerCta ? 'показан ✓' : 'скрыт'}</button>
+            <button class="btn${x.kutAccess ? ' btn-on' : ''}" data-act="kut" title="Доступ к блоку «Достижения компании» (объекты «Кут»). Менеджер сам включает его у себя в профиле">Объекты «Кут»: ${x.kutAccess ? 'доступ есть ✓' : 'нет доступа'}</button>
             <button class="btn${x.queueAccess ? ' btn-on' : ''}" data-act="queue" title="Запись клиентов в очередь на новый ЖК на сайте">Очередь на ЖК на сайте: ${x.queueAccess ? 'включена ✓' : 'выключена'}</button>
             <button class="btn${x.aiAccess ? ' btn-on' : ''}" data-act="ai" title="ИИ-помощник «Спросить» на сайте этого менеджера">ИИ-помощник: ${x.aiAccess ? 'включён ✓' : 'выключен'}</button>
             <button class="btn" data-act="stats">Аналитика</button>
@@ -1265,6 +1232,7 @@
           case 'm1': await put({ paidUntil: addMonths(x.plan.paidUntil, 1) }); toast('Продлено на месяц'); break;
           case 'cta': await put({ partnerCta: !x.partnerCta }); toast(x.partnerCta ? 'Призыв скрыт с сайта' : 'Призыв показан на сайте'); break;
           case 'ai': await put({ aiAccess: !x.aiAccess }); toast(x.aiAccess ? 'ИИ-помощник выключен на сайте' : 'ИИ-помощник включён на сайте'); break;
+          case 'kut': await put({ kutAccess: !x.kutAccess }); toast(x.kutAccess ? 'Доступ к объектам «Кут» закрыт — блок скрыт с сайта' : 'Доступ дан — менеджер включит блок у себя в профиле'); break;
           case 'queue': await put({ queueAccess: !x.queueAccess }); toast(x.queueAccess ? 'Очередь выключена у менеджера' : 'Очередь включена у менеджера'); break;
           case 'm3': await put({ paidUntil: addMonths(x.plan.paidUntil, 3) }); toast('Продлено на 3 месяца'); break;
           case 'gift': {

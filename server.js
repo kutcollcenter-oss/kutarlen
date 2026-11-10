@@ -80,6 +80,8 @@ const userOf = r => D().users.find(u => u.realtorId === r.id);
 const isOwnerRealtor = r => D().users.some(u => u.role === 'owner' && u.realtorId === r.id);
 // Очередь на новый ЖК на сайте — только у тех, кому владелец включил (на его собственном сайте её нет)
 const queueAllowed = r => !!r && r.queueAccess === true;
+// Блок «Достижения компании» (объекты «Кут»): владелец даёт доступ, менеджер сам включает у себя в профиле
+const kutAllowed = r => !!r && r.kutAccess === true;
 // ИИ-помощник на сайте — только у тех, кому владелец включил его кнопкой в «Менеджерах» (и у него самого тоже)
 const aiAllowed = r => !!r && r.aiAccess === true;
 const statusOf = r => (isOwnerRealtor(r) ? { active: true, code: 'unlimited', label: 'Владелец — без ограничений' } : tenants.status(r));
@@ -92,7 +94,7 @@ const siteUrl = (req, r) => `${base(req)}/${r.slug}`;
 // Язык сайта клиента: выбор хранится в cookie lang (ru — по умолчанию, ky — кыргызский). Роботы поиска видят русский.
 const langOf = req => langOk(cookies(req).lang);
 // Тексты профиля на языке страницы: на кыргызской версии — кыргызские варианты (если менеджер их заполнил)
-const ctxOf = (r, req) => ({ s: localizeSettings(r.settings, langOf(req)), base: base(req), prefix: `/${r.slug}`, slug: r.slug, partnerCta: r.partnerCta !== false, lang: langOf(req), ai: aiChat.ready() && aiAllowed(r) && (aiChat.logging() ? 'log' : true), queue: queueAllowed(r) ? { ...queueConf(), open: true } : {} });
+const ctxOf = (r, req) => ({ s: localizeSettings(r.settings, langOf(req)), base: base(req), prefix: `/${r.slug}`, slug: r.slug, partnerCta: r.partnerCta !== false, lang: langOf(req), ai: aiChat.ready() && aiAllowed(r) && (aiChat.logging() ? 'log' : true), kut: kutAllowed(r) && r.settings.kutShow === 'on', queue: queueAllowed(r) ? { ...queueConf(), open: true } : {} });
 const pub = (r, a, req, lang = langOf(req)) => publicApt(a, r.settings, base(req), `/${r.slug}`, lang);
 const aptLabel = a => `${a.title ? a.title + ' · ' : ''}${kindLabel(a)}, ${a.area} ${unitOf(a)}`;
 
@@ -237,7 +239,9 @@ app.get(PARTNER_PATH, (req, res) => {
   // Лица — самые посещаемые сайты за 30 дней (уникальные посетители, как в кабинете «Менеджеры»), без владельца:
   // сначала менеджеры с фото, по числу посетителей; если с фото меньше шести — добираем остальных по тому же порядку.
   const isTest = r => /^test\d*$/i.test(String((userOf(r) || {}).login || ''));
-  const using = D().realtors.filter(r => statusOf(r).active && !isTest(r));
+  // Только оплаченные: стоит дата «оплачено до», и она не прошла (без срока, заблокированные и с истёкшей оплатой — не считаем); владелец — всегда
+  const paid = r => isOwnerRealtor(r) || (statusOf(r).active && !!(r.plan && r.plan.paidUntil));
+  const using = D().realtors.filter(r => paid(r) && !isTest(r));
   const visits = analytics.summary(30);
   const seen = r => (visits[r.id] || {}).visitors || 0;
   const faces = using.filter(r => !isOwnerRealtor(r))
@@ -445,6 +449,7 @@ app.get('/api/admin/me', requireAuth, (req, res) => {
     short: !!req.sessShort, idleMin: IDLE_MIN,
     // Вкладка «Очередь»: владельцу — всегда, менеджеру — если ему включён доступ или у него уже есть клиенты
     queueSite: queueAllowed(r), // запись в очередь на его сайте включена владельцем
+    kutSite: kutAllowed(r), // владелец дал доступ к блоку «Достижения компании»
     queueOn: req.user.role === 'owner' || queueAllowed(r) || (D().queue || []).some(q => q.realtorId === r.id),
     realtor: {
       id: r.id, slug: r.slug, url: siteUrl(req, r), name: r.settings.name,
@@ -589,7 +594,7 @@ app.delete('/api/admin/apartments/:id', requireAuth, (req, res) => {
 
 // ---------- Кабинет: настройки своего сайта ----------
 const SETTINGS_KEYS = ['name', 'role', 'company', 'tagline', 'about', 'stats', 'whatsapp', 'instagram', 'officeAddress', 'officeLink',
-  'currencyInstallment', 'currencyCash', 'heroKicker', 'heroPoints', 'ctaTitle', 'ctaText', 'steps', 'documents', 'reviews', 'faq', 'privacy', 'photoX', 'photoY', 'photoZoom',
+  'currencyInstallment', 'currencyCash', 'heroKicker', 'heroPoints', 'ctaTitle', 'ctaText', 'steps', 'documents', 'reviews', 'faq', 'privacy', 'kutShow',
   ...KY_KEYS.map(k => k + 'Ky')]; // кыргызские варианты текстов профиля
 // Раздел «Уведомления и внешние счётчики» убран: Telegram-бот, Google Analytics, Метрика, пиксель не используются.
 // Браузер подставлял туда логин и пароль от кабинета, поэтому старые значения стираем при запуске (см. ниже).
@@ -633,8 +638,6 @@ app.post('/api/admin/settings/photo', requireAuth, upload.single('photo'), async
   if (!req.file) return res.status(400).json({ error: 'Нет файла' });
   const name = await savePhoto(req.file.buffer);
   req.realtor.settings.photo = `/uploads/${name}.webp`;
-  // Новое фото — лицо в кружке «Обо мне» выбирается заново
-  for (const k of ['photoX', 'photoY', 'photoZoom']) delete req.realtor.settings[k];
   db.save();
   res.json(req.realtor.settings);
 });
@@ -678,7 +681,7 @@ function realtorRow(r, req, stats) {
     id: r.id, name: r.settings.name, slug: r.slug, url: siteUrl(req, r), login: u ? u.login : '',
     role: u ? u.role : '', status: statusOf(r), plan: r.plan, blocked: !!r.blocked, note: r.note || '',
     createdAt: r.createdAt, apartments: aptsOf(r.id).length, visitors30: st.visitors, wa30: st.wa, lastActivity: st.last,
-    partnerCta: r.partnerCta !== false, queueAccess: queueAllowed(r), aiAccess: aiAllowed(r),
+    partnerCta: r.partnerCta !== false, queueAccess: queueAllowed(r), aiAccess: aiAllowed(r), kutAccess: kutAllowed(r),
   };
 }
 
@@ -788,6 +791,7 @@ app.put('/api/owner/realtors/:id', requireAuth, ownerOnly, (req, res) => {
   if ('note' in b) r.note = String(b.note || '').slice(0, 300);
   if ('partnerCta' in b) r.partnerCta = !!b.partnerCta;
   if ('queueAccess' in b) r.queueAccess = b.queueAccess === true;
+  if ('kutAccess' in b) r.kutAccess = b.kutAccess === true;
   if ('aiAccess' in b) r.aiAccess = b.aiAccess === true;
   if ('slug' in b) {
     const slug = String(b.slug || '').trim().toLowerCase();

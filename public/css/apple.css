@@ -605,8 +605,6 @@ input.range { background: linear-gradient(to right, #b8924f var(--p), #e7dfd1 va
 /* Кружок «Обо мне»: лицо крупно — фото увеличено внутри круга (на фото менеджера лицо обычно в верхней трети) */
 .about-ava { display: block; position: relative; overflow: hidden; width: 116px; height: 116px; padding: 0; object-fit: initial; }
 .about-ava img { position: absolute; left: 50%; top: 0; width: 210%; max-width: none; height: auto; transform: translate(-50%, -14%); }
-/* Лицо выбрано в кабинете: точка (fx, fy) фото — в центре кружка, фото увеличено в fz/100 раз */
-.about-ava.ava-set img { top: 50%; width: calc(var(--fz) * 1%); transform: translate(calc(var(--fx) * -1%), calc(var(--fy) * -1%)); }
 .stat svg { color: var(--gold) !important; }
 @media (min-width: 900px) { .ftop .seg { max-width: 620px; } }
 
@@ -937,3 +935,60 @@ html.ai-open .ai-tip, html.fsheet-open .ai-tip, html.lb-on .ai-tip { opacity: 0;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .4), 0 10px 26px rgba(0, 0, 0, .3) !important; }
 .cta .cta-go:hover { filter: brightness(1.06); }
 .cta h2 { text-wrap: balance; }
+
+/* =====================================================================
+   Достижения компании «Кут» (11.11.2026): цифры + карточки объектов,
+   первые 6 видны, остальные — по кнопке «Показать все объекты» (класс kut-open)
+   ===================================================================== */
+.kut-sec { background: #fbf8f2; }
+.kut-lead { max-width: 640px; color: var(--muted); margin: 6px 0 28px; }
+.kut-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin: 0 0 32px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.kut-stats div { padding: 18px 16px 18px 0; }
+.kut-stats div:nth-child(2n) { padding-left: 16px; border-left: 1px solid var(--line); }
+.kut-stats div:nth-child(n+3) { border-top: 1px solid var(--line); }
+.kut-stats b { display: block; font-family: var(--serif); font-size: clamp(26px, 3vw, 38px); line-height: 1.1; color: var(--ink); font-variant-numeric: lining-nums; }
+.kut-stats span { display: block; margin-top: 6px; font-size: 13px; line-height: 1.35; color: var(--muted); }
+@media (min-width: 900px) {
+  .kut-stats { grid-template-columns: repeat(4, 1fr); }
+  .kut-stats div, .kut-stats div:nth-child(2n) { padding: 22px 24px; border-left: 1px solid var(--line); border-top: 0; }
+  .kut-stats div:first-child { padding-left: 0; border-left: 0; }
+}
+
+.objs { display: grid; gap: 16px; }
+@media (min-width: 700px) { .objs { grid-template-columns: 1fr 1fr; } }
+@media (min-width: 1080px) { .objs { grid-template-columns: repeat(3, 1fr); gap: 20px; } }
+.obj { background: var(--card); border: 1px solid var(--line); border-radius: 22px !important; padding: 22px 22px 20px; box-shadow: var(--sh-1) !important;
+  display: flex; flex-direction: column; }
+.obj-more { display: none; }
+.kut-open .obj-more { display: flex; animation: objIn .45s var(--ease-out, ease) both; }
+@keyframes objIn { from { opacity: 0; transform: translateY(12px); } }
+.obj-st { align-self: flex-start; font-size: 12px; font-weight: 600; letter-spacing: .02em; padding: 5px 11px; border-radius: 99px !important;
+  color: var(--gold-dark); border: 1px solid #e3d3b5; background: #fff; }
+.obj-st.done { color: #fff; border-color: transparent; background: linear-gradient(180deg, #b8925a 0%, #9a7741 100%); }
+.obj h3 { font-family: var(--serif); font-size: 24px; line-height: 1.15; margin: 14px 0 4px; }
+.obj-addr { margin: 0 0 14px; font-size: 14px; color: var(--muted); line-height: 1.4; }
+.obj-nums { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 12px 0; margin-bottom: 12px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+.obj-nums b { color: var(--ink); font-size: 15px; font-variant-numeric: lining-nums; }
+.obj-dl { margin: 0; display: grid; gap: 9px; }
+.obj-dl div { display: grid; grid-template-columns: 108px 1fr; gap: 10px; font-size: 13.5px; line-height: 1.4; }
+.obj-dl dt { color: var(--muted); }
+.obj-dl dd { margin: 0; color: var(--ink); }
+.kut-more-wrap { text-align: center; margin-top: 26px; }
+.kut-more { height: 50px; padding: 0 28px; border-radius: 25px !important; background: #fff; border: 1px solid #cdb995; color: var(--ink); font-weight: 600; font-size: 15px; }
+.kut-more:hover { background: var(--card); border-color: var(--gold); }
+/* На телефоне до «Показать все» — только 3 карточки: так блок не растягивается на несколько экранов */
+@media (max-width: 699px) { .kut-sec:not(.kut-open) .obj:nth-child(n+4) { display: none; } }
+/* Карточка объекта: детали — по кнопке «Подробнее» / «Свернуть» */
+.obj-nums { margin-bottom: 0; }
+.obj-det { margin-top: auto; padding-top: 14px; }
+.obj-det summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 18px;
+  border-radius: 20px !important; border: 1px solid #d9c7a4; background: #fff; color: var(--ink); font-size: 14px; font-weight: 600; user-select: none; }
+.obj-det summary::-webkit-details-marker { display: none; }
+.obj-det summary::after { content: ''; width: 7px; height: 7px; border-right: 1.5px solid var(--gold); border-bottom: 1.5px solid var(--gold); transform: translateY(-2px) rotate(45deg); transition: transform .2s; }
+.obj-det[open] summary::after { transform: translateY(2px) rotate(-135deg); }
+.obj-det summary:hover { border-color: var(--gold); }
+.obj-det .c, .obj-det[open] .o { display: none; }
+.obj-det[open] .c { display: inline; }
+.obj-det .obj-dl { margin-top: 16px; }
+.obj-det[open] .obj-dl { animation: objIn .3s var(--ease-out, ease) both; }
+.objs { align-items: start; }

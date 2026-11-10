@@ -124,6 +124,17 @@
   });
   if (goto) window.addEventListener('load', () => setTimeout(() => scrollToId(goto), 60), { once: true });
 
+  // ---------- Достижения компании: «Показать все объекты» / «Свернуть» ----------
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-kut-more]');
+    if (!b) return;
+    const sec = b.closest('.kut-sec');
+    const open = sec.classList.toggle('kut-open');
+    b.setAttribute('aria-expanded', open);
+    b.textContent = open ? b.dataset.less : b.dataset.more;
+    if (!open) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
   // ---------- Анимации ----------
   // Заставка с логотипом (только на главной, один раз за сессию) → затем html.ready запускает анимацию первого экрана.
   // Блоки с [data-reveal] проявляются при прокрутке; .section прорисовывает верхнюю линию.
