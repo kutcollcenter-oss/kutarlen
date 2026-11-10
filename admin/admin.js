@@ -716,7 +716,21 @@
           </div>
           ${f('name', 'Имя')}
           ${f('role', 'Кем работаете', 'text', 'Например: Менеджер строительной компании «Кут»')}
-          ${me.kutSite ? `<label class="f" style="display:flex;gap:10px;align-items:flex-start"><input type="checkbox" name="kutShow" ${s.kutShow === 'on' ? 'checked' : ''} style="width:auto;margin-top:3px"> <span style="margin:0">Показывать на сайте блок «Достижения компании» — сданные и строящиеся дома «Кут» (после «Обо мне»)</span></label>` : ''}
+          ${me.kutSite ? `<label class="f" style="display:flex;gap:10px;align-items:flex-start"><input type="checkbox" name="kutShow" ${s.kutShow === 'on' ? 'checked' : ''} style="width:auto;margin-top:3px"> <span style="margin:0">Показывать на сайте блок «Достижения компании» — сданные и строящиеся дома «Кут» (после «Обо мне»)</span></label>
+          <details class="hint kut-help" style="margin:-6px 0 14px 30px"><summary style="cursor:pointer;color:var(--accent,#a8834a);font-weight:600">Подробнее — что появится на сайте</summary>
+            <div style="margin-top:8px;line-height:1.5">
+              На главной вашего сайта, сразу после «Обо мне», появится блок о строительной компании «Кут»:
+              <ul style="margin:6px 0 6px 18px;padding:0">
+                <li><b>Цифры:</b> 21 объект, 11 сданных жилых комплексов, 5 600+ квартир уже передано владельцам, 53 100+ квартир во всех проектах.</li>
+                <li><b>Карточки домов:</b> Белек, Келечек, Кут Парк, Тундук, Олокон, ЖК Алтай и другие — сдан или когда сдача, адрес, этажи, блоки, квартиры.</li>
+                <li>В каждой карточке кнопка «Подробнее»: отделка, фасад, конструкция, коммуникации и что рядом (школы, садики, рынки).</li>
+                <li>Сначала видно 6 домов (на телефоне 3), остальные — по кнопке «Показать все объекты».</li>
+              </ul>
+              Зачем: клиенту спокойнее покупать, когда он видит, сколько домов компания уже сдала. Цены отдела продаж и внутренние данные в блоке не показываются.
+              Выключить можно в любой момент — снимите галочку и нажмите «Сохранить».
+              ${s.kutShow === 'on' ? `<div style="margin-top:6px"><a href="${esc(me.realtor.url)}#company" target="_blank" rel="noopener">Посмотреть на моём сайте ↗</a></div>` : ''}
+            </div>
+          </details>` : ''}
         </div>
         <div class="card" data-ptab="texts"><h2 style="margin-top:0">Первый экран и «Обо мне»</h2>
           ${f('heroKicker', 'Надпись над заголовком')}
