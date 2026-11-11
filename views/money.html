@@ -272,6 +272,12 @@
   .tile.zero .s { color: #636366; font-weight: 600; }
   .tile.zero .n { color: #8e8e93; }
   .tile.zero:active .c { opacity: .8; }
+  /* Сообщение «Добавлено ✓» / ошибка — внизу, над нижним меню */
+  #toast { position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom)); transform: translate(-50%, 16px); z-index: 60;
+    background: #2c2c2e; color: #fff; font-size: 15px; font-weight: 600; padding: 11px 18px; border-radius: 22px; max-width: calc(100% - 40px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .5); opacity: 0; pointer-events: none; transition: opacity .2s, transform .25s; text-align: center; }
+  #toast.on { opacity: 1; transform: translate(-50%, 0); }
+  #toast.bad { background: #c62828; }
 </style>
 </head>
 <body>
@@ -334,6 +340,32 @@
     if (r.status === 401 && !url.endsWith('/login')) { showLogin(); throw new Error('auth'); }
     return { ok: r.ok, data };
   }
+  // Короткое сообщение внизу экрана: «Добавлено ✓» или ошибка (красным)
+  let toastTimer = 0;
+  function toast(text, bad) {
+    let t = $('toast');
+    if (!t) { t = document.createElement('div'); t.id = 'toast'; document.body.appendChild(t); }
+    t.textContent = text; t.className = bad ? 'on bad' : 'on';
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.className = bad ? 'bad' : ''; }, bad ? 3500 : 1600);
+  }
+  // Запрос в фоне: пока идёт, автообновление ждёт; ошибка — в onFail текстом
+  let inflight = 0;
+  function sync(p, onOk, onFail) {
+    inflight++;
+    p.then(r => { if (r.ok) { if (onOk) onOk(r); } else onFail(Object.values(r.data.errors || {})[0] || r.data.error || 'Сервер не сохранил запись'); })
+      .catch(err => { if (String(err.message) !== 'auth') onFail('Нет связи — запись не сохранилась, попробуйте ещё раз'); })
+      .finally(() => { inflight--; });
+  }
+  // Свежие данные с сервера: при возвращении на страницу и раз в минуту (если записали с другого телефона)
+  async function refresh() {
+    if (inflight || $('app').hidden || $('sheetBox').innerHTML) return;
+    const r = await api('GET', '/api/money').catch(() => null);
+    if (!r || !r.ok || inflight || $('sheetBox').innerHTML) return;
+    if (JSON.stringify(r.data) !== JSON.stringify(D)) { D = r.data; render(); }
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+  setInterval(() => { if (!document.hidden) refresh(); }, 60000);
+
   const catOf = e => D.cats.find(c => c.id === e.catId) || { name: e.cat || '—', icon: '•', color: '#48484a' };
   const walletOf = id => D.wallets.find(w => w.id === id) || { name: '—', icon: '•', color: '#48484a', currency: 'сом' };
   const inMonth = e => e.date.startsWith(month);
@@ -388,12 +420,17 @@
   };
 
   // ---------- Отрисовка ----------
-  function render() {
+  // top — прокрутить наверх (смена вкладки или месяца); после добавления записи страница остаётся на месте
+  let shown = '';
+  function render(top) {
     const [y, m] = month.split('-').map(Number);
     $('monthBtn').textContent = y === new Date().getFullYear() ? MONTHS[m - 1] : `${MONTHS[m - 1]} ${y}`;
     document.querySelectorAll('#tabbar button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+    const keep = window.scrollY;
     ({ panel, history, report, settings })[tab]();
-    window.scrollTo(0, 0);
+    const now = tab + month;
+    if (top || now !== shown) window.scrollTo(0, 0); else window.scrollTo(0, keep);
+    shown = now;
   }
 
   // Круг с суммой. ring = { p, color, sub } — кольцо прогресса (лимит категории, накопление цели) и подпись под суммой
@@ -412,6 +449,10 @@
     const byCat = kind => sumBy(list.filter(e => e.kind === kind), e => e.catId + '|' + e.currency);
     const catSum = (map, c) => { const parts = Object.entries(map).filter(([k]) => k.startsWith(c.id + '|')).map(([k, n]) => money(n, k.split('|')[1])); return parts.join(' · ') || '0 сом'; };
     const inMap = byCat('in'), outMap = byCat('out');
+    // Порядок ярлыков: сумма больше — левее и выше ($ считаем по курсу из «Настроек»; без курса — один к одному)
+    const som = (n, cur) => (cur === '$' ? n * (D.rate || 1) : n);
+    const catVal = (map, c) => Object.entries(map).filter(([k]) => k.startsWith(c.id + '|')).reduce((s, [k, n]) => s + som(n, k.split('|')[1]), 0);
+    const byVal = (list, val) => list.map((x, i) => [x, val(x), i]).sort((a, b) => b[1] - a[1] || a[2] - b[2]).map(a => a[0]);
     const cur = kind => sumBy(list.filter(e => e.kind === kind), e => e.currency);
     const wTot = {}; D.wallets.forEach(w => { wTot[w.currency] = (wTot[w.currency] || 0) + balance(w); });
     // Всё в сомах по курсу, который задан в «Настройках»
@@ -441,10 +482,10 @@
         return `<div class="row" data-debt="${d.id}"><span class="dot" style="--c:${d.dir === 'they' ? '#30a46c' : '#d9534f'}">${d.dir === 'they' ? '↘' : '↗'}</span><div class="t"><b>${esc(d.who)}</b><span${late ? ' class="late"' : ''}>${d.dir === 'they' ? 'должен мне' : 'я должен'}${d.due ? ` · ${late ? 'просрочено, ' : 'до '}${fmtDay(d.due)}` : ''}${d.note ? ' · ' + esc(d.note) : ''}</span></div><span class="a ${d.dir === 'they' ? 'in' : 'out'}">${money(d.amount, d.currency)}</span></div>`; }).join('')}</div>`;
 
     $('view').innerHTML = soonCard +
-      section('in', 'Доходы', multi(cur('in')), D.cats.filter(c => c.kind === 'in').map(c => tile(c.name, c.icon, c.color, catSum(inMap, c), `data-cat="${c.id}"`)).join('') + addTile('in')) +
-      section('w', 'Кошельки', multi(wTot), D.wallets.map(w => tile(w.name, w.icon, w.color, money(balance(w), w.currency), `data-wallet="${w.id}"`)).join('') + addTile('wallet'), wSub) +
-      section('out', 'Расходы', multi(cur('out')), D.cats.filter(c => c.kind === 'out').map(outTile).join('') + addTile('out')) +
-      section('g', 'Цели', D.goals.length ? multi(D.goals.reduce((m, g) => { m[g.currency] = (m[g.currency] || 0) + saved(g); return m; }, {})) : '', D.goals.map(goalTile).join('') + addTile('goal'), 'отложено') +
+      section('in', 'Доходы', multi(cur('in')), byVal(D.cats.filter(c => c.kind === 'in'), c => catVal(inMap, c)).map(c => tile(c.name, c.icon, c.color, catSum(inMap, c), `data-cat="${c.id}"`)).join('') + addTile('in')) +
+      section('w', 'Кошельки', multi(wTot), byVal(D.wallets, w => som(balance(w), w.currency)).map(w => tile(w.name, w.icon, w.color, money(balance(w), w.currency), `data-wallet="${w.id}"`)).join('') + addTile('wallet'), wSub) +
+      section('out', 'Расходы', multi(cur('out')), byVal(D.cats.filter(c => c.kind === 'out'), c => catVal(outMap, c)).map(outTile).join('') + addTile('out')) +
+      section('g', 'Цели', D.goals.length ? multi(D.goals.reduce((m, g) => { m[g.currency] = (m[g.currency] || 0) + saved(g); return m; }, {})) : '', byVal(D.goals, g => som(saved(g), g.currency)).map(goalTile).join('') + addTile('goal'), 'отложено') +
       debtCard;
     $('view').querySelectorAll('[data-goal]').forEach(b => { b.onclick = () => entrySheet({ kind: 'goal', goalId: b.dataset.goal }); });
     $('view').querySelectorAll('[data-debt]').forEach(b => { b.onclick = () => debtSheet(D.debts.find(d => d.id === b.dataset.debt)); });
@@ -627,21 +668,36 @@
     pickChips('wf', v => { wallet = v; });
     pickChips('wt', v => { toWallet = v; });
     pickChips('ct', v => { catId = v; });
-    $('ok').onclick = async () => {
+    // Сразу: запись появляется на экране мгновенно, а на сервер уходит в фоне.
+    // Если сервер не принял — запись возвращается как была и показывается ошибка.
+    $('ok').onclick = () => {
       const body = { kind, amount: $('amt').value.replace(/\D/g, ''), wallet, toWallet, catId, goalId: e.goalId, date: $('dt').value, note: $('nt').value };
-      const r = await api(editing ? 'PUT' : 'POST', editing ? `/api/money/${e.id}` : '/api/money', body).catch(() => ({ ok: false, data: { error: 'Нет связи' } }));
-      if (!r.ok) { $('err').textContent = Object.values(r.data.errors || {})[0] || r.data.error || 'Ошибка'; return; }
-      if (editing) D.entries = D.entries.map(x => (x.id === e.id ? r.data : x)); else D.entries.push(r.data);
-      month = r.data.date.slice(0, 7);
-      closeSheet(); render();
+      const amount = +body.amount;
+      const w = D.wallets.find(x => x.id === wallet);
+      const bad = !(amount > 0) ? 'Сумма — число больше нуля' : !/^\d{4}-\d{2}-\d{2}$/.test(body.date) ? 'Выберите дату' : !w ? 'Выберите кошелёк'
+        : kind === 'move' && (!toWallet || toWallet === wallet) ? 'Выберите другой кошелёк'
+        : kind === 'move' && walletOf(toWallet).currency !== w.currency ? 'Перевод только между кошельками в одной валюте'
+        : (kind === 'in' || kind === 'out') && !D.cats.some(c => c.id === catId && c.kind === kind) ? 'Выберите категорию' : '';
+      if (bad) { $('err').textContent = bad; return; }
+      const c = D.cats.find(x => x.id === catId);
+      const local = { ...(editing ? e : {}), id: editing ? e.id : `tmp${Date.now()}`, kind, amount, date: body.date, wallet, currency: w.currency,
+        note: body.note.replace(/\s+/g, ' ').trim(), catId: kind === 'in' || kind === 'out' ? catId : '', toWallet: kind === 'move' ? toWallet : '',
+        goalId: kind === 'goal' ? e.goalId : '', cat: kind === 'move' ? 'Перевод' : kind === 'goal' ? `Цель: ${goalOf(e.goalId).name}` : c ? c.name : '' };
+      const before = D.entries;
+      D.entries = editing ? D.entries.map(x => (x.id === e.id ? local : x)) : [...D.entries, local];
+      month = body.date.slice(0, 7);
+      closeSheet(); render(); toast(editing ? 'Сохранено' : 'Добавлено ✓');
+      sync(api(editing ? 'PUT' : 'POST', editing ? `/api/money/${e.id}` : '/api/money', body), r => {
+        D.entries = D.entries.map(x => (x.id === local.id ? r.data : x)); render();
+      }, err => { D.entries = before; render(); toast(err, true); });
     };
     if (editing) {
       $('del').onclick = () => { $('ask').hidden = false; };
       $('no').onclick = () => { $('ask').hidden = true; };
-      $('yes').onclick = async () => {
-        const r = await api('DELETE', `/api/money/${e.id}`);
-        if (!r.ok) { $('err').textContent = r.data.error || 'Не получилось удалить'; return; }
-        D.entries = D.entries.filter(x => x.id !== e.id); closeSheet(); render();
+      $('yes').onclick = () => {
+        const before = D.entries;
+        D.entries = D.entries.filter(x => x.id !== e.id); closeSheet(); render(); toast('Удалено');
+        sync(api('DELETE', `/api/money/${e.id}`), null, err => { D.entries = before; render(); toast(err, true); });
       };
     }
   }
@@ -823,9 +879,9 @@
     years[now.slice(0, 4)] = 1; years[month.slice(0, 4)] = 1;
     const ys = Object.keys(years).sort().reverse();
     openSheet(`<div class="head"><div><b>Месяц</b></div></div><div class="months">${ys.map(y => `<h4>${y}</h4>${MONTHS.map((n, i) => { const k = `${y}-${String(i + 1).padStart(2, '0')}`; return `<button type="button" data-m="${k}" class="${k === month ? 'on' : ''}">${n.slice(0, 3)}</button>`; }).join('')}`).join('')}</div>`);
-    document.querySelectorAll('.sheet [data-m]').forEach(b => { b.onclick = () => { month = b.dataset.m; closeSheet(); render(); }; });
+    document.querySelectorAll('.sheet [data-m]').forEach(b => { b.onclick = () => { month = b.dataset.m; closeSheet(); render(true); }; });
   };
-  $('tabbar').onclick = e => { const b = e.target.closest('button'); if (!b) return; tab = b.dataset.tab; render(); };
+  $('tabbar').onclick = e => { const b = e.target.closest('button'); if (!b) return; tab = b.dataset.tab; render(true); };
 
   // Первый вход: задать пароль (только владелец, вошедший в кабинет)
   function showSetup(can) {
