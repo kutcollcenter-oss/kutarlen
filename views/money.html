@@ -278,6 +278,12 @@
     box-shadow: 0 8px 24px rgba(0, 0, 0, .5); opacity: 0; pointer-events: none; transition: opacity .2s, transform .25s; text-align: center; }
   #toast.on { opacity: 1; transform: translate(-50%, 0); }
   #toast.bad { background: #c62828; }
+  /* «N долгов ещё не учтены в кошельках — Учесть →» */
+  .old-debts { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 6px 0 10px; padding: 12px 14px;
+    border: 1px dashed rgba(255, 214, 10, .5); border-radius: 14px; background: rgba(255, 214, 10, .08); color: #ffd60a; font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
+  .old-debts span { white-space: nowrap; font-weight: 700; }
+  .od { padding: 10px 0; border-top: 1px solid rgba(255, 255, 255, .08); }
+  .od .chips { margin-top: 6px; }
 </style>
 </head>
 <body>
@@ -398,6 +404,7 @@
       if (e.kind === 'out' && e.wallet === w.id) b -= e.amount;
       if (e.kind === 'move') { if (e.wallet === w.id) b -= e.amount; if (e.toWallet === w.id) b += e.amount; }
       if (e.kind === 'goal' && e.wallet === w.id) b -= e.amount; // отложено на цель
+      if (e.kind === 'debt' && e.wallet === w.id) b += e.flow === 'in' ? e.amount : -e.amount; // долг: дал/вернул — минус, взял/мне вернули — плюс
     }
     return b;
   }
@@ -478,6 +485,7 @@
     const dTot = dir => { const m = {}; open.filter(d => d.dir === dir).forEach(d => { m[d.currency] = (m[d.currency] || 0) + d.amount; }); return m; };
     const debtCard = `<div class="card debts"><div class="dh"><h3>Долги</h3><button class="link" type="button" data-add="debt">+ Добавить</button></div>
       <div class="sum3"><div><small>Мне должны</small><b class="in">${multi(dTot('they'))}</b></div><div><small>Я должен</small><b class="out">${multi(dTot('me'))}</b></div></div>
+      ${oldDebts().length ? `<button type="button" class="old-debts" id="oldDebts"><b>${debtsWord(oldDebts().length)} в кошельках</b><span>Учесть →</span></button>` : ''}
       ${open.sort((a, b) => (a.due || '9').localeCompare(b.due || '9')).map(d => { const late = d.due && d.due < today();
         return `<div class="row" data-debt="${d.id}"><span class="dot" style="--c:${d.dir === 'they' ? '#30a46c' : '#d9534f'}">${d.dir === 'they' ? '↘' : '↗'}</span><div class="t"><b>${esc(d.who)}</b><span${late ? ' class="late"' : ''}>${d.dir === 'they' ? 'должен мне' : 'я должен'}${d.due ? ` · ${late ? 'просрочено, ' : 'до '}${fmtDay(d.due)}` : ''}${d.note ? ' · ' + esc(d.note) : ''}</span></div><span class="a ${d.dir === 'they' ? 'in' : 'out'}">${money(d.amount, d.currency)}</span></div>`; }).join('')}</div>`;
 
@@ -489,6 +497,7 @@
       debtCard;
     $('view').querySelectorAll('[data-goal]').forEach(b => { b.onclick = () => entrySheet({ kind: 'goal', goalId: b.dataset.goal }); });
     $('view').querySelectorAll('[data-debt]').forEach(b => { b.onclick = () => debtSheet(D.debts.find(d => d.id === b.dataset.debt)); });
+    if ($('oldDebts')) $('oldDebts').onclick = oldDebtsSheet;
 
     $('view').querySelectorAll('.sec-h h2').forEach(h => { h.onclick = () => { const s = h.closest('.sec'); s.classList.toggle('closed'); closed[s.dataset.sec] = s.classList.contains('closed'); try { localStorage.setItem('mnyClosed', JSON.stringify(closed)); } catch (e) { /* ок */ } }; });
     $('view').querySelectorAll('[data-cat]').forEach(b => { b.onclick = () => entrySheet({ catId: b.dataset.cat }); });
@@ -502,6 +511,10 @@
     if (e.kind === 'goal') {
       const g = goalOf(e.goalId), w = walletOf(e.wallet);
       return `<div class="row" data-id="${e.id}"><span class="dot" style="--c:${esc(g.color)}">${esc(g.icon)}</span><div class="t"><b>${esc(e.cat)}</b><span>${esc(w.name)}${e.note ? ' · ' + esc(e.note) : ''}</span></div><span class="a mv">→ ${money(e.amount, e.currency)}</span></div>`;
+    }
+    if (e.kind === 'debt') {
+      const w = walletOf(e.wallet), inn = e.flow === 'in';
+      return `<div class="row" data-id="${e.id}"><span class="dot" style="--c:${inn ? '#30a46c' : '#d9534f'}">${inn ? '↘' : '↗'}</span><div class="t"><b>${esc(e.cat)}</b><span>${esc(w.name)}${e.note ? ' · ' + esc(e.note) : ''}</span></div><span class="a ${inn ? 'in' : 'out'}">${inn ? '+' : '−'}${money(e.amount, e.currency)}</span></div>`;
     }
     const c = catOf(e), w = walletOf(e.wallet);
     if (e.kind === 'move') {
@@ -636,7 +649,23 @@
   const defDate = () => (month === today().slice(0, 7) ? today() : new Date(Date.UTC(+month.slice(0, 4), +month.slice(5, 7), 0)).toISOString().slice(0, 10));
 
   // Доход, расход или перевод. e — существующая запись (правка) или заготовка { catId } / { kind:'move', wallet }
+  // Запись по долгу в истории: посмотреть и при необходимости удалить (остаток кошелька вернётся)
+  function debtEntrySheet(e) {
+    const inn = e.flow === 'in', w = walletOf(e.wallet);
+    openSheet(`<div class="head"><span class="dot" style="--c:${inn ? '#30a46c' : '#d9534f'}">${inn ? '↘' : '↗'}</span><div><b>${esc(e.cat)}</b><span>${inn ? 'пришло в' : 'ушло из'} «${esc(w.name)}» · ${fmtDay(e.date)}</span></div></div>
+      <p class="big" style="text-align:center;margin:18px 0">${inn ? '+' : '−'}${money(e.amount, e.currency)}</p>
+      <p class="hint-l">Если запись лишняя — удалите её, и остаток кошелька вернётся как было. Сам долг при этом не меняется.</p>
+      <p class="err" id="err"></p>
+      <div class="btns"><button class="btn btn-red" type="button" id="del">Удалить запись</button></div>`);
+    $('del').onclick = () => {
+      const before = D.entries;
+      D.entries = D.entries.filter(x => x.id !== e.id); closeSheet(); render(); toast('Удалено');
+      sync(api('DELETE', `/api/money/${e.id}`), null, err => { D.entries = before; render(); toast(err, true); });
+    };
+  }
+
   function entrySheet(e) {
+    if (e.kind === 'debt') return debtEntrySheet(e);
     const editing = !!e.id;
     const cat = e.catId ? D.cats.find(c => c.id === e.catId) : null;
     const kind = e.kind || (cat ? cat.kind : 'out');
@@ -837,22 +866,117 @@
       <input class="field" id="who" value="${esc(st.who)}" placeholder="Кто (имя)" maxlength="40">
       <div class="two"><div><div class="lbl">Сумма</div><input class="field" id="amt" inputmode="numeric" placeholder="0" value="${st.amount ? nf.format(st.amount) : ''}"></div>
         <div><div class="lbl">Валюта</div><select class="field" id="cu"><option${st.currency === 'сом' ? ' selected' : ''}>сом</option><option${st.currency === '$' ? ' selected' : ''}>$</option></select></div></div>
+      ${d ? '' : '<div class="lbl" id="wl"></div><div id="wc"></div><p class="hint-l" id="wh"></p>'}
       <div class="two"><div><div class="lbl">Вернуть до</div><input class="field" id="due" type="date" value="${esc(st.due)}"></div>
         <div><div class="lbl">Заметка</div><input class="field" id="nt" value="${esc(st.note || '')}" placeholder="необязательно"></div></div>
       <p class="err" id="err"></p><button class="btn btn-main" type="button" id="ok">Сохранить</button>
       ${d ? '<div class="btns"><button class="btn btn-green" type="button" id="paid">✓ Долг вернули</button><button class="btn btn-red" type="button" id="del">Удалить</button></div>' : ''}`);
     fmtInput($('amt'));
-    document.querySelectorAll('.sheet [data-dr]').forEach(b => { b.onclick = () => { st.dir = b.dataset.dr; document.querySelectorAll('.sheet [data-dr]').forEach(x => x.classList.toggle('on', x === b)); }; });
-    $('ok').onclick = () => {
+    // Новый долг: деньги проходят через кошелёк — дал в долг (минус) или взял в долг (плюс). «Не отмечать» — кошелёк не меняется.
+    let wid = '';
+    const drawW = () => {
+      if (d) return;
+      const cur = $('cu').value;
+      const ws = D.wallets.filter(w => w.currency === cur).sort((x, y) => balance(y) - balance(x)); // сначала тот, где больше денег
+      if (wid !== 'none' && !ws.some(w => w.id === wid)) wid = (ws[0] || {}).id || 'none';
+      $('wl').textContent = st.dir === 'they' ? 'Из какого кошелька дали' : 'В какой кошелёк получили';
+      $('wc').innerHTML = chipList([...ws, { id: 'none', name: 'Не отмечать', icon: '—', color: '#48484a' }], wid, 'dw');
+      const a = +$('amt').value.replace(/\D/g, '') || 0;
+      $('wh').textContent = wid === 'none' ? 'Остаток кошельков не изменится.'
+        : `${a ? money(a, cur) : 'Сумма'} ${st.dir === 'they' ? 'уйдёт из' : 'придёт в'} «${walletOf(wid).name}».`;
+      pickChips('dw', v => { wid = v; drawW(); });
+    };
+    drawW();
+    if (!d) { $('cu').onchange = drawW; $('amt').addEventListener('input', drawW); }
+    document.querySelectorAll('.sheet [data-dr]').forEach(b => { b.onclick = () => { st.dir = b.dataset.dr; document.querySelectorAll('.sheet [data-dr]').forEach(x => x.classList.toggle('on', x === b)); drawW(); }; });
+    $('ok').onclick = async () => {
       Object.assign(st, { who: $('who').value.trim(), amount: +$('amt').value.replace(/\D/g, '') || 0, currency: $('cu').value, due: $('due').value, note: $('nt').value });
       if (!st.who) { $('err').textContent = 'Кто должен?'; return; }
       if (!st.amount) { $('err').textContent = 'Введите сумму'; return; }
-      saveLists({ debts: d ? D.debts.map(x => (x.id === d.id ? st : x)) : [...D.debts, st] });
+      if (d) { saveLists({ debts: D.debts.map(x => (x.id === d.id ? st : x)) }); return; }
+      $('ok').disabled = true;
+      const ids = new Set(D.debts.map(x => x.id));
+      if (wid === 'none') st.noWallet = true; // кошелёк не трогаем — и не предлагаем «учесть» позже
+      if (!(await saveLists({ debts: [...D.debts, st] }, true))) { $('ok').disabled = false; return; }
+      const nd = D.debts.find(x => !ids.has(x.id));
+      if (nd && wid !== 'none') {
+        const r = await api('POST', '/api/money', { kind: 'debt', debtId: nd.id, flow: st.dir === 'they' ? 'out' : 'in', wallet: wid, amount: st.amount, date: today(), note: st.note })
+          .catch(() => ({ ok: false, data: { error: 'Нет связи' } }));
+        if (r.ok) D.entries.push(r.data); else toast(`Долг записан, но кошелёк не изменён: ${r.data.error || Object.values(r.data.errors || {})[0] || 'ошибка'}`, true);
+      }
+      closeSheet(); render(); toast('Долг записан');
     };
     if (d) {
-      $('paid').onclick = () => saveLists({ debts: D.debts.map(x => (x.id === d.id ? { ...x, closed: true } : x)) });
+      $('paid').onclick = () => debtReturnSheet(d);
       $('del').onclick = () => saveLists({ debts: D.debts.filter(x => x.id !== d.id) });
     }
+  }
+
+  // Старые долги (записаны до связи с кошельками): открытые, по которым в истории нет движения денег
+  // и не выбрано «Не отмечать». Их можно разом «учесть»: запись в истории с датой долга и изменение кошелька.
+  // «1 долг ещё не учтён», «3 долга ещё не учтены», «5 долгов ещё не учтены»
+  const debtsWord = n => `${n} ${n % 10 === 1 && n % 100 !== 11 ? 'долг ещё не учтён' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'долга ещё не учтены' : 'долгов ещё не учтены'}`;
+  const oldDebts = () => D.debts.filter(d => !d.closed && !d.noWallet && !D.entries.some(e => e.kind === 'debt' && e.debtId === d.id));
+  function oldDebtsSheet() {
+    const list = oldDebts();
+    const NONE = { id: 'none', name: 'Не отмечать', icon: '—', color: '#48484a' };
+    const pick = {};
+    list.forEach(d => { const ws = D.wallets.filter(w => w.currency === d.currency).sort((x, y) => balance(y) - balance(x)); pick[d.id] = (ws[0] || NONE).id; });
+    const day = d => (d.createdAt || '').slice(0, 10) || today();
+    openSheet(`<div class="head"><span class="dot" style="--c:#48484a">⇄</span><div><b>Учесть старые долги</b><span>добавить в историю и в кошельки</span></div></div>
+      <p class="hint-l" style="color:#c7c7cc">Эти долги записаны раньше, деньги по ним в кошельках не отмечены. Выберите кошелёк для каждого: «мне должны» — сумма уйдёт из кошелька (вы дали), «я должен» — придёт в кошелёк (вы взяли). Если деньги уже учтены вручную — «Не отмечать».</p>
+      ${list.map(d => `<div class="od">
+        <div class="row"><span class="dot" style="--c:${d.dir === 'they' ? '#30a46c' : '#d9534f'}">${d.dir === 'they' ? '↘' : '↗'}</span><div class="t"><b>${esc(d.who)}</b><span>${d.dir === 'they' ? 'должен мне — дал' : 'я должен — взял'} ${fmtDay(day(d))}</span></div><span class="a ${d.dir === 'they' ? 'out' : 'in'}">${d.dir === 'they' ? '−' : '+'}${money(d.amount, d.currency)}</span></div>
+        ${chipList([...D.wallets.filter(w => w.currency === d.currency).sort((x, y) => balance(y) - balance(x)), NONE], pick[d.id], `od${d.id}`)}
+      </div>`).join('')}
+      <p class="err" id="err"></p>
+      <button class="btn btn-main" type="button" id="ok">Учесть</button>`);
+    list.forEach(d => pickChips(`od${d.id}`, v => { pick[d.id] = v; }));
+    $('ok').onclick = async () => {
+      $('ok').disabled = true; $('ok').textContent = 'Записываю…';
+      for (const d of list) {
+        if (pick[d.id] === 'none') continue;
+        const r = await api('POST', '/api/money', { kind: 'debt', debtId: d.id, flow: d.dir === 'they' ? 'out' : 'in', wallet: pick[d.id], amount: d.amount, date: day(d), note: d.note || '' })
+          .catch(() => ({ ok: false, data: { error: 'Нет связи' } }));
+        if (!r.ok) { $('err').textContent = `${d.who}: ${Object.values(r.data.errors || {})[0] || r.data.error || 'ошибка'}`; $('ok').disabled = false; $('ok').textContent = 'Учесть'; return; }
+        D.entries.push(r.data);
+      }
+      // «Не отмечать» — запоминаем, чтобы долг больше не предлагался
+      const skip = new Set(list.filter(d => pick[d.id] === 'none').map(d => d.id));
+      if (skip.size) await saveLists({ debts: D.debts.map(x => (skip.has(x.id) ? { ...x, noWallet: true } : x)) });
+      else { closeSheet(); render(); }
+      toast('Старые долги учтены ✓');
+    };
+  }
+
+  // «Долг вернули»: выбрать кошелёк — мне вернули → сумма приходит в кошелёк; я вернул → уходит из кошелька
+  function debtReturnSheet(d) {
+    const they = d.dir === 'they';
+    const ws = D.wallets.filter(w => w.currency === d.currency).sort((x, y) => balance(y) - balance(x)); // сначала тот, где больше денег
+    let wid = (ws[0] || {}).id || 'none';
+    openSheet(`<div class="head"><span class="dot" style="--c:${they ? '#30a46c' : '#d9534f'}">✓</span><div><b>Долг вернули</b><span>${esc(d.who)} · ${they ? 'должен мне' : 'я должен'}</span></div></div>
+      <p class="big" style="text-align:center;margin:18px 0">${they ? '+' : '−'}${money(d.amount, d.currency)}</p>
+      <div class="lbl">${they ? 'В какой кошелёк пришли деньги' : 'Из какого кошелька отдали'}</div>
+      ${chipList([...ws, { id: 'none', name: 'Не отмечать', icon: '—', color: '#48484a' }], wid, 'rw')}
+      <p class="hint-l" id="rh"></p>
+      <div class="lbl">Дата</div><input class="field" id="rd" type="date" value="${today()}">
+      <p class="err" id="err"></p>
+      <button class="btn btn-main" type="button" id="ok">✓ Закрыть долг</button>
+      <div class="btns"><button class="btn" type="button" id="back">Назад</button></div>`);
+    const hint = () => { $('rh').textContent = wid === 'none' ? 'Остаток кошельков не изменится — долг просто закроется.' : `${money(d.amount, d.currency)} ${they ? 'прибавится к' : 'спишется с'} «${walletOf(wid).name}».`; };
+    hint();
+    pickChips('rw', v => { wid = v; hint(); });
+    $('back').onclick = () => debtSheet(d);
+    $('ok').onclick = async () => {
+      $('ok').disabled = true;
+      if (wid !== 'none') {
+        const r = await api('POST', '/api/money', { kind: 'debt', debtId: d.id, flow: they ? 'in' : 'out', wallet: wid, amount: d.amount, date: $('rd').value || today(), note: d.note || '' })
+          .catch(() => ({ ok: false, data: { error: 'Нет связи' } }));
+        if (!r.ok) { $('err').textContent = Object.values(r.data.errors || {})[0] || r.data.error || 'Не получилось'; $('ok').disabled = false; return; }
+      }
+      if (await saveLists({ debts: D.debts.map(x => (x.id === d.id ? { ...x, closed: true } : x)) })) toast(they ? 'Долг закрыт, деньги в кошельке ✓' : 'Долг закрыт ✓');
+      else $('ok').disabled = false;
+    };
   }
 
   function pinSheet() {
