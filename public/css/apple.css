@@ -767,6 +767,32 @@ html:lang(ky) .news-queue h3 { font-family: 'Prata', Georgia, serif; font-weight
   transition: translate .35s cubic-bezier(.2, .8, .2, 1), transform .15s ease, opacity .25s ease; }
 .ai-fab svg { width: 20px; height: 20px; color: #fff3da; }
 .ai-fab:active { transform: scale(.96); }
+/* Привлекательная версия: фото с точкой «онлайн», две строки, блик и мягкая волна вокруг */
+.ai-fab { height: 60px; padding: 0 22px 0 6px; gap: 11px; border-radius: 30px !important; overflow: visible; isolation: isolate;
+  background: linear-gradient(135deg, #d4ae6c 0%, var(--gold) 45%, #8f6c34 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), inset 0 -2px 6px rgba(80, 55, 20, .25), 0 12px 28px rgba(138, 109, 59, .42), 0 2px 6px rgba(0, 0, 0, .14) !important; }
+.ai-fab::before { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit !important;
+  box-shadow: 0 0 0 0 rgba(184, 146, 82, .55); animation: aiFabRing 2.8s ease-out infinite; }
+@keyframes aiFabRing { 0% { box-shadow: 0 0 0 0 rgba(184, 146, 82, .5); } 70%, 100% { box-shadow: 0 0 0 14px rgba(184, 146, 82, 0); } }
+.ai-fab-shine { position: absolute; inset: 0; border-radius: inherit !important; overflow: hidden; pointer-events: none; }
+.ai-fab-shine::after { content: ''; position: absolute; top: 0; bottom: 0; width: 40%; left: -60%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .45), transparent); transform: skewX(-18deg); animation: aiFabShine 5s ease-in-out 1.5s infinite; }
+@keyframes aiFabShine { 0% { left: -60%; } 22%, 100% { left: 130%; } }
+.ai-fab-ava { position: relative; flex: none; width: 48px; height: 48px; border-radius: 50% !important; display: grid; place-items: center;
+  background: rgba(255, 255, 255, .18); box-shadow: 0 0 0 2px rgba(255, 246, 225, .85), 0 3px 8px rgba(60, 40, 10, .3) !important; }
+.ai-fab-ava { overflow: visible; }
+.ai-fab-pic { position: absolute; inset: 0; border-radius: 50% !important; overflow: hidden; }
+.ai-fab-pic img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 15%; transform: scale(1.6); transform-origin: 50% 25%; }
+.ai-fab-ava svg { width: 24px; height: 24px; }
+.ai-fab-ava em { position: absolute; right: 0; bottom: 1px; width: 13px; height: 13px; border-radius: 50% !important; background: #34c759; box-shadow: 0 0 0 2.5px #a8834a !important; }
+.ai-fab-ava em::after { content: ''; position: absolute; inset: 0; border-radius: 50% !important; background: #34c759; animation: aiFabDot 2s ease-out infinite; }
+@keyframes aiFabDot { 0% { transform: scale(1); opacity: .7; } 100% { transform: scale(2.4); opacity: 0; } }
+.ai-fab-t { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left; text-shadow: 0 1px 1px rgba(70, 45, 10, .25); }
+.ai-fab-t b { font-weight: 700; font-size: 16px; line-height: 1; }
+.ai-fab-t small { font-weight: 500; font-size: 11.5px; line-height: 1; color: #fff1d6; opacity: .95; }
+@media (hover: hover) { .ai-fab:hover { transform: translateY(-2px); } }
+@media (min-width: 1024px) { .ai-fab.ai-fab { height: 64px; padding: 0 26px 0 7px; border-radius: 32px !important; } .ai-fab-ava { width: 50px; height: 50px; } .ai-fab-t b { font-size: 17px; } .ai-fab-t small { font-size: 12px; } }
+@media (prefers-reduced-motion: reduce) { .ai-fab::before, .ai-fab-shine::after, .ai-fab-ava em::after { animation: none; } }
 body:has(.tabbar.tb-hide) .ai-fab { translate: 0 calc(70px + env(safe-area-inset-bottom)); }
 html.ai-open .ai-fab, html.fsheet-open .ai-fab, html.lb-on .ai-fab { opacity: 0; pointer-events: none; }
 @media (min-width: 1024px) { .ai-fab { right: 28px; bottom: 28px; height: 56px; font-size: 16px; padding: 0 24px 0 18px; } }
@@ -856,7 +882,7 @@ html:lang(ky) .ai-card-main strong { font-family: 'Prata', Georgia, serif; font-
 @media (prefers-reduced-motion: reduce) { .ai-fab, .ai-box, .ai-shade { transition: none !important; } .ai-dots i { animation: none; } }
 
 /* Подсказка у кнопки помощника: «Помочь с выбором?» — один раз за визит */
-.ai-tip { position: fixed; z-index: 45; right: 16px; bottom: calc(148px + env(safe-area-inset-bottom)); max-width: 260px;
+.ai-tip { position: fixed; z-index: 45; right: 16px; bottom: calc(158px + env(safe-area-inset-bottom)); max-width: 260px;
   display: flex; align-items: flex-start; gap: 10px; padding: 12px 12px 12px 16px; border: 1px solid var(--line); cursor: pointer; text-align: left;
   background: var(--card); color: #2a241b; font: 500 14.5px/1.35 var(--sans); border-radius: 18px 18px 6px 18px !important;
   box-shadow: 0 12px 30px rgba(60, 40, 10, .18) !important; opacity: 0; translate: 0 10px; pointer-events: none;
@@ -866,7 +892,7 @@ html:lang(ky) .ai-card-main strong { font-family: 'Prata', Georgia, serif; font-
   border-radius: 50% !important; background: var(--soft); margin: -2px -2px 0 0; }
 body:has(.tabbar.tb-hide) .ai-tip { translate: 0 calc(70px + env(safe-area-inset-bottom)); }
 html.ai-open .ai-tip, html.fsheet-open .ai-tip, html.lb-on .ai-tip { opacity: 0; pointer-events: none; }
-@media (min-width: 1024px) { .ai-tip { right: 28px; bottom: 96px; } }
+@media (min-width: 1024px) { .ai-tip { right: 28px; bottom: 104px; } }
 
 /* =====================================================================
    Первый экран на компьютере (09.11.2026, по мотивам сайтов The Agency, SERHANT, Aaron Kirman, Emaar):
