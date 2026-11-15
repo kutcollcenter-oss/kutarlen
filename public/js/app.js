@@ -358,6 +358,7 @@
     return text.replace(re, `${L('waDown')}${down}\n${L('waMonthly')}${monthly}`);
   }
 
+  let lastCount = 0;
   function update() {
     const c = cur(st.type);
     if (!cashLike(st.type)) syncMonthly();
@@ -389,6 +390,8 @@
       $('fBadge').textContent = parts.length;
       $('fDone').textContent = L('fShow', { n: list.length });
     }
+    lastCount = list.length;
+    if (window.__wiz) window.__wiz();
     if (list.length) {
       $('cards').innerHTML = list.map(card).join('');
       window.RS.slides($('cards').querySelectorAll('.card-photo'));
@@ -457,6 +460,69 @@
   $('fOpen').onclick = () => sheet(true);
   ['fClose', 'fDone', 'fShade'].forEach(id => { $(id).onclick = () => sheet(false); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && filterEl.classList.contains('open')) sheet(false); });
+
+  // ---------- Пошаговый подбор (телефон, рассрочка и коммерция) ----------
+  // На месте кнопки «Подобрать»: шаг 1 — сколько внести сразу, шаг 2 — сколько платить в месяц,
+  // дальше — итог с кнопками «Изменить» и «Комнаты, площадь» (открывает полный фильтр).
+  // Нажатие ставит те же значения, что ползунки в фильтре, поэтому всё остаётся согласованным.
+  let wzStep = 1;
+  ftop.insertAdjacentHTML('beforeend', '<div class="wiz" id="wiz" aria-live="polite"></div>');
+  const wiz = $('wiz');
+  // Платёж в месяц под выбранный взнос: самый маленький возможный платёж по каждой квартире
+  function monthlyQuick() {
+    const inst = ofType().filter(a => a.installment && match(a) && (st.down == null || st.down >= a.down));
+    const vals = inst.map(a => monthlyAt(a, st.down == null ? a.down : Math.min(st.down, a.price)));
+    return fewQuick(vals, [0.2, 0.5, 0.8]);
+  }
+  // Квартир мало (одна) — всё равно даём одну кнопку с ровной суммой
+  const fewQuick = (vals, qs) => { const q = quickValues(vals, qs); const v = vals.filter(x => x > 0); return q.length || !v.length ? q : [niceUp(Math.min(...v))]; };
+  const downQuick = () => fewQuick(ofType().filter(a => a.installment).map(a => a.down), [0.25, 0.5, 0.8]);
+  const chip = (v, label, on) => `<button type="button" class="wz-chip${on ? ' on' : ''}" data-v="${v}">${esc(label)}</button>`;
+  function drawWiz() {
+    const show = !cashLike(st.type) && downQuick().length > 0;
+    wiz.hidden = !show;
+    $('fOpen').classList.toggle('wz-off', show);
+    if (!show) return;
+    const c = cur(st.type);
+    const fits = `<span class="wz-fits">${esc(L('wFits', { n: lastCount }))} ${esc(plural({ commercial: 'wordsCommercial', land: 'wordsLand' }[st.type] || 'wordsApartment', lastCount))}</span>`;
+    if (wzStep === 3) {
+      const parts = [
+        st.down != null && L('fDownTo', { x: money(st.down, c) }),
+        st.monthly != null && L('fMonthlyTo', { x: money(st.monthly, c) }),
+        st.rooms.size && L('fRoomsSel', { x: [...st.rooms].sort().map(r => (r === '4' ? '4+' : r)).join(', ') }),
+      ].filter(Boolean);
+      wiz.innerHTML = `<div class="wz-done">
+          <span class="wz-ok" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span>
+          <span class="wz-t"><b>${esc(L('wDone'))}</b><small>${esc(parts.join(' · ') || L('fAll'))}</small></span>
+        </div>
+        <div class="wz-acts"><button type="button" class="wz-btn" data-go="1">${esc(L('wEdit'))}</button><button type="button" class="wz-btn" data-go="more">${esc(L('wMore'))}</button></div>`;
+      return;
+    }
+    const key = wzStep === 1 ? 'down' : 'monthly';
+    const vals = wzStep === 1 ? downQuick() : monthlyQuick();
+    wiz.innerHTML = `<div class="wz-head"><span class="wz-step">${esc(L('wStep', { n: wzStep }))}</span>
+        <span class="wz-bar"><i class="on"></i><i${wzStep === 2 ? ' class="on"' : ''}></i></span>
+        ${wzStep === 2 ? `<button type="button" class="wz-back" data-go="1">${esc(L('wBack'))}</button>` : ''}</div>
+      <b class="wz-q">${esc(L(wzStep === 1 ? 'wDownQ' : 'wMonthlyQ'))}</b>
+      <div class="wz-chips" data-k="${key}">${vals.map(v => chip(v, L('quickUpTo', { x: shortMoney(v) }), st[key] === v)).join('')}${chip('', L('anySum'), false)}</div>
+      <div class="wz-foot">${fits}<button type="button" class="wz-link" data-go="more">${esc(L('wMore'))} ›</button></div>`;
+  }
+  wiz.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.go === 'more') { sheet(true); return; }
+    if (b.dataset.go === '1') { wzStep = 1; drawWiz(); return; }
+    const box = b.closest('.wz-chips'); if (!box) return;
+    const key = box.dataset.k;
+    const v = b.dataset.v === '' ? null : +b.dataset.v;
+    st[key] = v;
+    if (key === 'down') { fDown.value = v == null ? B.down.max : v; st.monthly = null; wzStep = 2; }
+    else { fMonthly.value = v == null ? B.monthly.max : v; wzStep = 3; }
+    update();
+    if (wzStep === 3) $('count').scrollIntoView({ block: 'start', behavior: 'smooth' });
+  });
+  // Тип или город сменились — подбор начинается заново
+  [$('fType'), $('fCity'), $('fReset')].forEach(el => el && el.addEventListener('click', () => { wzStep = 1; drawWiz(); }));
+  window.__wiz = drawWiz;
 
   if (!has(st.type)) st.type = TYPE_ORDER.find(has) || 'installment';
   // В выбранном сразу городе нет квартир этой категории — берём ту, что в нём есть
