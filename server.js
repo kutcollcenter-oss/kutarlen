@@ -199,8 +199,9 @@ app.get(['/admin/', '/admin/index.html'], (req, res) => {
 app.use('/admin', express.static(path.join(__dirname, 'admin')));
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1h' }));
 
-// Скрытая страница владельца: учёт доходов и расходов (kvartiry.asia/money, вход по цифровому паролю)
+// Учёт доходов и расходов: у каждого свой учёт kvartiry.asia/money/<имя>, людей заводит владелец в кабинете
 require('./lib/money').mount(app, { D, save: () => db.save(), cookies, newId: () => db.newId(),
+  requireAuth, ownerOnly,
   isOwner: req => { const s = auth.readSession(D().secret, cookies(req).sess, id => D().users.find(u => u.id === id)); return !!(s && s.user.role === 'owner'); } });
 
 // ИИ-помощник на сайтах менеджеров (ключ и включение — у владельца в кабинете)

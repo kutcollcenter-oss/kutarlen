@@ -977,9 +977,82 @@
     box.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
+  // ---------- Учёт денег (/money/<имя>) ----------
+  // Владелец заводит человека: имя для адреса и как его звать. Человек получает ссылку-приглашение и сам придумывает пароль.
+  // Сами записи людей здесь не показываются — только кто есть, задан ли пароль и когда входили.
+  const moneyLink = x => `${location.origin}/money/${x.name}${x.invite ? `?invite=${x.invite}` : ''}`;
+  function moneyUsersHtml(users) {
+    return `<p class="hint" style="margin:0 0 12px">У каждого человека свой учёт доходов и расходов по адресу <b>${esc(location.host)}/money/имя</b>. Вы заводите человека и отправляете ему ссылку-приглашение — по ней он сам придумает пароль. Его записи видит только он.</p>
+      ${users.map(x => `<div class="rt" data-mu="${esc(x.name)}" style="padding:12px 0;border-top:1px solid var(--line, #eee)">
+        <div><b>${esc(x.title)}</b> ${x.main ? '<span class="badge badge-installment">Вы</span>' : ''} · <a href="/money/${esc(x.name)}" target="_blank" rel="noopener">/money/${esc(x.name)}</a></div>
+        <div class="hint" style="margin:4px 0 8px">${x.active ? `Пароль задан ✓${x.lastLogin ? ` · последний вход ${esc(fmtDate(x.lastLogin.slice(0, 10)))}` : ''}` : 'Ждёт: человек ещё не открыл приглашение'}</div>
+        <div class="row" style="display:flex;flex-wrap:wrap;gap:8px">
+          ${x.invite ? '<button class="btn" type="button" data-mact="copy">Скопировать приглашение</button>' : ''}
+          ${x.main ? '' : '<button class="btn" type="button" data-mact="reset">Сбросить пароль</button><button class="btn btn-danger" type="button" data-mact="del">Удалить</button>'}
+        </div></div>`).join('')}
+      <form id="mnyNew" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line, #eee)">
+        <b>+ Новый учёт</b>
+        <div style="margin-top:10px">
+          <label class="f"><span>Как зовут</span><input name="title" required placeholder="Айбек"></label>
+          <label class="f"><span>Имя в адресе (латиницей)</span><input name="name" required autocapitalize="none" spellcheck="false" placeholder="aibek" pattern="[a-zA-Z0-9][a-zA-Z0-9-]{1,29}"></label>
+        </div>
+        <p class="err" id="mnyErr"></p>
+        <button class="btn btn-primary" type="submit">Создать и получить приглашение</button>
+      </form>`;
+  }
+  function bindMoneyUsers(initial) {
+    const body = document.getElementById('mnyBody');
+    if (!body) return;
+    let users = [];
+    const draw = list => { users = list; body.innerHTML = moneyUsersHtml(list); bind(); };
+    const invite = async x => {
+      const link = moneyLink(x);
+      const go = await modal({ title: `Приглашение для «${x.title}»`, html: `<p>Отправьте человеку эту ссылку (например, в WhatsApp). По ней он придумает свой пароль — после этого ссылка перестанет работать.</p><p style="word-break:break-all"><b>${esc(link)}</b></p>`, okText: 'Скопировать ссылку', cancelText: 'Закрыть' });
+      if (go) await copy(link, 'Приглашение скопировано — отправьте его человеку');
+    };
+    function bind() {
+      const nameIn = body.querySelector('#mnyNew [name=name]'), titleIn = body.querySelector('#mnyNew [name=title]');
+      // Имя в адресе подставляется само из латинских букв, пока его не правили руками
+      let touched = false;
+      nameIn.oninput = () => { touched = true; };
+      titleIn.oninput = () => { if (!touched) nameIn.value = translit(titleIn.value); };
+      body.querySelector('#mnyNew').onsubmit = async e => {
+        e.preventDefault();
+        const f = e.target;
+        try {
+          const list = await api('POST', '/api/owner/money-users', { title: f.title.value, name: f.name.value });
+          draw(list);
+          const x = list.find(u => u.name === f.name.value.trim().toLowerCase());
+          if (x) await invite(x);
+        } catch (err) { document.getElementById('mnyErr').textContent = err.message; }
+      };
+      body.querySelectorAll('[data-mact]').forEach(b => {
+        b.onclick = async () => {
+          const x = users.find(u => u.name === b.closest('[data-mu]').dataset.mu);
+          if (!x) return;
+          try {
+            if (b.dataset.mact === 'copy') return invite(x);
+            if (b.dataset.mact === 'reset') {
+              if (!await modal({ title: 'Сбросить пароль?', text: `Учёт «${x.title}» закроется на всех телефонах. Записи останутся. Человек получит новую ссылку-приглашение и придумает новый пароль.`, okText: 'Сбросить' })) return;
+              const list = await api('POST', `/api/owner/money-users/${encodeURIComponent(x.name)}/reset`);
+              draw(list); return invite(list.find(u => u.name === x.name));
+            }
+            if (b.dataset.mact === 'del') {
+              if (!await modal({ title: `Удалить учёт «${x.title}»?`, text: 'Все его записи, кошельки и долги удалятся навсегда. Вернуть их будет нельзя.', okText: 'Удалить навсегда', danger: true })) return;
+              draw(await api('DELETE', `/api/owner/money-users/${encodeURIComponent(x.name)}`)); toast('Учёт удалён');
+            }
+          } catch (err) { toast(err.message); }
+        };
+      });
+    }
+    users = initial; bind();
+  }
+  const TR = { а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ё: 'e', ж: 'zh', з: 'z', и: 'i', й: 'y', к: 'k', л: 'l', м: 'm', н: 'n', ң: 'n', о: 'o', ө: 'o', п: 'p', р: 'r', с: 's', т: 't', у: 'u', ү: 'u', ф: 'f', х: 'h', ц: 'ts', ч: 'ch', ш: 'sh', щ: 'sch', ъ: '', ы: 'y', ь: '', э: 'e', ю: 'yu', я: 'ya' };
+  const translit = s => String(s || '').toLowerCase().split('').map(ch => (ch in TR ? TR[ch] : ch)).join('').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30);
+
   async function renderRealtors() {
     if (!isOwner()) { location.hash = '#list'; return; }
-    const [list, product, mine, ai] = await Promise.all([api('GET', '/api/owner/realtors'), api('GET', '/api/owner/product'), api('GET', '/api/admin/apartments'), api('GET', '/api/owner/aichat')]);
+    const [list, product, mine, ai, mUsers] = await Promise.all([api('GET', '/api/owner/realtors'), api('GET', '/api/owner/product'), api('GET', '/api/admin/apartments'), api('GET', '/api/owner/aichat'), api('GET', '/api/owner/money-users')]);
     // Сколько квартир в рассрочку скопируется новому менеджеру (наличные не копируются)
     const myInstallment = mine.filter(a => a.computed.installment || (!cashLike(typeOf(a)) && a.computed.price)).length;
     const others = list.filter(x => x.role !== 'owner');
@@ -1077,6 +1150,10 @@
           <button class="btn btn-primary">Сохранить</button> <a class="btn" href="/partner" target="_blank">Открыть ↗</a>
         </form>
       </details>
+      <details class="card" id="mnyCard"><summary><b>Учёт денег</b> · ${mUsers.length} ${mUsers.length === 1 ? 'учёт' : mUsers.length < 5 && mUsers.length > 1 ? 'учёта' : 'учётов'}</summary>
+        <div id="mnyBody" style="margin-top:12px">${moneyUsersHtml(mUsers)}</div>
+      </details>
+
       <details class="card" id="aiCard"><summary><b>ИИ-помощник на сайтах</b> · ${ai.on && ai.providers.some(p => p.hasKey) ? `работает ✓ · у ${list.filter(x => x.aiAccess).length} из ${list.length}` : 'выключен'}</summary>
         <form id="aifm" style="margin-top:12px">
           <div class="hint" style="margin-bottom:10px">На сайтах выбранных менеджеров появляется золотая кнопка «Спросить». ИИ ведёт себя как опытный продавец и психолог: выясняет, что нужно человеку, отвечает про квартиры этого менеджера, снимает сомнения и ведёт в WhatsApp. Видит, что гость смотрел на сайте. ${ai.saveChats ? 'Разговоры хранятся 30 дней — ниже их можно прочитать и научить ИИ, где он ответил не так.' : 'Разговоры не сохраняются.'}<br><b>Кому показывать</b> — кнопкой «ИИ-помощник» у каждого менеджера в списке выше (и у вас тоже). Сейчас включён у: ${list.filter(x => x.aiAccess).map(x => esc(x.name)).join(', ') || 'ни у кого'}.</div>
@@ -1179,6 +1256,7 @@
     };
 
     // Уроки и журнал разговоров
+    bindMoneyUsers(mUsers);
     const reopenAi = async () => { await renderRealtors(); document.getElementById('aiCard').open = true; document.getElementById('aiTeach').scrollIntoView({ block: 'start' }); };
     const addLesson = async (q, a, errId) => {
       try { await api('POST', '/api/owner/aichat/lessons', { q, a }); toast('Урок добавлен — ИИ учтёт его со следующего ответа'); await reopenAi(); }

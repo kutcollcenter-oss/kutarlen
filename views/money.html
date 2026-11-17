@@ -290,7 +290,7 @@
 
 <!-- Вход -->
 <form class="login" id="login" hidden autocomplete="off">
-  <h1>Учёт</h1>
+  <h1 class="mtitle">Учёт</h1>
   <p class="muted">Введите пароль</p>
   <input class="big" id="pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="12" autocomplete="off" aria-label="Пароль">
   <p class="err" id="loginErr"></p>
@@ -299,7 +299,7 @@
 
 <!-- Первый вход: пароль задаёт владелец, который уже вошёл в кабинет /admin -->
 <form class="login" id="setup" hidden autocomplete="off">
-  <h1>Учёт</h1>
+  <h1 class="mtitle">Учёт</h1>
   <div id="setupOk">
     <p class="muted">Придумайте пароль — только цифры</p>
     <input class="big" id="s1" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="12" autocomplete="off" aria-label="Новый пароль">
@@ -307,7 +307,7 @@
     <p class="err" id="setupErr"></p>
     <button class="btn btn-main" type="submit">Сохранить пароль</button>
   </div>
-  <p class="muted" id="setupNo" hidden>Пароль ещё не задан. Войдите в кабинет владельца на <b>kvartiry.asia/admin</b> и откройте эту страницу снова.</p>
+  <p class="muted" id="setupNo" hidden>Пароль ещё не задан. Откройте ссылку-приглашение, которую вам прислали, — по ней можно придумать свой пароль.</p>
 </form>
 
 <div class="wrap" id="app" hidden>
@@ -328,6 +328,10 @@
 <script>
 (function () {
   const $ = id => document.getElementById(id);
+  // Чей учёт: /money/<имя>. Ссылка-приглашение: /money/<имя>?invite=…
+  const USER = decodeURIComponent(location.pathname.split('/')[2] || '').toLowerCase();
+  const API = '/api/m/' + encodeURIComponent(USER);
+  const INVITE = new URLSearchParams(location.search).get('invite') || '';
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const nf = new Intl.NumberFormat('ru-RU');
   // Отрицательное — с настоящим минусом «−»
@@ -338,7 +342,7 @@
   const ICONS = ['💰', '🏠', '🌐', '💼', '🤝', '📈', '🏡', '🥤', '🛒', '🚕', '🍔', '🌴', '📱', '👕', '📣', '🖥️', '🎁', '💄', '⛽', '💊', '🎓', '✈️', '🐾', '👶', '🔧', '🧾', '☕', '🎬', '👛', '💳', '🏦', '💵'];
 
   let D = { entries: [], cats: [], wallets: [] }, month = today().slice(0, 7), tab = 'panel', closed = {};
-  try { closed = JSON.parse(localStorage.getItem('mnyClosed') || '{}'); } catch (e) { /* без памяти */ }
+  try { closed = JSON.parse(localStorage.getItem('mnyClosed:' + USER) || '{}'); } catch (e) { /* без памяти */ }
 
   async function api(method, url, body) {
     const r = await fetch(url, { method, headers: { 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body), credentials: 'same-origin' });
@@ -365,7 +369,7 @@
   // Свежие данные с сервера: при возвращении на страницу и раз в минуту (если записали с другого телефона)
   async function refresh() {
     if (inflight || $('app').hidden || $('sheetBox').innerHTML) return;
-    const r = await api('GET', '/api/money').catch(() => null);
+    const r = await api('GET', API).catch(() => null);
     if (!r || !r.ok || inflight || $('sheetBox').innerHTML) return;
     if (JSON.stringify(r.data) !== JSON.stringify(D)) { D = r.data; render(); }
   }
@@ -380,7 +384,7 @@
   function showLogin() { $('app').hidden = true; $('tabbar').hidden = true; closeSheet(); $('login').hidden = false; $('pin').value = ''; setTimeout(() => $('pin').focus(), 50); }
   $('login').onsubmit = async e => {
     e.preventDefault();
-    const r = await api('POST', '/api/money/login', { pin: $('pin').value }).catch(() => ({ ok: false, data: { error: 'Нет связи' } }));
+    const r = await api('POST', API + '/login', { pin: $('pin').value }).catch(() => ({ ok: false, data: { error: 'Нет связи' } }));
     if (!r.ok) { $('loginErr').textContent = r.data.error || 'Ошибка'; $('pin').value = ''; return; }
     $('loginErr').textContent = '';
     $('warn').hidden = !r.data.badTries;
@@ -389,7 +393,7 @@
   };
 
   async function start() {
-    const r = await api('GET', '/api/money');
+    const r = await api('GET', API);
     D = r.data;
     $('login').hidden = true; $('app').hidden = false; $('tabbar').hidden = false;
     render();
@@ -528,7 +532,7 @@
   let query = '';
   function history() {
     $('view').innerHTML = `<div class="hist-tools"><input class="field search" id="q" type="search" placeholder="Поиск: категория, заметка, сумма" value="${esc(query)}">
-      <a class="btn btn-sm" href="/api/money.csv" download title="Все записи — файл для Excel">Excel ⬇</a></div><div id="hl"></div>`;
+      <a class="btn btn-sm" href="${API}/csv" download title="Все записи — файл для Excel">Excel ⬇</a></div><div id="hl"></div>`;
     const draw = () => {
       const q = query.trim().toLowerCase(), qd = q.replace(/\D/g, '');
       const list = D.entries.filter(e => (q ? [e.cat, e.note, walletOf(e.wallet).name].join(' ').toLowerCase().includes(q) || (qd && String(e.amount).includes(qd)) : inMonth(e)))
@@ -634,7 +638,7 @@
       $('rateErr').innerHTML = r ? '<span class="ok">Курс сохранён ✓</span>' : 'Не получилось сохранить';
     };
     $('pinBtn').onclick = pinSheet;
-    $('logout').onclick = async () => { await api('POST', '/api/money/logout'); showLogin(); };
+    $('logout').onclick = async () => { await api('POST', API + '/logout'); showLogin(); };
   }
 
   // ---------- Нижние листы ----------
@@ -660,7 +664,7 @@
     $('del').onclick = () => {
       const before = D.entries;
       D.entries = D.entries.filter(x => x.id !== e.id); closeSheet(); render(); toast('Удалено');
-      sync(api('DELETE', `/api/money/${e.id}`), null, err => { D.entries = before; render(); toast(err, true); });
+      sync(api('DELETE', `${API}/e/${e.id}`), null, err => { D.entries = before; render(); toast(err, true); });
     };
   }
 
@@ -716,7 +720,7 @@
       D.entries = editing ? D.entries.map(x => (x.id === e.id ? local : x)) : [...D.entries, local];
       month = body.date.slice(0, 7);
       closeSheet(); render(); toast(editing ? 'Сохранено' : 'Добавлено ✓');
-      sync(api(editing ? 'PUT' : 'POST', editing ? `/api/money/${e.id}` : '/api/money', body), r => {
+      sync(api(editing ? 'PUT' : 'POST', editing ? `${API}/e/${e.id}` : API + '/e', body), r => {
         D.entries = D.entries.map(x => (x.id === local.id ? r.data : x)); render();
       }, err => { D.entries = before; render(); toast(err, true); });
     };
@@ -726,17 +730,17 @@
       $('yes').onclick = () => {
         const before = D.entries;
         D.entries = D.entries.filter(x => x.id !== e.id); closeSheet(); render(); toast('Удалено');
-        sync(api('DELETE', `/api/money/${e.id}`), null, err => { D.entries = before; render(); toast(err, true); });
+        sync(api('DELETE', `${API}/e/${e.id}`), null, err => { D.entries = before; render(); toast(err, true); });
       };
     }
   }
 
   // Сохранить списки категорий и кошельков
   async function saveSetup(cats, wallets) {
-    const r = await api('PUT', '/api/money/setup', { cats, wallets });
+    const r = await api('PUT', API + '/setup', { cats, wallets });
     if (!r.ok) { $('err').textContent = r.data.error || 'Ошибка'; return false; }
     D.cats = r.data.cats; D.wallets = r.data.wallets;
-    const g = await api('GET', '/api/money'); D = g.data; // переименования попали и в записи
+    const g = await api('GET', API); D = g.data; // переименования попали и в записи
     closeSheet(); render(); return true;
   }
   const looks = (icon, color) => `<div class="lbl">Значок</div><div class="chips" id="icons">${ICONS.map(i => `<button type="button" data-i="${i}" class="${i === icon ? 'on' : ''}" style="padding:6px 9px;font-size:20px">${i}</button>`).join('')}</div>
@@ -788,7 +792,7 @@
 
   // Сохранить повторяющиеся платежи / цели / долги / курс (что передано). keep — не закрывать лист
   async function saveLists(body, keep) {
-    const r = await api('PUT', '/api/money/lists', body);
+    const r = await api('PUT', API + '/lists', body);
     if (!r.ok) { if ($('err')) $('err').textContent = r.data.error || 'Ошибка'; return false; }
     D = r.data;
     if (!keep) closeSheet();
@@ -900,7 +904,7 @@
       if (!(await saveLists({ debts: [...D.debts, st] }, true))) { $('ok').disabled = false; return; }
       const nd = D.debts.find(x => !ids.has(x.id));
       if (nd && wid !== 'none') {
-        const r = await api('POST', '/api/money', { kind: 'debt', debtId: nd.id, flow: st.dir === 'they' ? 'out' : 'in', wallet: wid, amount: st.amount, date: today(), note: st.note })
+        const r = await api('POST', API + '/e', { kind: 'debt', debtId: nd.id, flow: st.dir === 'they' ? 'out' : 'in', wallet: wid, amount: st.amount, date: today(), note: st.note })
           .catch(() => ({ ok: false, data: { error: 'Нет связи' } }));
         if (r.ok) D.entries.push(r.data); else toast(`Долг записан, но кошелёк не изменён: ${r.data.error || Object.values(r.data.errors || {})[0] || 'ошибка'}`, true);
       }
@@ -936,7 +940,7 @@
       $('ok').disabled = true; $('ok').textContent = 'Записываю…';
       for (const d of list) {
         if (pick[d.id] === 'none') continue;
-        const r = await api('POST', '/api/money', { kind: 'debt', debtId: d.id, flow: d.dir === 'they' ? 'out' : 'in', wallet: pick[d.id], amount: d.amount, date: day(d), note: d.note || '' })
+        const r = await api('POST', API + '/e', { kind: 'debt', debtId: d.id, flow: d.dir === 'they' ? 'out' : 'in', wallet: pick[d.id], amount: d.amount, date: day(d), note: d.note || '' })
           .catch(() => ({ ok: false, data: { error: 'Нет связи' } }));
         if (!r.ok) { $('err').textContent = `${d.who}: ${Object.values(r.data.errors || {})[0] || r.data.error || 'ошибка'}`; $('ok').disabled = false; $('ok').textContent = 'Учесть'; return; }
         D.entries.push(r.data);
@@ -970,7 +974,7 @@
     $('ok').onclick = async () => {
       $('ok').disabled = true;
       if (wid !== 'none') {
-        const r = await api('POST', '/api/money', { kind: 'debt', debtId: d.id, flow: they ? 'in' : 'out', wallet: wid, amount: d.amount, date: $('rd').value || today(), note: d.note || '' })
+        const r = await api('POST', API + '/e', { kind: 'debt', debtId: d.id, flow: they ? 'in' : 'out', wallet: wid, amount: d.amount, date: $('rd').value || today(), note: d.note || '' })
           .catch(() => ({ ok: false, data: { error: 'Нет связи' } }));
         if (!r.ok) { $('err').textContent = Object.values(r.data.errors || {})[0] || r.data.error || 'Не получилось'; $('ok').disabled = false; return; }
       }
@@ -989,7 +993,7 @@
       const p = $('p1').value;
       if (!/^\d{2,12}$/.test(p)) { $('err').textContent = 'Новый пароль — только цифры, от 2 до 12'; return; }
       if (p !== $('p2').value) { $('err').textContent = 'Новые пароли не совпадают'; return; }
-      const r = await api('PUT', '/api/money/pin', { old: $('p0').value, pin: p });
+      const r = await api('PUT', API + '/pin', { old: $('p0').value, pin: p });
       if (!r.ok) { $('err').textContent = Object.values(r.data.errors || {})[0] || r.data.error || 'Ошибка'; return; }
       $('err').innerHTML = '<span class="ok">Пароль изменён ✓</span>';
       setTimeout(closeSheet, 1200);
@@ -1007,6 +1011,8 @@
   };
   $('tabbar').onclick = e => { const b = e.target.closest('button'); if (!b) return; tab = b.dataset.tab; render(true); };
 
+  // Имя владельца учёта — в заголовке входа и вкладки
+  function setTitle(t) { if (!t) return; document.title = `Учёт · ${t}`; document.querySelectorAll('.mtitle').forEach(h => { h.textContent = `Учёт · ${t}`; }); }
   // Первый вход: задать пароль (только владелец, вошедший в кабинет)
   function showSetup(can) {
     $('setup').hidden = false; $('setupOk').hidden = !can; $('setupNo').hidden = can;
@@ -1017,12 +1023,13 @@
     const p = $('s1').value;
     if (!/^\d{2,12}$/.test(p)) { $('setupErr').textContent = 'Только цифры, от 2 до 12'; return; }
     if (p !== $('s2').value) { $('setupErr').textContent = 'Пароли не совпадают'; return; }
-    const r = await api('POST', '/api/money/setpin', { pin: p }).catch(() => ({ ok: false, data: { error: 'Нет связи' } }));
+    const r = await api('POST', API + '/setpin', { pin: p, invite: INVITE }).catch(() => ({ ok: false, data: { error: 'Нет связи' } }));
     if (!r.ok) { $('setupErr').textContent = r.data.error || 'Ошибка'; return; }
+    if (INVITE) window.history.replaceState(null, '', location.pathname); // приглашение использовано — убираем его из адреса
     $('setup').hidden = true; start();
   };
 
-  api('GET', '/api/money/me').then(r => (r.data.in ? start() : r.data.setup ? showSetup(r.data.canSetup) : showLogin())).catch(showLogin);
+  api('GET', API + '/me' + (INVITE ? '?invite=' + encodeURIComponent(INVITE) : '')).then(r => (setTitle(r.data.title), r.data.in ? start() : r.data.setup ? showSetup(r.data.canSetup) : showLogin())).catch(showLogin);
 })();
 </script>
 </body>
