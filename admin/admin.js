@@ -221,12 +221,26 @@
         <a class="auth-phone" href="${esc(waTo(p.whatsapp, 'Здравствуйте!'))}" target="_blank" rel="noopener">WhatsApp ${esc(fmtPhone(p.whatsapp))}</a>`;
     }).catch(() => {});
     loginNote = '';
+    // Пока сервер отвечает, кнопка показывает «Входим…» (после неверного пароля сервер нарочно ждёт до 5 секунд).
+    // Нет ответа 20 секунд — пишем, что нет связи, вместо «мёртвой» кнопки.
     document.getElementById('lf').onsubmit = async e => {
       e.preventDefault();
+      const btn = e.target.querySelector('button');
+      if (btn.disabled) return;
+      btn.disabled = true; btn.textContent = 'Входим…'; showErr('le', '');
+      const slow = setTimeout(() => showErr('le', 'Интернет медленный — ждём ответа сервера…'), 6000);
       try {
-        await api('POST', '/api/admin/login', { login: document.getElementById('lg').value, password: document.getElementById('pw').value, remember: document.getElementById('rm').checked });
+        await Promise.race([
+          api('POST', '/api/admin/login', { login: document.getElementById('lg').value, password: document.getElementById('pw').value, remember: document.getElementById('rm').checked }),
+          new Promise((_, no) => setTimeout(() => no(new Error('Нет связи с сервером. Проверьте интернет (или выключите VPN) и попробуйте ещё раз.')), 20000)),
+        ]);
+        clearTimeout(slow);
         start();
-      } catch (err) { showErr('le', err.message); }
+      } catch (err) {
+        clearTimeout(slow);
+        showErr('le', err.message === 'Failed to fetch' || err.name === 'TypeError' ? 'Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.' : err.message);
+        btn.disabled = false; btn.textContent = 'Войти';
+      }
     };
   }
 
