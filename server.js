@@ -17,6 +17,7 @@ const { migrateHandover, pendingHandover, dropHandoverTags } = require('./lib/ha
 const { publicApt, waLink, kindLabel, unitOf, money, isListed, typeOf, isCashType, cityOf, TYPES, CITIES } = require('./lib/calc');
 const { resolveMap } = require('./lib/maps');
 const pages = require('./lib/pages');
+const companies = require('./lib/companies');
 const auth = require('./lib/auth');
 const tenants = require('./lib/tenants');
 const analytics = require('./lib/analytics');
@@ -82,6 +83,8 @@ const isOwnerRealtor = r => D().users.some(u => u.role === 'owner' && u.realtorI
 const queueAllowed = r => !!r && r.queueAccess === true;
 // Блок «Достижения компании» (объекты «Кут»): владелец даёт доступ, менеджер сам включает у себя в профиле
 const kutAllowed = r => !!r && r.kutAccess === true;
+// Компания менеджера (lib/companies.js): её дома — в блоке «Достижения компании», её история — у ИИ-помощника
+const kutCompany = r => (kutAllowed(r) && r.settings.kutShow === 'on' && companies.companyOf(r)) || false;
 // ИИ-помощник на сайте — только у тех, кому владелец включил его кнопкой в «Менеджерах» (и у него самого тоже)
 const aiAllowed = r => !!r && r.aiAccess === true;
 const statusOf = r => (isOwnerRealtor(r) ? { active: true, code: 'unlimited', label: 'Владелец — без ограничений' } : tenants.status(r));
@@ -94,7 +97,7 @@ const siteUrl = (req, r) => `${base(req)}/${r.slug}`;
 // Язык сайта клиента: выбор хранится в cookie lang (ru — по умолчанию, ky — кыргызский). Роботы поиска видят русский.
 const langOf = req => langOk(cookies(req).lang);
 // Тексты профиля на языке страницы: на кыргызской версии — кыргызские варианты (если менеджер их заполнил)
-const ctxOf = (r, req) => ({ s: localizeSettings(r.settings, langOf(req)), base: base(req), prefix: `/${r.slug}`, slug: r.slug, partnerCta: r.partnerCta !== false, lang: langOf(req), ai: aiChat.ready() && aiAllowed(r) && (aiChat.logging() ? 'log' : true), kut: kutAllowed(r) && r.settings.kutShow === 'on', queue: queueAllowed(r) ? { ...queueConf(), open: true } : {} });
+const ctxOf = (r, req) => ({ s: localizeSettings(r.settings, langOf(req)), base: base(req), prefix: `/${r.slug}`, slug: r.slug, partnerCta: r.partnerCta !== false, lang: langOf(req), ai: aiChat.ready() && aiAllowed(r) && (aiChat.logging() ? 'log' : true), kut: kutCompany(r), queue: queueAllowed(r) ? { ...queueConf(), open: true } : {} });
 const pub = (r, a, req, lang = langOf(req)) => publicApt(a, r.settings, base(req), `/${r.slug}`, lang);
 const aptLabel = a => `${a.title ? a.title + ' · ' : ''}${kindLabel(a)}, ${a.area} ${unitOf(a)}`;
 
@@ -450,7 +453,8 @@ app.get('/api/admin/me', requireAuth, (req, res) => {
     short: !!req.sessShort, idleMin: IDLE_MIN,
     // Вкладка «Очередь»: владельцу — всегда, менеджеру — если ему включён доступ или у него уже есть клиенты
     queueSite: queueAllowed(r), // запись в очередь на его сайте включена владельцем
-    kutSite: kutAllowed(r), // владелец дал доступ к блоку «Достижения компании»
+    kutSite: kutAllowed(r) && !!companies.companyOf(r), // владелец дал доступ к блоку «Достижения компании»
+    company: (c => (c ? { name: c.name, sample: c.objects.slice(0, 6).map(o => o.name), total: c.objects.length, done: companies.stats(c).done.length, flatsDone: companies.stats(c).flatsDone } : null))(companies.companyOf(r)),
     queueOn: req.user.role === 'owner' || queueAllowed(r) || (D().queue || []).some(q => q.realtorId === r.id),
     realtor: {
       id: r.id, slug: r.slug, url: siteUrl(req, r), name: r.settings.name,
@@ -683,9 +687,12 @@ function realtorRow(r, req, stats) {
     role: u ? u.role : '', status: statusOf(r), plan: r.plan, blocked: !!r.blocked, note: r.note || '',
     createdAt: r.createdAt, apartments: aptsOf(r.id).length, visitors30: st.visitors, wa30: st.wa, lastActivity: st.last,
     partnerCta: r.partnerCta !== false, queueAccess: queueAllowed(r), aiAccess: aiAllowed(r), kutAccess: kutAllowed(r),
+    companyId: r.companyId || 'kut',
   };
 }
 
+// Компании, которые можно выбрать менеджеру (новая компания добавляется в lib/companies.js)
+app.get('/api/owner/companies', requireAuth, ownerOnly, (req, res) => res.json(companies.companyList()));
 app.get('/api/owner/realtors', requireAuth, ownerOnly, (req, res) => {
   const stats = analytics.summary(30);
   res.json(D().realtors.map(r => realtorRow(r, req, stats)).sort((a, b) => (a.role === 'owner' ? -1 : b.role === 'owner' ? 1 : String(b.createdAt || '').localeCompare(String(a.createdAt || '')))));
@@ -793,6 +800,7 @@ app.put('/api/owner/realtors/:id', requireAuth, ownerOnly, (req, res) => {
   if ('partnerCta' in b) r.partnerCta = !!b.partnerCta;
   if ('queueAccess' in b) r.queueAccess = b.queueAccess === true;
   if ('kutAccess' in b) r.kutAccess = b.kutAccess === true;
+  if ('companyId' in b && companies.validId(b.companyId)) r.companyId = b.companyId;
   if ('aiAccess' in b) r.aiAccess = b.aiAccess === true;
   if ('slug' in b) {
     const slug = String(b.slug || '').trim().toLowerCase();

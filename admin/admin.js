@@ -730,13 +730,13 @@
           </div>
           ${f('name', 'Имя')}
           ${f('role', 'Кем работаете', 'text', 'Например: Менеджер строительной компании «Кут»')}
-          ${me.kutSite ? `<label class="f" style="display:flex;gap:10px;align-items:flex-start"><input type="checkbox" name="kutShow" ${s.kutShow === 'on' ? 'checked' : ''} style="width:auto;margin-top:3px"> <span style="margin:0">Показывать на сайте блок «Достижения компании» — сданные и строящиеся дома «Кут» (после «Обо мне»)</span></label>
+          ${me.kutSite ? `<label class="f" style="display:flex;gap:10px;align-items:flex-start"><input type="checkbox" name="kutShow" ${s.kutShow === 'on' ? 'checked' : ''} style="width:auto;margin-top:3px"> <span style="margin:0">Показывать на сайте блок «Достижения компании» — сданные и строящиеся дома «${esc(me.company.name)}» (после «Обо мне»)</span></label>
           <details class="hint kut-help" style="margin:-6px 0 14px 30px"><summary style="cursor:pointer;color:var(--accent,#a8834a);font-weight:600">Подробнее — что появится на сайте</summary>
             <div style="margin-top:8px;line-height:1.5">
-              На главной вашего сайта, сразу после «Обо мне», появится блок о строительной компании «Кут»:
+              На главной вашего сайта, сразу после «Обо мне», появится блок о строительной компании «${esc(me.company.name)}»:
               <ul style="margin:6px 0 6px 18px;padding:0">
-                <li><b>Цифры:</b> 21 объект, 11 сданных жилых комплексов, 5 600+ квартир уже передано владельцам, 53 100+ квартир во всех проектах.</li>
-                <li><b>Карточки домов:</b> Белек, Келечек, Кут Парк, Тундук, Олокон, ЖК Алтай и другие — сдан или когда сдача, адрес, этажи, блоки, квартиры.</li>
+                <li><b>Цифры:</b> всего объектов — ${me.company.total}, сданных жилых комплексов — ${me.company.done}, квартир уже передано владельцам — ${fmt(me.company.flatsDone)}.</li>
+                <li><b>Карточки домов:</b> ${esc(me.company.sample.join(', '))} и другие — сдан или когда сдача, адрес, этажи, блоки, квартиры.</li>
                 <li>В каждой карточке кнопка «Подробнее»: отделка, фасад, конструкция, коммуникации и что рядом (школы, садики, рынки).</li>
                 <li>Сначала видно 6 домов (на телефоне 3), остальные — по кнопке «Показать все объекты».</li>
               </ul>
@@ -1066,12 +1066,13 @@
 
   async function renderRealtors() {
     if (!isOwner()) { location.hash = '#list'; return; }
-    const [list, product, mine, ai, mUsers] = await Promise.all([api('GET', '/api/owner/realtors'), api('GET', '/api/owner/product'), api('GET', '/api/admin/apartments'), api('GET', '/api/owner/aichat'), api('GET', '/api/owner/money-users')]);
+    const [list, product, mine, ai, mUsers, cos] = await Promise.all([api('GET', '/api/owner/realtors'), api('GET', '/api/owner/product'), api('GET', '/api/admin/apartments'), api('GET', '/api/owner/aichat'), api('GET', '/api/owner/money-users'), api('GET', '/api/owner/companies')]);
     // Сколько квартир в рассрочку скопируется новому менеджеру (наличные не копируются)
     const myInstallment = mine.filter(a => a.computed.installment || (!cashLike(typeOf(a)) && a.computed.price)).length;
     const others = list.filter(x => x.role !== 'owner');
     const paying = others.filter(x => x.status.active && !x.blocked).length;
     const inMonth = addMonths('', 1);
+    const coName = id => (id === 'none' ? 'нет' : (cos.find(c => c.id === id) || { name: id }).name);
     const badge = x => `<span class="st st-${x.status.code}">${esc(x.status.label)}</span>`;
 
     app.innerHTML = `${nav('realtors')}<div class="wrap">
@@ -1126,7 +1127,8 @@
             ${x.role === 'owner' || !myInstallment ? '' : '<button class="btn" data-act="copy">Копировать мои квартиры ему</button>'}
             ${x.role === 'owner' || !x.apartments ? '' : '<button class="btn" data-act="take">Копировать его квартиры мне</button>'}
             <button class="btn${x.partnerCta ? ' btn-on' : ''}" data-act="cta" title="Блок внизу сайта менеджера, ведёт на kvartiry.asia">«Хотите такой же сайт?»: ${x.partnerCta ? 'показан ✓' : 'скрыт'}</button>
-            <button class="btn${x.kutAccess ? ' btn-on' : ''}" data-act="kut" title="Доступ к блоку «Достижения компании» (объекты «Кут»). Менеджер сам включает его у себя в профиле">Объекты «Кут»: ${x.kutAccess ? 'доступ есть ✓' : 'нет доступа'}</button>
+            <button class="btn" data-act="company" title="Застройщик менеджера: его дома в блоке «Достижения компании» и его история у ИИ-помощника">Компания: ${esc(coName(x.companyId))}</button>
+            <button class="btn${x.kutAccess ? ' btn-on' : ''}" data-act="kut" title="Доступ к блоку «Достижения компании» (дома его компании). Менеджер сам включает его у себя в профиле">Достижения компании: ${x.kutAccess ? 'доступ есть ✓' : 'нет доступа'}</button>
             <button class="btn${x.queueAccess ? ' btn-on' : ''}" data-act="queue" title="Запись клиентов в очередь на новый ЖК на сайте">Очередь на ЖК на сайте: ${x.queueAccess ? 'включена ✓' : 'выключена'}</button>
             <button class="btn${x.aiAccess ? ' btn-on' : ''}" data-act="ai" title="ИИ-помощник «Спросить» на сайте этого менеджера">ИИ-помощник: ${x.aiAccess ? 'включён ✓' : 'выключен'}</button>
             <button class="btn" data-act="stats">Аналитика</button>
@@ -1338,7 +1340,12 @@
           case 'm1': await put({ paidUntil: addMonths(x.plan.paidUntil, 1) }); toast('Продлено на месяц'); break;
           case 'cta': await put({ partnerCta: !x.partnerCta }); toast(x.partnerCta ? 'Призыв скрыт с сайта' : 'Призыв показан на сайте'); break;
           case 'ai': await put({ aiAccess: !x.aiAccess }); toast(x.aiAccess ? 'ИИ-помощник выключен на сайте' : 'ИИ-помощник включён на сайте'); break;
-          case 'kut': await put({ kutAccess: !x.kutAccess }); toast(x.kutAccess ? 'Доступ к объектам «Кут» закрыт — блок скрыт с сайта' : 'Доступ дан — менеджер включит блок у себя в профиле'); break;
+          case 'kut': await put({ kutAccess: !x.kutAccess }); toast(x.kutAccess ? 'Доступ к «Достижениям компании» закрыт — блок скрыт с сайта' : 'Доступ дан — менеджер включит блок у себя в профиле'); break;
+          case 'company': {
+            const k = await actionSheet(`Компания «${x.name}»`, [...cos.map(c => ({ key: c.id, label: `«${c.name}»${c.id === x.companyId ? ' ✓' : ''}` })), { key: 'none', label: `Без компании${x.companyId === 'none' ? ' ✓' : ''}` }]);
+            if (!k || k === x.companyId) return;
+            await put({ companyId: k }); toast(k === 'none' ? 'Компания убрана: блока нет, ИИ не рассказывает о застройщике' : `Компания: «${coName(k)}» — её дома и история у этого менеджера`); break;
+          }
           case 'queue': await put({ queueAccess: !x.queueAccess }); toast(x.queueAccess ? 'Очередь выключена у менеджера' : 'Очередь включена у менеджера'); break;
           case 'm3': await put({ paidUntil: addMonths(x.plan.paidUntil, 3) }); toast('Продлено на 3 месяца'); break;
           case 'gift': {
