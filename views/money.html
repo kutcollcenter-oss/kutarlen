@@ -79,7 +79,20 @@
   .shade { position: fixed; inset: 0; background: rgba(0, 0, 0, .55); z-index: 30; }
   .sheet { position: fixed; left: 50%; transform: translateX(-50%); bottom: 0; width: min(560px, 100%); max-height: 92vh; overflow: auto; z-index: 31;
     background: var(--panel); border-radius: 22px 22px 0 0; padding: 10px 16px calc(18px + env(safe-area-inset-bottom)); }
-  .sheet .grab { width: 40px; height: 5px; border-radius: 3px; background: #48484a; margin: 0 auto 10px; }
+  .sheet .grab { width: 40px; height: 5px; border-radius: 3px; background: #48484a; margin: 0 auto 10px; position: relative; }
+  /* Полоску удобно схватить: невидимая зона вокруг неё больше самой полоски */
+  .sheet .grab::before { content: ''; position: absolute; inset: -14px -60px; }
+  .sheet .grab, .sheet .head { touch-action: none; cursor: grab; user-select: none; }
+  .sheet.drag .grab, .sheet.drag .head { cursor: grabbing; }
+  /* Появление и уход листа: выезжает снизу и уезжает вниз; при перетаскивании идёт за пальцем (--y) */
+  .sheet { transform: translateX(-50%) translateY(var(--y, 0px)); transition: transform .26s cubic-bezier(.2, .8, .2, 1); animation: shIn .32s cubic-bezier(.2, .8, .2, 1); }
+  .sheet.drag { transition: none; }
+  .sheet.out { transform: translateX(-50%) translateY(105%); transition: transform .24s cubic-bezier(.4, 0, 1, 1); }
+  .shade { animation: shadeIn .25s ease; transition: opacity .24s ease; }
+  .shade.out { opacity: 0 !important; }
+  @keyframes shIn { from { transform: translateX(-50%) translateY(100%); } }
+  @keyframes shadeIn { from { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .sheet, .shade { animation: none; transition: none; } }
   .sheet .head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
   .sheet .head b { font-size: 19px; }
   .sheet .head span { display: block; color: var(--muted); font-size: 13px; }
@@ -643,11 +656,48 @@
   }
 
   // ---------- Нижние листы ----------
+  // Лист выезжает снизу. Закрыть: потянуть вниз за полоску (или за шапку), нажать на тёмный фон или Esc —
+  // лист уезжает вниз с анимацией. Тянуть можно и пальцем, и мышкой.
   function openSheet(html) {
-    $('sheetBox').innerHTML = `<div class="shade" id="shade"></div><div class="sheet" role="dialog"><div class="grab"></div>${html}</div>`;
+    $('sheetBox').innerHTML = `<div class="shade" id="shade"></div><div class="sheet" role="dialog"><div class="grab" aria-hidden="true"></div>${html}</div>`;
     $('shade').onclick = closeSheet;
+    dragToClose($('sheetBox').querySelector('.sheet'));
   }
-  function closeSheet() { $('sheetBox').innerHTML = ''; }
+  function closeSheet() {
+    const box = $('sheetBox'), sh = box.querySelector('.sheet');
+    if (!sh || sh.classList.contains('out')) { if (!sh) box.innerHTML = ''; return; }
+    sh.classList.add('out'); box.querySelector('.shade').classList.add('out');
+    // Убираем только этот лист: если за это время открылся другой, его не трогаем
+    setTimeout(() => { if (box.querySelector('.sheet') === sh) box.innerHTML = ''; }, 260);
+  }
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('sheetBox').innerHTML) closeSheet(); });
+  function dragToClose(sh) {
+    let y0 = 0, t0 = 0, dy = 0, on = false, ready = false;
+    const shade = $('shade');
+    sh.addEventListener('pointerdown', e => {
+      // Тянем за полоску или шапку. Перетаскивание начинается, только когда палец сдвинулся вниз,
+      // поэтому обычные нажатия на кнопки в шапке работают как раньше
+      if (!e.target.closest('.grab, .head') || e.button > 0) return;
+      ready = true; on = false; y0 = e.clientY; t0 = Date.now(); dy = 0;
+    });
+    sh.addEventListener('pointermove', e => {
+      if (ready && !on && e.clientY - y0 > 6) { on = true; sh.classList.add('drag'); try { sh.setPointerCapture(e.pointerId); } catch (err) { /* без захвата */ } }
+      if (!on) return;
+      dy = Math.max(0, e.clientY - y0);
+      sh.style.setProperty('--y', dy + 'px');
+      shade.style.opacity = String(Math.max(0, 1 - dy / (sh.offsetHeight || 400)));
+    });
+    const end = () => {
+      ready = false;
+      if (!on) return;
+      on = false; sh.classList.remove('drag');
+      const fast = dy / Math.max(1, Date.now() - t0) > 0.6; // быстрый взмах вниз тоже закрывает
+      if (dy > Math.min(120, sh.offsetHeight / 3) || (fast && dy > 30)) closeSheet();
+      else { sh.style.removeProperty('--y'); shade.style.opacity = ''; } // не дотянул — лист возвращается
+    };
+    sh.addEventListener('pointerup', end);
+    sh.addEventListener('pointercancel', end);
+  }
   const chipList = (items, on, attr) => `<div class="chips">${items.map(x => `<button type="button" data-${attr}="${x.id}" class="${x.id === on ? 'on' : ''}"><span class="mini" style="--c:${esc(x.color)}">${esc(x.icon)}</span>${esc(x.name)}</button>`).join('')}</div>`;
   const pickChips = (attr, set) => document.querySelectorAll(`.sheet [data-${attr}]`).forEach(b => { b.onclick = () => { document.querySelectorAll(`.sheet [data-${attr}]`).forEach(x => x.classList.toggle('on', x === b)); set(b.dataset[attr]); }; });
   const fmtInput = el => { el.oninput = () => { const d = el.value.replace(/\D/g, ''); el.value = d ? nf.format(+d) : ''; }; };
@@ -785,7 +835,7 @@
     $('ok').onclick = () => {
       if ($('lim')) st.limit = +$('lim').value.replace(/\D/g, '') || 0;
       st.name = $('nm').value.trim();
-      if (!st.name) { $('err').textContent = 'Напишите название'; return; }
+      if (!st.name) { if (!c) return closeSheet(); $('err').textContent = 'Напишите название'; return; }
       saveSetup(c ? D.cats.map(x => (x.id === c.id ? st : x)) : [...D.cats, st], D.wallets);
     };
     if (c) $('del').onclick = () => saveSetup(D.cats.filter(x => x.id !== c.id), D.wallets);
@@ -804,7 +854,7 @@
     pv(); bindLooks(st, pv); fmtInput($('sb'));
     $('ok').onclick = () => {
       st.name = $('nm').value.trim(); st.currency = $('cu').value; st.start = +$('sb').value.replace(/\D/g, '') || 0;
-      if (!st.name) { $('err').textContent = 'Напишите название'; return; }
+      if (!st.name) { if (!w) return closeSheet(); $('err').textContent = 'Напишите название'; return; }
       saveSetup(D.cats, w ? D.wallets.map(x => (x.id === w.id ? st : x)) : [...D.wallets, st]);
     };
     if (w) $('del').onclick = () => saveSetup(D.cats, D.wallets.filter(x => x.id !== w.id));
@@ -843,7 +893,7 @@
       pickChips('wf', v => { st.wallet = v; });
       $('ok').onclick = () => {
         keep();
-        if (!st.amount) { $('err').textContent = 'Введите сумму'; return; }
+        if (!st.amount) { if (!editing) return closeSheet(); $('err').textContent = 'Введите сумму'; return; }
         if (!(st.day >= 1 && st.day <= 28)) { $('err').textContent = 'Число месяца — от 1 до 28'; return; }
         if (!st.catId) { $('err').textContent = 'Выберите категорию'; return; }
         saveLists({ recurring: r ? D.recurring.map(x => (x.id === r.id ? st : x)) : [...D.recurring, st] });
@@ -875,7 +925,7 @@
     ['tg', 'un', 'cu'].forEach(id => $(id).addEventListener('input', upd));
     $('ok').onclick = () => {
       upd(); st.name = $('nm').value.trim();
-      if (!st.name) { $('err').textContent = 'Напишите название'; return; }
+      if (!st.name) { if (!g) return closeSheet(); $('err').textContent = 'Напишите название'; return; }
       if (!st.target) { $('err').textContent = 'Сколько нужно накопить?'; return; }
       saveLists({ goals: g ? D.goals.map(x => (x.id === g.id ? st : x)) : [...D.goals, st] });
     };
@@ -915,6 +965,7 @@
     document.querySelectorAll('.sheet [data-dr]').forEach(b => { b.onclick = () => { st.dir = b.dataset.dr; document.querySelectorAll('.sheet [data-dr]').forEach(x => x.classList.toggle('on', x === b)); drawW(); }; });
     $('ok').onclick = async () => {
       Object.assign(st, { who: $('who').value.trim(), amount: +$('amt').value.replace(/\D/g, '') || 0, currency: $('cu').value, due: $('due').value, note: $('nt').value });
+      if (!d && !st.who && !st.amount) return closeSheet();
       if (!st.who) { $('err').textContent = 'Кто должен?'; return; }
       if (!st.amount) { $('err').textContent = 'Введите сумму'; return; }
       if (d) { saveLists({ debts: D.debts.map(x => (x.id === d.id ? st : x)) }); return; }
