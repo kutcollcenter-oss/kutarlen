@@ -230,14 +230,15 @@ app.get('/', (req, res) => {
 });
 
 app.get(PARTNER_PATH, (req, res) => {
-  // Пример для страницы продукта — сайт владельца: ссылка, фото, имя и одна квартира в рассрочку
-  const owner = ownerRealtor();
+  // Пример для страницы продукта — демо-сайт /demo («Ваше имя», квартиры владельца, без его контактов и фото).
+  // Сайт владельца сюда не выводим: клиенты других менеджеров не должны уходить к нему.
+  const dr = demoRealtor();
   const demo = {};
-  if (owner && statusOf(owner).active) {
-    const list = aptsOf(owner.id).filter(isVisible).map(a => pub(owner, a, req));
-    if (list.length) demo.url = `/${owner.slug}`;
-    demo.name = owner.settings.name;
-    demo.photo = owner.settings.photo;
+  if (dr) {
+    const list = demoList(dr, req);
+    if (list.length) demo.url = '/' + DEMO_SLUG;
+    demo.name = dr.settings.name;
+    demo.photo = '';
     const a = list.find(x => x.installment && x.photos.length) || list.find(x => x.installment);
     if (a) demo.apt = { thumb: a.photos[0] && a.photos[0].thumb, title: `${a.roomsLabel}, ${a.area} ${a.unit}`, monthly: a.monthly, currency: a.currency };
   }
@@ -334,6 +335,34 @@ function siteOf(req, res) {
   if (!statusOf(r).active) { res.status(503).set('Retry-After', '86400').send(pages.renderUnavailable(ctxOf(r, req))); return null; }
   return r;
 }
+
+// Пример сайта для страницы /partner: вымышленный менеджер «Ваше имя» с квартирами владельца.
+// Контактов владельца здесь нет — кнопки WhatsApp показывают «Это пример». Клиент другого менеджера,
+// попав сюда через «Хотите такой же сайт?», не может написать владельцу.
+const DEMO_SLUG = 'demo';
+function demoRealtor() {
+  const o = ownerRealtor();
+  if (!o || !statusOf(o).active) return null;
+  const s = tenants.defaultSettings('Ваше имя');
+  s.role = 'Менеджер по недвижимости';
+  s.currencyInstallment = o.settings.currencyInstallment || s.currencyInstallment;
+  s.currencyCash = o.settings.currencyCash || s.currencyCash;
+  return { id: 'demo', slug: DEMO_SLUG, settings: s, src: o.id };
+}
+const demoCtx = (d, req) => ({ ...ctxOf(d, req), demo: true, partnerCta: true, ai: false, kut: false, queue: {} });
+const demoList = (d, req) => aptsOf(d.src).filter(isVisible).map(a => pub(d, a, req));
+app.get('/' + DEMO_SLUG, (req, res, next) => {
+  const d = demoRealtor(); if (!d) return next();
+  res.set('X-Robots-Tag', 'noindex');
+  res.send(pages.renderIndex(demoCtx(d, req), demoList(d, req)));
+});
+app.get('/' + DEMO_SLUG + '/kvartira/:id', (req, res, next) => {
+  const d = demoRealtor(); if (!d) return next();
+  res.set('X-Robots-Tag', 'noindex');
+  const list = demoList(d, req), a = list.find(x => x.id === req.params.id);
+  if (!a) return res.redirect(302, '/' + DEMO_SLUG);
+  res.send(pages.renderApartment(demoCtx(d, req), a, list.filter(x => x.id !== a.id && x.type === a.type).slice(0, 3)));
+});
 
 app.get('/:slug', (req, res, next) => {
   if (req.params.slug.includes('.')) return next(); // файлы (favicon.ico и т.п.) — дальше, к статике
@@ -850,7 +879,7 @@ app.delete('/api/owner/realtors/:id', requireAuth, ownerOnly, (req, res) => {
   res.json({ ok: true });
 });
 
-const PRODUCT_KEYS = ['name', 'tagline', 'whatsapp', 'priceText', 'priceMonth', 'price3', 'price6', 'includedApartments', 'extraPrice', 'rootRealtorId'];
+const PRODUCT_KEYS = ['name', 'tagline', 'whatsapp', 'telegram', 'priceText', 'priceMonth', 'price3', 'price6', 'includedApartments', 'extraPrice', 'rootRealtorId'];
 app.get('/api/owner/product', requireAuth, ownerOnly, (req, res) => res.json(product()));
 app.put('/api/owner/product', requireAuth, ownerOnly, (req, res) => {
   for (const k of PRODUCT_KEYS) if (k in req.body) D().product[k] = String(req.body[k] ?? '').slice(0, 500);

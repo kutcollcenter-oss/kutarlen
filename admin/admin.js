@@ -875,6 +875,25 @@
     return d === 0 ? '<span>0%</span>' : `<span class="${d > 0 ? 'up' : 'down'}">${d > 0 ? '+' : ''}${d}%</span>`;
   }
 
+  // Разговоры клиентов с ИИ-помощником на сайте менеджера — видит только сам менеджер
+  async function loadMyChats() {
+    const box = document.getElementById('myChats');
+    if (!box) return;
+    const chats = await api('GET', '/api/admin/aichat/chats').catch(() => []);
+    if (!chats.length) return;
+    const when = t => new Date(t).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    box.innerHTML = `<div class="card"><h2 style="margin-top:0">Разговоры с ИИ на вашем сайте</h2>
+      <p class="hint" style="margin-top:0">Что клиенты спрашивали у ИИ-помощника (последние 30 дней). Видите только вы.</p>
+      ${chats.map(c => {
+        const first = (c.msgs.find(m => m.r === 'u') || {}).t || '';
+        return `<details style="border:1px solid var(--line,#e5e5ea);border-radius:12px;padding:10px 12px;margin:0 0 8px">
+          <summary><span class="hint" style="margin:0">${when(c.at)} · ${c.msgs.filter(m => m.r === 'u').length} вопр.${c.wants ? ` · ищет: ${esc(c.wants)}` : ''}</span><div style="margin-top:4px">«${esc(first.slice(0, 120))}»</div></summary>
+          <div style="margin-top:10px">${c.msgs.map(m => m.r === 'u'
+            ? `<div style="margin:8px 0 4px"><b>Клиент:</b> ${esc(m.t)}</div>`
+            : `<div style="margin:0 0 8px;padding:8px 10px;border-radius:10px;background:var(--soft,#f5f5f7)"><b>ИИ:</b> ${esc(m.t).replace(/\n/g, '<br>')}</div>`).join('')}</div>
+        </details>`;
+      }).join('')}</div>`;
+  }
   async function renderAnalytics() {
     const q = new URLSearchParams({ days: anDays });
     if (anRealtor) q.set('realtor', anRealtor);
@@ -952,8 +971,10 @@
         <p class="hint" style="margin-top:0">Ставьте разные ссылки в разные места — и в «Откуда приходят» будет видно, какой канал приносит заявки.</p>
         ${sources.map(([k, label]) => `<div class="tagrow"><span>${label}</span><code>${esc(myUrl)}?src=${k}</code><button class="btn" data-copy="${esc(myUrl)}?src=${k}">Копировать</button><button class="btn" data-copy-text="${esc(withText(`${myUrl}?src=${k}`))}" title="Ссылка с приветствием — для сообщений, статуса, сторис">С текстом</button></div>`).join('')}
       </div>`}
+      ${isOwner() ? '' : '<div id="myChats"></div>'}
     </div>`;
     bindNav();
+    if (!isOwner()) loadMyChats();
     document.getElementById('days').onclick = e => { const b = e.target.closest('button'); if (b) { anDays = +b.dataset.d; renderAnalytics(); } };
     const sel = document.getElementById('anR');
     if (sel) sel.onchange = () => { anRealtor = sel.value; renderAnalytics(); };
@@ -1160,6 +1181,7 @@
           <label class="f"><span>Название сервиса</span><input name="name" value="${esc(product.name)}"></label>
           <label class="f"><span>Описание</span><textarea name="tagline" rows="3">${esc(product.tagline)}</textarea></label>
           <label class="f"><span>Ваш WhatsApp для заявок от менеджеров</span><input name="whatsapp" type="tel" value="${esc(product.whatsapp)}"></label>
+          <label class="f"><span>Telegram сервиса — если указан, на странице /partner кнопки ведут в Telegram, номер не показывается</span><input name="telegram" placeholder="@kvartiry_asia" autocapitalize="none" spellcheck="false" value="${esc(product.telegram || '')}"></label>
           <div class="grid2">
             <label class="f"><span>Цена за 1 месяц, сом</span><input name="priceMonth" inputmode="numeric" value="${esc(product.priceMonth)}"></label>
             <label class="f"><span>Цена за 3 месяца, сом</span><input name="price3" inputmode="numeric" value="${esc(product.price3)}"></label>
@@ -1184,7 +1206,7 @@
 
       <details class="card" id="aiCard"><summary><b>ИИ-помощник на сайтах</b> · ${ai.on && ai.providers.some(p => p.hasKey) ? `работает ✓ · у ${list.filter(x => x.aiAccess).length} из ${list.length}` : 'выключен'}</summary>
         <form id="aifm" style="margin-top:12px">
-          <div class="hint" style="margin-bottom:10px">На сайтах выбранных менеджеров появляется золотая кнопка «Спросить». ИИ ведёт себя как опытный продавец и психолог: выясняет, что нужно человеку, отвечает про квартиры этого менеджера, снимает сомнения и ведёт в WhatsApp. Видит, что гость смотрел на сайте. ${ai.saveChats ? 'Разговоры хранятся 30 дней — ниже их можно прочитать и научить ИИ, где он ответил не так.' : 'Разговоры не сохраняются.'}<br><b>Кому показывать</b> — кнопкой «ИИ-помощник» у каждого менеджера в списке выше (и у вас тоже). Сейчас включён у: ${list.filter(x => x.aiAccess).map(x => esc(x.name)).join(', ') || 'ни у кого'}.</div>
+          <div class="hint" style="margin-bottom:10px">На сайтах выбранных менеджеров появляется золотая кнопка «Спросить». ИИ ведёт себя как опытный продавец и психолог: выясняет, что нужно человеку, отвечает про квартиры этого менеджера, снимает сомнения и ведёт в WhatsApp. Видит, что гость смотрел на сайте. ${ai.saveChats ? 'Разговоры хранятся 30 дней. Ниже — разговоры с вашего сайта: их можно прочитать и научить ИИ, где он ответил не так. Разговоры клиентов других менеджеров видят только сами менеджеры (в «Аналитике»).' : 'Разговоры не сохраняются.'}<br><b>Кому показывать</b> — кнопкой «ИИ-помощник» у каждого менеджера в списке выше (и у вас тоже). Сейчас включён у: ${list.filter(x => x.aiAccess).map(x => esc(x.name)).join(', ') || 'ни у кого'}.</div>
           <div class="kpis" style="margin-bottom:12px">
             <div class="kpi"><span>Разговоров</span><b>${ai.month.chats}</b><small>в этом месяце</small></div>
             <div class="kpi"><span>Ответов ИИ</span><b>${ai.month.msgs}</b><small>${ai.providers.filter(p => p.used).map(p => `${({ gemini: 'Gemini', groq: 'Groq', claude: 'Claude' })[p.id]}: ${p.used}`).join(' · ') || 'в этом месяце'}</small></div>
