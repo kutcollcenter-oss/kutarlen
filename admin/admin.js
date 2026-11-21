@@ -246,12 +246,12 @@
 
   const svg = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   const NAV = [
-    ['list', 'Квартиры', svg('<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>')],
-    ['queue', 'Очередь', svg('<path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/>')],
-    ['analytics', 'Аналитика', svg('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>')],
-    ['site', 'Сайт', svg('<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>'), false, true],
-    ['settings', 'Профиль', svg('<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>')],
-    ['realtors', 'Менеджеры', svg('<circle cx="9" cy="8" r="3.5"/><path d="M2 20c1-3.5 3.6-5.5 7-5.5s6 2 7 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18.5 14.8c1.7.9 2.9 2.6 3.5 5.2"/>'), true],
+    ['list', 'Квартиры', svg('<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>')],
+    ['queue', 'Очередь', svg('<path d="M3 5h.01"/><path d="M3 12h.01"/><path d="M3 19h.01"/><path d="M8 5h13"/><path d="M8 12h13"/><path d="M8 19h13"/>')],
+    ['analytics', 'Аналитика', svg('<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>')],
+    ['site', 'Сайт', svg('<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>'), false, true],
+    ['settings', 'Профиль', svg('<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>')],
+    ['realtors', 'Менеджеры', svg('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/>'), true],
   ];
 
   // Верхнее меню — на ноутбуке; на телефоне и планшете — нижнее меню (как на сайте)
@@ -363,7 +363,7 @@
     app.innerHTML = `${nav('list')}<div class="wrap">
       ${installBanner()}
       <div class="row" style="justify-content:space-between"><h1>Квартиры</h1><a class="btn btn-primary" href="#edit/new" data-add>+ Добавить</a></div>
-      <label class="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="m20 20-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <label class="search"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
         <input type="search" id="lq" placeholder="Поиск: ЖК, адрес, площадь" value="${esc(listQuery)}" autocomplete="off"></label>
       ${me.realtor.plan.maxApartments ? `<p class="${apts.length >= me.realtor.plan.maxApartments ? 'warn' : 'hint'}" style="margin-top:-6px">Тариф: ${apts.length} из ${flats(me.realtor.plan.maxApartments)}${apts.length >= me.realtor.plan.maxApartments ? ' — лимит исчерпан, новые добавить нельзя' : ''}</p>` : ''}
       <div class="filters" id="lf">
@@ -746,11 +746,10 @@
             </div>
           </details>` : ''}
         </div>
-        <div class="card" data-ptab="texts"><h2 style="margin-top:0">Первый экран и «Обо мне»</h2>
+        <div class="card" data-ptab="texts"><h2 style="margin-top:0">Первый экран и цифры</h2>
           ${f('heroKicker', 'Надпись над заголовком')}
           ${f('tagline', 'Заголовок первого экрана')}
           ${t('heroPoints', 'Пункты под кнопками', 'Каждый пункт с новой строки, лучше 2–3 коротких')}
-          ${t('about', 'Текст «Обо мне»')}
           ${t('stats', 'Цифры доверия', 'Каждая строка: значение | подпись. Например: 3 года | в недвижимости')}
         </div>
         <div class="card" data-ptab="main"><h2 style="margin-top:0">Компания и логотип</h2>
@@ -774,7 +773,7 @@
         <div class="card" data-ptab="ky"><h2 style="margin-top:0">Кыргызская версия сайта</h2>
           <div class="hint" style="margin:-4px 0 12px">Эти тексты видят клиенты, которые нажали на сайте «Кыр». Пустое поле — покажется русский текст. Серым в поле подсказан ваш русский вариант.</div>
           ${[['heroKicker', 'Надпись над заголовком'], ['tagline', 'Заголовок первого экрана'], ['role', 'Кем работаете'], ['heroPoints', 'Пункты под кнопками', 1],
-            ['about', 'Текст «Обо мне»', 1], ['stats', 'Цифры доверия', 1], ['steps', 'Как работает рассрочка — шаги', 1], ['documents', 'Какие документы нужны', 1],
+            ['stats', 'Цифры доверия', 1], ['steps', 'Как работает рассрочка — шаги', 1], ['documents', 'Какие документы нужны', 1],
             ['faq', 'Вопросы и ответы', 1]]
             .map(([k, label, area]) => `<label class="f"><span>${label} — по-кыргызски</span>${area
               ? `<textarea name="${k}Ky" rows="5" placeholder="${esc(s[k])}">${esc(s[k + 'Ky'])}</textarea>`

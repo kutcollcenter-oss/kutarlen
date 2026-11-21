@@ -115,22 +115,17 @@
     <div class="docs" id="docsWrap"><h3>{{docsTitle}}</h3><ul id="docs"></ul></div>
   </div></section>
 
-  <!-- Обо мне и офис — над отзывами: сначала клиент попадает к подбору квартир -->
-  <section class="section about" id="about"><div class="wrap">
+  <!-- Где нас найти: офис, Instagram и цифры — компактно (текст «Обо мне» убран: он повторял первый экран) -->
+  <section class="section about about-slim" id="about"><div class="wrap">
+    <div class="kicker">{{findKicker}}</div>
     <div class="about-grid">
-      <div>
-        <!--ABOUT-PHOTO-->
-        <div class="kicker">{{aboutKicker}}</div>
-        <h2 id="aboutTitle"></h2>
-        <p class="about-text" id="aboutText"></p>
-        <!--INSTA-->
-      </div>
       <a class="office" id="office" target="_blank" rel="noopener">
         <!--LOGO:office-->
         <div class="office-label">{{office}}</div>
         <div class="office-addr" id="officeAddr"></div>
         <div class="office-link" id="officeLinkText">{{open2gis}}</div>
       </a>
+      <!--INSTA-->
     </div>
     <div class="stats" id="stats"></div>
   </div></section>

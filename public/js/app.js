@@ -25,22 +25,23 @@
   $('heroKicker').textContent = S.heroKicker || '';
   $('heroKicker').hidden = !S.heroKicker;
   $('heroPoints').innerHTML = lines(S.heroPoints).map(p => `<li>${esc(p)}</li>`).join('');
-  $('aboutTitle').innerHTML = L('aboutTitleHtml', { name: esc(S.name) });
-  $('aboutText').textContent = S.about;
   if (S.officeAddress) {
     $('officeAddr').textContent = S.officeAddress;
     if (S.officeLink) $('office').href = S.officeLink; else $('officeLinkText').remove();
   } else $('office').remove();
 
   const STAT_ICONS = [
-    '<path d="M12 7v5l3 2"/><circle cx="12" cy="12" r="9"/>',
-    '<path d="M7 10v11M15 5.9 14 10h5.8a2 2 0 0 1 2 2.3l-1.4 7A2 2 0 0 1 18.4 21H7V10l4-8a3 3 0 0 1 3 3.9Z"/><path d="M3 10h4v11H3z"/>',
-    '<path d="M3 21h18M5 21V10l7-5 7 5v11M9 21v-6h6v6"/>',
-    '<path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/>',
+    '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+    '<path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/><path d="M7 10v12"/>',
+    '<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+    '<path d="M15.914 4a1.5 1.5 0 00-2.474-1.561l-9 9A1.5 1.5 0 005.5 14h4.002a.5.5 0 01.471.666L8.086 20a1.5 1.5 0 002.475 1.56l9-9A1.5 1.5 0 0018.5 10h-3.997a.5.5 0 01-.472-.667z"/>',
   ];
   const stats = lines(S.stats).map(l => l.split('|').map(x => x.trim()));
   $('stats').innerHTML = stats.map(([v, l], i) =>
     `<div class="stat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${STAT_ICONS[i % STAT_ICONS.length]}</svg><div><b>${esc(v)}</b><span>${esc(l || '')}</span></div></div>`).join('');
+
+  // Нечего показать (нет офиса, Instagram и цифр) — блок «Где нас найти» убираем целиком
+  if (!S.officeAddress && !S.instagram && !stats.length && $('about')) $('about').remove();
 
   $('steps').innerHTML = lines(S.steps).map(s => `<li>${esc(s)}</li>`).join('');
   const docs = lines(S.documents);
@@ -445,7 +446,7 @@
   filterEl.before(ftop);
   ftop.append($('fCity'), $('fType'));
   ftop.insertAdjacentHTML('beforeend', `<button type="button" class="fbar" id="fOpen" aria-controls="filter" aria-expanded="false">
-    <span class="fbar-i" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.3"/><circle cx="9" cy="17" r="2.3"/></svg></span>
+    <span class="fbar-i" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M10 5H3"/><path d="M12 19H3"/><path d="M14 3v4"/><path d="M16 17v4"/><path d="M21 12h-9"/><path d="M21 19h-5"/><path d="M21 5h-7"/><path d="M8 10v4"/><path d="M8 12H3"/></svg></span>
     <span class="fbar-t"><b>${L('fPick')}</b><small id="fSum"></small></span><i class="fbar-n" id="fBadge" hidden></i><span class="fbar-go" aria-hidden="true">›</span></button>`);
   filterEl.insertAdjacentHTML('afterbegin', `<div class="fsheet-head"><b>${L('fSheet')}</b><button type="button" class="fsheet-x" id="fClose" aria-label="${L('fClose')}">×</button></div>`);
   filterEl.insertAdjacentHTML('beforeend', '<div class="fsheet-foot"><button type="button" class="btn btn-lg" id="fDone"></button></div>');
@@ -492,7 +493,7 @@
         st.rooms.size && L('fRoomsSel', { x: [...st.rooms].sort().map(r => (r === '4' ? '4+' : r)).join(', ') }),
       ].filter(Boolean);
       wiz.innerHTML = `<div class="wz-done">
-          <span class="wz-ok" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span>
+          <span class="wz-ok" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>
           <span class="wz-t"><b>${esc(L('wDone'))}</b><small>${esc(parts.join(' · ') || L('fAll'))}</small></span>
         </div>
         <div class="wz-acts"><button type="button" class="wz-btn" data-go="1">${esc(L('wEdit'))}</button><button type="button" class="wz-btn" data-go="more">${esc(L('wMore'))}</button></div>`;
