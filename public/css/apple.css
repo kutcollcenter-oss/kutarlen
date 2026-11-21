@@ -1087,3 +1087,12 @@ html.ai-open .ai-tip, html.fsheet-open .ai-tip, html.lb-on .ai-tip { opacity: 0;
   .cards .card-actions { display: none !important; }
   .cards .card-body { padding-bottom: 12px !important; }
 }
+
+/* Подбор квартир: заголовок и вопрос шага — обычным шрифтом, как переключатель типа (без засечек) */
+#catalog h2, #catalog .wz-q {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+  font-weight: 700 !important; letter-spacing: -.02em;
+}
+#catalog h2 { font-size: 24px; }
+#catalog .wz-q { font-size: 19px; line-height: 1.25; }
+@media (min-width: 900px) { #catalog h2 { font-size: 34px; } }
