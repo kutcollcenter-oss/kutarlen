@@ -346,3 +346,31 @@ body.lx { --lx-r: 22px; --lx-glass: rgba(21, 36, 27, .72); font-family: Inter, -
 
 /* «В любой тариф входит» теперь отдельным блоком перед «Как подключить» */
 .lx-sec > .wrap > .lx-incl:first-child { margin-top: 0; }
+
+/* Бонус к подписке: учёт денег (/money) — нарисованный телефон */
+.lx-money .lx-land-text p { margin-bottom: 22px; }
+.lx-m-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+.lx-m-list li { display: flex; gap: 10px; align-items: flex-start; font-size: 16px; line-height: 1.45; }
+.lx-m-list svg { flex: none; width: 20px; height: 20px; margin-top: 2px; color: var(--gold); }
+.lx-m-phone { justify-self: center; width: min(320px, 100%); padding: 10px; background: #0a0f0c; border: 1px solid var(--lx-line); border-radius: 38px !important; box-shadow: 0 30px 60px rgba(0,0,0,.5), 0 0 80px rgba(217,180,90,.12); }
+.lx-m-screen { background: #f4efe6; color: #2a2620; border-radius: 30px !important; padding: 20px 16px 18px; display: grid; gap: 10px; font-family: Inter, system-ui, sans-serif; }
+.lx-m-top { text-align: center; padding: 4px 0 6px; }
+.lx-m-top small { display: block; font-size: 11px; color: #8a8174; text-transform: uppercase; letter-spacing: .08em; }
+.lx-m-top b { display: block; font-weight: 500; font-size: 13px; color: #6b6357; margin-top: 4px; }
+.lx-m-top strong { display: block; font-size: 28px; font-weight: 700; letter-spacing: -.02em; }
+.lx-m-two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.lx-m-two div { background: #fff; border-radius: 14px !important; padding: 10px 12px; }
+.lx-m-two small { display: block; font-size: 11px; color: #8a8174; }
+.lx-m-two b { font-size: 15px; }
+.lx-m-two .in b, .lx-m-row .in { color: #2f8a4c; }
+.lx-m-two .out b { color: #c0462e; }
+.lx-m-row { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 14px !important; padding: 9px 12px; font-size: 13.5px; }
+.lx-m-row i { font-style: normal; width: 32px; height: 32px; display: grid; place-items: center; background: #f4efe6; border-radius: 50% !important; font-size: 16px; flex: none; }
+.lx-m-row span { flex: 1; min-width: 0; line-height: 1.25; }
+.lx-m-row span small { display: block; font-size: 11px; color: #8a8174; }
+.lx-m-row b { font-weight: 600; white-space: nowrap; }
+.lx-m-row .debt { color: #a8834a; }
+.lx-m-goal { background: #fff; border-radius: 14px !important; padding: 10px 12px; font-size: 13.5px; display: grid; gap: 6px; }
+.lx-m-goal em { display: block; height: 6px; background: #efe7d8; border-radius: 3px !important; overflow: hidden; }
+.lx-m-goal em i { display: block; height: 100%; background: linear-gradient(90deg, #c9a25a, #e8c98f); border-radius: 3px !important; }
+.lx-m-goal small { font-size: 11px; color: #8a8174; }

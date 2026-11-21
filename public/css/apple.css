@@ -1063,3 +1063,27 @@ html.ai-open .ai-tip, html.fsheet-open .ai-tip, html.lb-on .ai-tip { opacity: 0;
     cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='-8 -8 72 72'%3E%3Cdefs%3E%3ClinearGradient id='b' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23fff3c9'/%3E%3Cstop offset='0.28' stop-color='%23e6c06f'/%3E%3Cstop offset='0.55' stop-color='%23c08f3e'/%3E%3Cstop offset='0.8' stop-color='%237d5622'/%3E%3Cstop offset='1' stop-color='%23cf9f50'/%3E%3C/linearGradient%3E%3CradialGradient id='h' cx='.38' cy='.3' r='.8'%3E%3Cstop offset='0' stop-color='%23fff3c9'/%3E%3Cstop offset='0.45' stop-color='%23e6c06f'/%3E%3Cstop offset='0.8' stop-color='%23c08f3e'/%3E%3Cstop offset='1' stop-color='%237d5622'/%3E%3C/radialGradient%3E%3Cfilter id='s' x='-20%' y='-20%' width='140%' height='140%'%3E%3CfeDropShadow dx='1.2' dy='1.8' stdDeviation='1.1' flood-color='%231a1003' flood-opacity='.45'/%3E%3C/filter%3E%3C/defs%3E%3Cg filter='url(%23s)'%3E%3Cg transform='rotate(45 24 24)' stroke='%235a3c12' stroke-width='.9' stroke-linejoin='round'%3E%3Cpath fill='url(%23b)' d='M-4 21.6 L-1.2 18.8 H33 V29 H29.4 L27.4 30.6 L24.6 27.4 L21.6 30.4 L18.6 26.8 L15.6 29.8 L12.6 27.2 L9.6 29.4 L6.6 26.4 L3.4 27.8 L-1.2 25 Z'/%3E%3Cpath fill='none' stroke='%236b4917' stroke-width='1.1' d='M1 22.6 H31.5'/%3E%3Cpath fill='none' stroke='%23fff3c9' stroke-width='.7' opacity='.8' d='M1 23.9 H31.5'/%3E%3Cpath fill='url(%23h)' fill-rule='evenodd'  d='M32 15.6 L34.2 14.6 C36.5 12.6 40 11.6 43.5 11.6 C49.6 11.6 53.4 16.4 53.4 24 C53.4 31.6 49.6 36.4 43.5 36.4 C40 36.4 36.5 35.4 34.2 33.4 L32 32.4 Z M47.2 21.4 a2.6 2.6 0 1 0 0 5.2 a2.6 2.6 0 1 0 0-5.2 Z'/%3E%3Cpath fill='none' stroke='%23fff3c9' stroke-width='.9' opacity='.75' stroke-linecap='round' d='M36.5 15.6 C39 14.2 42 13.7 44.5 13.9'/%3E%3C/g%3E%3Ccircle cx='43.6' cy='43.6' r='4.6' fill='none' stroke='%238d949c' stroke-width='1.5'/%3E%3Ccircle cx='43.6' cy='43.6' r='4.6' fill='none' stroke='%23eef1f4' stroke-width='.5'/%3E%3Cpath fill='%237a4521' stroke='%233d200b' stroke-width='.9' stroke-linejoin='round' d='M44 51.5 L53 44.5 L62 51.5 V62.5 H44 Z'/%3E%3Cpath fill='none' stroke='%23e6c06f' stroke-width='.7' stroke-dasharray='1.4 1' d='M46.2 52.4 L53 47.2 L59.8 52.4 V60.4 H46.2 Z'/%3E%3Crect x='51.2' y='55' width='3.6' height='5.4' rx='.6' fill='%23e6c06f' stroke='%235a3c12' stroke-width='.5'/%3E%3Ccircle cx='53' cy='49.6' r='1.3' fill='%232a1606'/%3E%3C/g%3E%3Cpath fill='%23fffaf0' stroke='%23c99b4a' stroke-width='.7' d='M55 -4 c.4 3 1.3 4 4.3 4.4 -3 .4-3.9 1.4-4.3 4.4 -.4-3-1.3-4-4.3-4.4 3-.4 3.9-1.4 4.3-4.4z'/%3E%3C/svg%3E") 9 7, pointer !important; }
   input:not([type=range]):not([type=checkbox]):not([type=radio]), textarea, [contenteditable="true"] { cursor: text !important; }
 }
+
+/* Телефон: квартиры в 2 столбца — компактная карточка (фото, цена, коротко) */
+@media (max-width: 639px) {
+  .cards { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+  .cards .card { min-width: 0; border-radius: 18px !important; }
+  .cards .card-photo { border-radius: 18px 18px 0 0 !important; }
+  .cards .card-photo, .cards .card-photo .cp-track, .cards .card-photo .ph { aspect-ratio: 1 / 1 !important; height: auto !important; }
+  .cards .card-photo img { height: 100% !important; }
+  .cards .card-photo .tags { top: 6px; left: 6px; right: 6px; gap: 4px; }
+  .cards .card-photo .tag { font-size: 10.5px !important; padding: 3px 7px !important; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cards .cp-dots { bottom: 6px; }
+  .cards .card-body { padding: 10px 10px 2px !important; }
+  .cards .card-price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 4px; }
+  .cards .card-price b { font-size: 19px !important; line-height: 1.15; }
+  .cards .card-price span { font-size: 11.5px; }
+  .cards .card-title { font-size: 13px; line-height: 1.3; margin-top: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .cards .card-addr { display: block !important; font-size: 11.5px; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cards .card-addr svg { width: 12px; height: 12px; vertical-align: -2px; margin-right: 2px; display: inline-block; }
+  .cards .pay-line { font-size: 11.5px; line-height: 1.35; padding: 6px 8px !important; margin: 8px 0 0 !important; border-left-width: 2px !important; }
+  .cards .price-line, .cards .feats { display: none !important; }
+  /* Кнопки WhatsApp в карточках на телефоне нет: клиент открывает квартиру и пишет оттуда */
+  .cards .card-actions { display: none !important; }
+  .cards .card-body { padding-bottom: 12px !important; }
+}

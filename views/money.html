@@ -22,6 +22,9 @@
   .top { display: flex; align-items: center; justify-content: center; padding: 6px 16px 10px; position: relative; }
   .month-btn { border: 0; background: none; font-size: 20px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; cursor: pointer; padding: 8px 12px; }
   .month-btn::after { content: ''; display: inline-block; margin-left: 8px; border: 7px solid transparent; border-top: 8px solid currentColor; border-bottom: 0; vertical-align: middle; }
+  .sub-end { margin: 0 16px 12px; padding: 14px; border-radius: 16px; background: rgba(255, 159, 10, .14); border: 1px solid rgba(255, 159, 10, .35); display: grid; gap: 6px; font-size: 14px; line-height: 1.4; }
+  .sub-end b { font-size: 16px; color: #ffb340; }
+  .sub-end .btn { margin-top: 6px; text-align: center; text-decoration: none; background: #25d366; color: #fff; }
   .warn { margin: 0 16px 10px; padding: 10px 12px; border-radius: 12px; background: rgba(255, 69, 58, .15); color: #ff8a80; font-size: 14px; }
 
   /* Разделы панели */
@@ -327,6 +330,7 @@
 <div class="wrap" id="app" hidden>
   <div class="top"><button class="month-btn" id="monthBtn" type="button"></button></div>
   <div class="warn" id="warn" hidden></div>
+  <div class="sub-end" id="subEnd" hidden><b>Подписка закончилась</b><span>Записи сохранены и видны, но добавлять новые нельзя. Продлите — и учёт снова заработает.</span><a class="btn btn-main" id="subRenew" target="_blank" rel="noopener" hidden>Продлить в WhatsApp</a></div>
   <main id="view"></main>
 </div>
 
@@ -362,6 +366,8 @@
     const r = await fetch(url, { method, headers: { 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body), credentials: 'same-origin' });
     let data = {}; try { data = await r.json(); } catch (e) { /* пусто */ }
     if (r.status === 401 && !url.endsWith('/login')) { showLogin(); throw new Error('auth'); }
+    // Подписка закончилась: учёт только для просмотра — закрываем окно, показываем плашку
+    if (r.status === 402) { closeSheet(); showExpired(true); }
     return { ok: r.ok, data };
   }
   // Короткое сообщение внизу экрана: «Добавлено ✓» или ошибка (красным)
@@ -658,7 +664,9 @@
   // ---------- Нижние листы ----------
   // Лист выезжает снизу. Закрыть: потянуть вниз за полоску (или за шапку), нажать на тёмный фон или Esc —
   // лист уезжает вниз с анимацией. Тянуть можно и пальцем, и мышкой.
-  function openSheet(html) {
+  // free — окно можно открыть и без подписки (месяц, пароль, просмотр записи)
+  function openSheet(html, free) {
+    if (EXPIRED && !free) { toast('Подписка закончилась — новые записи добавлять нельзя', true); $('subEnd').scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
     $('sheetBox').innerHTML = `<div class="shade" id="shade"></div><div class="sheet" role="dialog"><div class="grab" aria-hidden="true"></div>${html}</div>`;
     $('shade').onclick = closeSheet;
     dragToClose($('sheetBox').querySelector('.sheet'));
@@ -711,7 +719,7 @@
       <p class="big" style="text-align:center;margin:18px 0">${inn ? '+' : '−'}${money(e.amount, e.currency)}</p>
       <p class="hint-l">Если запись лишняя — удалите её, и остаток кошелька вернётся как было. Сам долг при этом не меняется.</p>
       <p class="err" id="err"></p>
-      <div class="btns"><button class="btn btn-red" type="button" id="del">Удалить запись</button></div>`);
+      <div class="btns"><button class="btn btn-red" type="button" id="del">Удалить запись</button></div>`, true);
     $('del').onclick = () => {
       const before = D.entries;
       D.entries = D.entries.filter(x => x.id !== e.id); closeSheet(); render(); toast('Удалено');
@@ -1059,7 +1067,7 @@
       <div class="lbl">Старый пароль</div><input class="field" id="p0" type="password" inputmode="numeric" maxlength="12">
       <div class="lbl">Новый пароль</div><input class="field" id="p1" type="password" inputmode="numeric" maxlength="12">
       <div class="lbl">Новый ещё раз</div><input class="field" id="p2" type="password" inputmode="numeric" maxlength="12">
-      <p class="err" id="err"></p><button class="btn btn-main" type="button" id="ok">Сохранить пароль</button>`);
+      <p class="err" id="err"></p><button class="btn btn-main" type="button" id="ok">Сохранить пароль</button>`, true);
     $('ok').onclick = async () => {
       const p = $('p1').value;
       if (!/^\d{2,12}$/.test(p)) { $('err').textContent = 'Новый пароль — только цифры, от 2 до 12'; return; }
@@ -1077,11 +1085,17 @@
     D.entries.forEach(e => { years[e.date.slice(0, 4)] = 1; });
     years[now.slice(0, 4)] = 1; years[month.slice(0, 4)] = 1;
     const ys = Object.keys(years).sort().reverse();
-    openSheet(`<div class="head"><div><b>Месяц</b></div></div><div class="months">${ys.map(y => `<h4>${y}</h4>${MONTHS.map((n, i) => { const k = `${y}-${String(i + 1).padStart(2, '0')}`; return `<button type="button" data-m="${k}" class="${k === month ? 'on' : ''}">${n.slice(0, 3)}</button>`; }).join('')}`).join('')}</div>`);
+    openSheet(`<div class="head"><div><b>Месяц</b></div></div><div class="months">${ys.map(y => `<h4>${y}</h4>${MONTHS.map((n, i) => { const k = `${y}-${String(i + 1).padStart(2, '0')}`; return `<button type="button" data-m="${k}" class="${k === month ? 'on' : ''}">${n.slice(0, 3)}</button>`; }).join('')}`).join('')}</div>`, true);
     document.querySelectorAll('.sheet [data-m]').forEach(b => { b.onclick = () => { month = b.dataset.m; closeSheet(); render(true); }; });
   };
   $('tabbar').onclick = e => { const b = e.target.closest('button'); if (!b) return; tab = b.dataset.tab; render(true); };
 
+  // Плашка «Подписка закончилась» (учёт — бонус к подписке менеджера)
+  let RENEW = '', EXPIRED = false;
+  function showExpired(on) {
+    EXPIRED = on; $('subEnd').hidden = !on;
+    if (RENEW) { $('subRenew').href = RENEW; $('subRenew').hidden = false; }
+  }
   // Имя владельца учёта — в заголовке входа и вкладки
   function setTitle(t) { if (!t) return; document.title = `Учёт · ${t}`; document.querySelectorAll('.mtitle').forEach(h => { h.textContent = `Учёт · ${t}`; }); }
   // Первый вход: задать пароль (только владелец, вошедший в кабинет)
@@ -1100,7 +1114,7 @@
     $('setup').hidden = true; start();
   };
 
-  api('GET', API + '/me' + (INVITE ? '?invite=' + encodeURIComponent(INVITE) : '')).then(r => (setTitle(r.data.title), r.data.in ? start() : r.data.setup ? showSetup(r.data.canSetup) : showLogin())).catch(showLogin);
+  api('GET', API + '/me' + (INVITE ? '?invite=' + encodeURIComponent(INVITE) : '')).then(r => (setTitle(r.data.title), RENEW = r.data.renew || '', showExpired(!!r.data.expired), r.data.in ? start() : r.data.setup ? showSetup(r.data.canSetup) : showLogin())).catch(showLogin);
 })();
 </script>
 </body>

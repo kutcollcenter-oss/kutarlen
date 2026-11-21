@@ -995,10 +995,14 @@
   // Владелец заводит человека: имя для адреса и как его звать. Человек получает ссылку-приглашение и сам придумывает пароль.
   // Сами записи людей здесь не показываются — только кто есть, задан ли пароль и когда входили.
   const moneyLink = x => `${location.origin}/money/${x.name}${x.invite ? `?invite=${x.invite}` : ''}`;
+  // Учёт — бонус к подписке: привязан к менеджеру. Подписка закончилась → учёт только для просмотра.
+  let MGRS = [];
+  const mgrOptions = sel => `<option value="">Без привязки — работает всегда</option>${MGRS.map(m => `<option value="${esc(m.id)}" ${m.id === sel ? 'selected' : ''}>${esc(m.name || m.slug)}${m.status.active ? '' : ' — подписка закончилась'}</option>`).join('')}`;
   function moneyUsersHtml(users) {
-    return `<p class="hint" style="margin:0 0 12px">У каждого человека свой учёт доходов и расходов по адресу <b>${esc(location.host)}/money/имя</b>. Вы заводите человека и отправляете ему ссылку-приглашение — по ней он сам придумает пароль. Его записи видит только он.</p>
+    return `<p class="hint" style="margin:0 0 12px">У каждого человека свой учёт доходов и расходов по адресу <b>${esc(location.host)}/money/имя</b>. Вы заводите человека и отправляете ему ссылку-приглашение — по ней он сам придумает пароль. Его записи видит только он.<br>Учёт — бонус к подписке: привяжите его к менеджеру. Когда подписка закончится, записи останутся видны, но добавлять новые будет нельзя. После продления всё снова работает.</p>
       ${users.map(x => `<div class="rt" data-mu="${esc(x.name)}" style="padding:12px 0;border-top:1px solid var(--line, #eee)">
         <div><b>${esc(x.title)}</b> ${x.main ? '<span class="badge badge-installment">Вы</span>' : ''} · <a href="/money/${esc(x.name)}" target="_blank" rel="noopener">/money/${esc(x.name)}</a></div>
+        ${x.main ? '' : `<label class="f" style="margin:6px 0 4px"><span>Подписка менеджера${x.expired ? ' · <b style="color:#ff9f0a">закончилась — только просмотр</b>' : ''}</span><select data-mgr>${mgrOptions(x.realtorId)}</select></label>`}
         <div class="hint" style="margin:4px 0 8px">${x.active ? `Пароль задан ✓${x.lastLogin ? ` · последний вход ${esc(fmtDate(x.lastLogin.slice(0, 10)))}` : ''}` : 'Ждёт: человек ещё не открыл приглашение'}</div>
         <div class="row" style="display:flex;flex-wrap:wrap;gap:8px">
           ${x.invite ? '<button class="btn" type="button" data-mact="copy">Скопировать приглашение</button>' : ''}
@@ -1009,6 +1013,7 @@
         <div style="margin-top:10px">
           <label class="f"><span>Как зовут</span><input name="title" required placeholder="Айбек"></label>
           <label class="f"><span>Имя в адресе (латиницей)</span><input name="name" required autocapitalize="none" spellcheck="false" placeholder="aibek" pattern="[a-zA-Z0-9][a-zA-Z0-9-]{1,29}"></label>
+          <label class="f"><span>Чья подписка (менеджер)</span><select name="realtorId">${mgrOptions('')}</select></label>
         </div>
         <p class="err" id="mnyErr"></p>
         <button class="btn btn-primary" type="submit">Создать и получить приглашение</button>
@@ -1034,12 +1039,18 @@
         e.preventDefault();
         const f = e.target;
         try {
-          const list = await api('POST', '/api/owner/money-users', { title: f.title.value, name: f.name.value });
+          const list = await api('POST', '/api/owner/money-users', { title: f.title.value, name: f.name.value, realtorId: f.realtorId.value });
           draw(list);
           const x = list.find(u => u.name === f.name.value.trim().toLowerCase());
           if (x) await invite(x);
         } catch (err) { document.getElementById('mnyErr').textContent = err.message; }
       };
+      body.querySelectorAll('[data-mgr]').forEach(sel => {
+        sel.onchange = async () => {
+          const name = sel.closest('[data-mu]').dataset.mu;
+          try { draw(await api('PUT', `/api/owner/money-users/${encodeURIComponent(name)}`, { realtorId: sel.value })); toast('Сохранено'); } catch (err) { toast(err.message); }
+        };
+      });
       body.querySelectorAll('[data-mact]').forEach(b => {
         b.onclick = async () => {
           const x = users.find(u => u.name === b.closest('[data-mu]').dataset.mu);
@@ -1070,6 +1081,7 @@
     // Сколько квартир в рассрочку скопируется новому менеджеру (наличные не копируются)
     const myInstallment = mine.filter(a => a.computed.installment || (!cashLike(typeOf(a)) && a.computed.price)).length;
     const others = list.filter(x => x.role !== 'owner');
+    MGRS = others;
     const paying = others.filter(x => x.status.active && !x.blocked).length;
     const inMonth = addMonths('', 1);
     const coName = id => (id === 'none' ? 'нет' : (cos.find(c => c.id === id) || { name: id }).name);
