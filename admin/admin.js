@@ -247,7 +247,6 @@
   const svg = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   const NAV = [
     ['list', 'Квартиры', svg('<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>')],
-    ['queue', 'Очередь', svg('<path d="M3 5h.01"/><path d="M3 12h.01"/><path d="M3 19h.01"/><path d="M8 5h13"/><path d="M8 12h13"/><path d="M8 19h13"/>')],
     ['analytics', 'Аналитика', svg('<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>')],
     ['site', 'Сайт', svg('<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>'), false, true],
     ['settings', 'Профиль', svg('<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>')],
@@ -256,7 +255,7 @@
 
   // Верхнее меню — на ноутбуке; на телефоне и планшете — нижнее меню (как на сайте)
   function nav(active) {
-    const items = NAV.filter(([h, , , ownerOnly]) => (!ownerOnly || isOwner()) && (h !== 'queue' || me.queueOn));
+    const items = NAV.filter(([h, , , ownerOnly]) => (!ownerOnly || isOwner()));
     // «Сайт» открывает свой сайт для клиентов в новой вкладке, остальные пункты — разделы кабинета
     const href = (h, ext) => (ext ? `href="${esc(me.realtor.url)}" target="_blank" rel="noopener"` : `href="#${h}"`);
     const top = items.map(([h, label, , , ext]) => `<a ${href(h, ext)} class="tl${active === h ? ' on' : ''}${ext ? ' ext' : ''}">${label}${ext ? ' ↗' : ''}</a>`).join('');
@@ -781,7 +780,6 @@
         </div>
         <div class="card" data-ptab="news"><h2 style="margin-top:0">Новости «Скоро»</h2>
           <div class="hint" style="margin:-4px 0 10px">Показываются на главной сразу после первого экрана. Под каждой новостью кнопка «Узнать первым» — клиент пишет вам в WhatsApp. До ${NEWS_MAX} новостей.</div>
-          ${me.queueSite ? `<div class="news-q-note"><b>✓ Очередь на ЖК включена</b>Первой карточкой в «Скоро» на вашем сайте стоит «Встать в очередь» — клиенты записываются сами. <a href="${esc(me.realtor.url)}/ochered" target="_blank" rel="noopener">Открыть страницу записи</a> · <a href="#queue">Список клиентов</a></div>` : ''}
           <div id="newsList" class="rev-list"></div>
           <button type="button" class="btn btn-block" id="newsAdd">+ Добавить новость</button>
         </div>
@@ -1161,7 +1159,6 @@
             <button class="btn${x.partnerCta ? ' btn-on' : ''}" data-act="cta" title="Блок внизу сайта менеджера, ведёт на kvartiry.asia">«Хотите такой же сайт?»: ${x.partnerCta ? 'показан ✓' : 'скрыт'}</button>
             <button class="btn" data-act="company" title="Застройщик менеджера: его дома в блоке «Достижения компании» и его история у ИИ-помощника">Компания: ${esc(coName(x.companyId))}</button>
             <button class="btn${x.kutAccess ? ' btn-on' : ''}" data-act="kut" title="Доступ к блоку «Достижения компании» (дома его компании). Менеджер сам включает его у себя в профиле">Достижения компании: ${x.kutAccess ? 'доступ есть ✓' : 'нет доступа'}</button>
-            <button class="btn${x.queueAccess ? ' btn-on' : ''}" data-act="queue" title="Запись клиентов в очередь на новый ЖК на сайте">Очередь на ЖК на сайте: ${x.queueAccess ? 'включена ✓' : 'выключена'}</button>
             <button class="btn${x.aiAccess ? ' btn-on' : ''}" data-act="ai" title="ИИ-помощник «Спросить» на сайте этого менеджера">ИИ-помощник: ${x.aiAccess ? 'включён ✓' : 'выключен'}</button>
             <button class="btn" data-act="stats">Аналитика</button>
             ${x.role === 'owner' ? '' : x.blocked
@@ -1379,7 +1376,6 @@
             if (!k || k === x.companyId) return;
             await put({ companyId: k }); toast(k === 'none' ? 'Компания убрана: блока нет, ИИ не рассказывает о застройщике' : `Компания: «${coName(k)}» — её дома и история у этого менеджера`); break;
           }
-          case 'queue': await put({ queueAccess: !x.queueAccess }); toast(x.queueAccess ? 'Очередь выключена у менеджера' : 'Очередь включена у менеджера'); break;
           case 'm3': await put({ paidUntil: addMonths(x.plan.paidUntil, 3) }); toast('Продлено на 3 месяца'); break;
           case 'gift': {
             const v = addDays(x.plan.paidUntil, 20);
@@ -1480,185 +1476,6 @@
   }
 
   // ---------- Маршрутизация ----------
-  // ---------- Очередь на новый ЖК ----------
-  // Менеджер видит своих клиентов, владелец — всех: открывает запись, задаёт лимит, передаёт клиентов другому менеджеру.
-  const Q_LABELS = {
-    fio: 'ФИО', birth: 'Дата рождения', idNo: '№ ID-карты', inn: 'ИНН (ПИН)', issuedBy: 'Кем выдана', issueDate: 'Дата выдачи',
-    address: 'Адрес прописки', phone1: 'Телефон', phone2: 'Второй телефон',
-  };
-  const Q_KEYS = Object.keys(Q_LABELS);
-  const Q_ROOMS = [[1, '1-комн.'], [2, '2-комн.'], [3, '3-комн.'], [4, '4+ комн.']];
-  const qRooms = wants => (wants || []).map(w => (Q_ROOMS.find(r => r[0] === w.rooms) || [0, '?'])[1] + (w.wish ? ` (${w.wish})` : '')).join(', ');
-  let qState = { filter: '', search: '' };
-
-  // Запрос, который возвращает и ошибки по полям
-  async function apiRaw(method, url, body) {
-    const r = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
-    if (r.status === 401) { renderLogin(); throw new Error('auth'); }
-    let data = {};
-    try { data = await r.json(); } catch (e) { /* пусто */ }
-    return { ok: r.ok, data };
-  }
-
-  async function renderQueue(h) {
-    const q = await api('GET', '/api/admin/queue');
-    if (h.startsWith('queue/')) return renderQueueEdit(q, h.slice(6));
-    const owner = isOwner();
-    const conf = q.conf;
-    const link = `${me.realtor.url}/ochered`;
-    let list = q.list;
-    if (owner && qState.filter) list = list.filter(x => x.realtorId === qState.filter);
-    const s = qState.search.trim().toLowerCase();
-    if (s) list = list.filter(x => [x.fio, x.phone1, x.phone2, x.inn, x.idNo].join(' ').toLowerCase().includes(s.replace(/\s/g, '')) || x.fio.toLowerCase().includes(s));
-    const over = n => conf.limit && n > conf.limit;
-    const rows = list.map(x => `<div class="item qrow" data-id="${esc(x.id)}">
-        <div class="qrow-main">
-          <div class="t">${esc(x.fio)}</div>
-          <div class="m">${esc(qRooms(x.wants))} · <a href="tel:+${esc(x.phone1.length === 10 ? '996' + x.phone1.slice(1) : x.phone1)}">${esc(x.phone1)}</a> · ${esc(fmtDate(x.createdAt.slice(0, 10)))}${x.by === 'manager' ? ' · записал менеджер' : ''}</div>
-          ${owner ? `<div class="m">Менеджер: <b>${esc(x.realtorName)}</b></div>` : ''}
-        </div>
-        <div class="qrow-acts">
-          <a class="btn" href="#queue/${esc(x.id)}">Открыть</a>
-          ${owner ? '<button class="btn" data-q="move">Передать…</button>' : ''}
-        </div>
-      </div>`).join('');
-    app.innerHTML = `${nav('queue')}<div class="wrap">
-      <h1>Очередь${conf.title ? `: ${esc(conf.title)}` : ''}</h1>
-      ${owner ? `<div class="card qconf">
-        <h2 style="margin-top:0">Запись в очередь</h2>
-        <form id="qConf" class="qconf-f">
-          <p class="hint" style="margin-top:0">Запись на сайте включается каждому менеджеру отдельно: «Менеджеры» → кнопка «Очередь на ЖК на сайте». У него на сайте в блоке «Скоро» появится карточка «Встать в очередь».</p>
-          <label class="f"><span>Название ЖК</span><input type="text" name="title" value="${esc(conf.title)}" placeholder="например, ЖК «Кут Парк»"></label>
-          <label class="f"><span>Лимит клиентов на менеджера</span><input name="limit" type="number" min="0" value="${esc(conf.limit)}"></label>
-          <button class="btn btn-primary">Сохранить</button>
-        </form>
-        <div class="qcounts">${q.realtors.filter(r => r.count).map(r => `<button type="button" class="qcount${over(r.count) ? ' over' : ''}${qState.filter === r.id ? ' on' : ''}" data-f="${esc(r.id)}">${esc(r.name)} <b>${r.count}${conf.limit ? ` / ${conf.limit}` : ''}</b></button>`).join('') || '<span class="hint">Пока никто не записался</span>'}</div>
-      </div>` : `<div class="card">
-        <div class="qmine-n${over(q.mine) ? ' over' : ''}">Ваших клиентов: <b>${q.mine}${conf.limit ? ` из ${conf.limit}` : ''}</b></div>
-        ${over(q.mine) ? '<p class="hint">Лимит превышен — владелец передаст лишних клиентов другому менеджеру.</p>' : ''}
-        ${me.queueSite ? `<div class="hint" style="margin:10px 0 6px">Клиенты записываются сами: на вашем сайте в блоке «Скоро» есть карточка «Встать в очередь». Ссылка для клиентов — отправьте в WhatsApp:</div>
-        <div class="linkrow"><code>${esc(link)}</code><button class="btn" data-copy="${esc(link)}">Копировать</button></div>` : '<p class="hint">Запись на вашем сайте пока выключена.</p>'}
-      </div>`}
-      <div class="qtools">
-        <input type="search" id="qSearch" class="search" placeholder="Поиск: ФИО, телефон, ИНН" value="${esc(qState.search)}">
-        <a class="btn btn-primary" href="#queue/new">+ Записать клиента</a>
-        <a class="btn" href="/api/admin/queue.csv" download>Скачать для Excel</a>
-      </div>
-      <div class="qtotal hint">${list.length === q.list.length ? `Всего: ${list.length}` : `Показано ${list.length} из ${q.list.length}`}${owner && qState.filter ? ' · <a href="#" id="qAll">показать всех</a>' : ''}</div>
-      <div class="list">${rows || '<div class="empty">Клиентов в очереди пока нет</div>'}</div>
-    </div>`;
-    bindNav();
-    const search = document.getElementById('qSearch');
-    search.oninput = () => { qState.search = search.value; clearTimeout(search._t); search._t = setTimeout(async () => { await renderQueue('queue'); const el = document.getElementById('qSearch'); el.focus(); el.setSelectionRange(el.value.length, el.value.length); }, 300); };
-    if (!owner) return;
-    document.getElementById('qConf').onsubmit = async e => {
-      e.preventDefault();
-      const f = new FormData(e.target);
-      await api('PUT', '/api/owner/queue-conf', { title: f.get('title'), limit: f.get('limit') });
-      toast('Сохранено'); renderQueue('queue');
-    };
-    app.querySelectorAll('[data-f]').forEach(b => { b.onclick = () => { qState.filter = qState.filter === b.dataset.f ? '' : b.dataset.f; renderQueue('queue'); }; });
-    const all = document.getElementById('qAll');
-    if (all) all.onclick = e => { e.preventDefault(); qState.filter = ''; renderQueue('queue'); };
-    app.querySelectorAll('[data-q="move"]').forEach(b => {
-      b.onclick = async () => {
-        const x = q.list.find(i => i.id === b.closest('.qrow').dataset.id);
-        const asked = modal({ title: `Передать «${x.fio}»?`, text: `Сейчас у менеджера «${x.realtorName}». Клиент увидит нового менеджера, когда проверит свою запись.`,
-          html: `<label class="f" style="margin-top:12px"><span>Новый менеджер</span><select id="qTo">${q.realtors.filter(r => r.id !== x.realtorId).map(r => `<option value="${esc(r.id)}">${esc(r.name)} — ${r.count}${conf.limit ? ` / ${conf.limit}` : ''}</option>`).join('')}</select></label>`,
-          okText: 'Передать' });
-        const sel = document.getElementById('qTo');
-        if (!(await asked)) return;
-        await api('POST', `/api/owner/queue/${x.id}/move`, { realtorId: sel.value });
-        toast('Клиент передан'); renderQueue('queue');
-      };
-    });
-  }
-
-  // Карточка клиента: открыть, исправить, удалить; или записать нового (с согласием клиента)
-  function renderQueueEdit(q, id) {
-    const isNew = id === 'new';
-    const x = isNew ? { wants: [{ rooms: 1 }] } : q.list.find(i => i.id === id);
-    if (!x) { location.hash = '#queue'; return; }
-    const field = k => {
-      const type = /birth|issueDate/.test(k) ? 'date' : /phone/.test(k) ? 'tel' : 'text';
-      return `<label class="f"><span>${Q_LABELS[k]}</span><input name="${k}" type="${type}" value="${esc(x[k] || '')}"><em class="qerr" data-err="${k}"></em></label>`;
-    };
-    const wantRow = (rooms, wish = '') => `<div class="qwant-a"><select>${Q_ROOMS.map(([v, t]) => `<option value="${v}"${v === rooms ? ' selected' : ''}>${t}</option>`).join('')}</select><button type="button" class="btn" data-del>Убрать</button><input type="text" class="qwish-a" maxlength="200" placeholder="Пожелания: этаж, вид из окна…" value="${esc(wish)}"></div>`;
-    app.innerHTML = `${nav('queue')}<div class="wrap">
-      <a href="#queue" class="back">← Очередь</a>
-      <h1>${isNew ? 'Записать клиента' : esc(x.fio)}</h1>
-      ${isNew ? '' : `<p class="hint">Записан ${esc(fmtDate(x.createdAt.slice(0, 10)))}${x.by === 'manager' ? ' менеджером' : ' сам, на сайте'}${isOwner() ? ` · менеджер «${esc(x.realtorName)}»` : ''} · согласие на обработку данных: ${esc(fmtDate((x.consentAt || '').slice(0, 10)))}</p>`}
-      <form id="qEditA" class="card" novalidate>
-        ${isNew ? `<div class="qscan-a" id="qScanA">
-          <b>Заполнить по фото ID-карты</b>
-          <p class="hint">Обе стороны карты или скриншоты «Түндүк». Фото не сохраняются — только поля, которые вы проверите.</p>
-          <div class="qscan-row"><label class="btn"><input type="file" accept="image/*" hidden data-side="front"><span>📷 Лицевая сторона</span></label>
-          <label class="btn"><input type="file" accept="image/*" hidden data-side="back"><span>📷 Оборот</span></label>
-          <button type="button" class="btn btn-primary" id="qScanGoA" disabled>Заполнить</button></div>
-          <p class="hint" id="qScanMsgA"></p>
-        </div>` : ''}
-        <div class="qgrid-a">${Q_KEYS.map(field).join('')}</div>
-        <h2>Квартиры</h2>
-        <div id="qWantsA">${(x.wants || []).map(w => wantRow(w.rooms, w.wish)).join('')}</div>
-        <button type="button" class="btn" id="qAddA">+ Ещё квартира</button><em class="qerr" data-err="wants"></em>
-        <label class="f" style="margin-top:14px"><span>Заметка (клиент её не видит)</span><input type="text" name="note" value="${esc(x.note || '')}"></label>
-        ${isNew ? `<details class="qconsent-a"><summary>Текст согласия, который нужно показать клиенту</summary><p>${esc(q.consentText)}</p></details>
-        <label class="check"><input type="checkbox" name="consent"> Клиент прочитал текст согласия и согласен на обработку данных</label><em class="qerr" data-err="consent"></em>` : ''}
-        <div class="err" id="qErrA"></div>
-        <button class="btn btn-primary" style="margin-top:12px">${isNew ? 'Записать в очередь' : 'Сохранить'}</button>
-      </form>
-      ${isNew ? '' : '<button class="btn btn-danger" id="qDelA" style="margin-top:12px">Удалить из очереди</button>'}
-    </div>`;
-    bindNav();
-    const box = document.getElementById('qWantsA');
-    const bindDel = () => box.querySelectorAll('[data-del]').forEach(b => { b.onclick = () => { if (box.children.length > 1) b.parentElement.remove(); }; });
-    bindDel();
-    document.getElementById('qAddA').onclick = () => { if (box.children.length < 5) { box.insertAdjacentHTML('beforeend', wantRow(1)); bindDel(); } };
-    const form = document.getElementById('qEditA');
-    const scan = document.getElementById('qScanA');
-    if (scan) {
-      const inputs = [...scan.querySelectorAll('input[type=file]')], go = document.getElementById('qScanGoA'), msg = document.getElementById('qScanMsgA');
-      inputs.forEach(i => i.onchange = () => {
-        if (i.files.length) i.nextElementSibling.textContent = `✓ ${i.dataset.side === 'front' ? 'Лицевая сторона' : 'Оборот'}`;
-        go.disabled = !inputs.some(x => x.files.length);
-      });
-      go.onclick = async () => {
-        const fd = new FormData();
-        inputs.forEach(i => { if (i.files[0]) fd.append('cards', i.files[0]); });
-        go.disabled = true; msg.textContent = 'Распознаём… обычно 5–15 секунд';
-        try {
-          const j = await api('POST', '/api/admin/queue/scan', fd);
-          const got = Q_KEYS.filter(k => j[k] && form.elements[k]);
-          got.forEach(k => { form.elements[k].value = j[k]; });
-          msg.innerHTML = (j.queuedAt ? `<b>Этот клиент уже в очереди у менеджера «${esc(j.queuedAt)}».</b> Второй раз записать нельзя. ` : '') + (got.length
-            ? `Заполнено полей: ${got.length}. <b>Сверьте с паспортом</b> и введите телефон.${j.innMatchesBirth === false ? ' <b>Дата рождения не совпадает с ИНН — проверьте.</b>' : ''}`
-            : 'Не удалось прочитать карту — заполните вручную.');
-        } catch (e) { msg.textContent = e.message; }
-        go.disabled = false;
-      };
-    }
-    form.onsubmit = async e => {
-      e.preventDefault();
-      const f = new FormData(form);
-      const body = Object.fromEntries(Q_KEYS.map(k => [k, f.get(k) || '']));
-      body.note = f.get('note') || '';
-      body.wants = [...box.children].map(c => ({ rooms: +c.querySelector('select').value, wish: c.querySelector('.qwish-a').value.trim() }));
-      if (isNew) body.consent = f.get('consent') === 'on';
-      const r = await apiRaw(isNew ? 'POST' : 'PUT', isNew ? '/api/admin/queue' : `/api/admin/queue/${x.id}`, body);
-      form.querySelectorAll('.qerr').forEach(el => { el.textContent = (r.data.errors || {})[el.dataset.err] || ''; });
-      document.getElementById('qErrA').textContent = r.ok || r.data.errors ? '' : r.data.error || 'Не получилось сохранить';
-      if (!r.ok) { const first = form.querySelector('.qerr:not(:empty)'); if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
-      toast(isNew ? 'Клиент записан в очередь' : 'Сохранено');
-      location.hash = '#queue';
-    };
-    const del = document.getElementById('qDelA');
-    if (del) del.onclick = async () => {
-      if (!(await confirmBox(`Удалить «${x.fio}» из очереди?`, 'Данные клиента будут стёрты, место в очереди пропадёт. Вернуть нельзя.', 'Удалить', true))) return;
-      await api('DELETE', `/api/admin/queue/${x.id}`);
-      toast('Удалено'); location.hash = '#queue';
-    };
-  }
-
   async function route() {
     const h = location.hash.slice(1) || 'list';
     window.scrollTo(0, 0);
@@ -1667,7 +1484,6 @@
       else if (h === 'settings') await renderSettings();
       else if (h === 'analytics' || h === 'stats') await renderAnalytics();
       else if (h === 'realtors') await renderRealtors();
-      else if (h === 'queue' || h.startsWith('queue/')) await renderQueue(h);
       else await renderList();
     } catch (e) { if (e.message !== 'auth') toast(e.message); }
   }
