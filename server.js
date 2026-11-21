@@ -901,6 +901,27 @@ app.use((req, res) => res.status(404).send(pages.renderInvalid(D().product, base
     if (m.oldEvents.length) analytics.appendMany(m.oldEvents);
     console.log(`База перенесена в кабинеты. Ваш сайт: /${m.realtor.slug}. Вход в кабинет: логин admin`);
   }
+  // Очередь на ЖК удалена (функция убрана): один раз стираем данные записавшихся клиентов (ФИО, ИНН, № ID-карт)
+  // из базы и из её ежедневных копий в data/backups
+  const dq = D();
+  if (dq.queue || dq.queueConf || dq.realtors.some(r => 'queueAccess' in r)) {
+    const n = (dq.queue || []).length;
+    delete dq.queue; delete dq.queueConf;
+    for (const r of dq.realtors) delete r.queueAccess;
+    db.save();
+    const dir = path.join(db.DATA_DIR, 'backups');
+    let cleaned = 0;
+    for (const f of fs.existsSync(dir) ? fs.readdirSync(dir).filter(x => x.endsWith('.json')) : []) {
+      try {
+        const file = path.join(dir, f), b = JSON.parse(fs.readFileSync(file, 'utf8'));
+        if (!b.queue && !b.queueConf) continue;
+        delete b.queue; delete b.queueConf;
+        fs.writeFileSync(file, JSON.stringify(b, null, 2));
+        cleaned++;
+      } catch (e) { console.error('Очистка очереди в копии ' + f + ': ' + e.message); }
+    }
+    console.log(`Очередь удалена: стёрто записей клиентов — ${n}, очищено копий базы — ${cleaned}`);
+  }
   // Срок сдачи: один раз переносим фразу о сроке из «Деталей» в отдельное поле (остальной текст «Деталей» остаётся).
   // Перед этим — копия базы data/backups/before-handover-ДАТА.json, на случай если что-то найдётся неправильно.
   if (pendingHandover(D().apartments, typeOf)) {
