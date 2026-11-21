@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f6ecdc"/>
+      <stop offset="1" stop-color="#e2c49a"/>
+    </linearGradient>
+    <linearGradient id="bld" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d7b688"/>
+      <stop offset="1" stop-color="#c49e6c"/>
+    </linearGradient>
+    <linearGradient id="bld2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e6cca4"/>
+      <stop offset="1" stop-color="#d6b689"/>
+    </linearGradient>
+    <linearGradient id="coat" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3d2e24"/>
+      <stop offset="1" stop-color="#2a1f18"/>
+    </linearGradient>
+    <linearGradient id="hair" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2e221b"/>
+      <stop offset="1" stop-color="#1f1712"/>
+    </linearGradient>
+    <radialGradient id="sun" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#fff7e8" stop-opacity=".95"/>
+      <stop offset="1" stop-color="#fff7e8" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="800" height="1000" fill="url(#sky)"/>
+  <circle cx="560" cy="300" r="300" fill="url(#sun)"/>
+  <!-- дальние дома -->
+  <g fill="url(#bld2)">
+    <rect x="20" y="430" width="120" height="570"/>
+    <rect x="150" y="360" width="90" height="640"/>
+    <rect x="560" y="390" width="110" height="610"/>
+    <rect x="680" y="450" width="120" height="550"/>
+  </g>
+  <!-- ближние дома с окнами -->
+  <g fill="url(#bld)">
+    <rect x="-10" y="560" width="170" height="440"/>
+    <rect x="610" y="520" width="200" height="480"/>
+    <rect x="80" y="470" width="110" height="530"/>
+  </g>
+  <g fill="#f8e9cf" opacity=".85">
+    <rect x="20" y="600" width="22" height="30"/><rect x="62" y="600" width="22" height="30"/><rect x="104" y="600" width="22" height="30"/>
+    <rect x="20" y="660" width="22" height="30"/><rect x="62" y="660" width="22" height="30"/><rect x="104" y="660" width="22" height="30"/>
+    <rect x="20" y="720" width="22" height="30"/><rect x="104" y="720" width="22" height="30"/>
+    <rect x="100" y="505" width="20" height="28"/><rect x="145" y="505" width="20" height="28"/>
+    <rect x="645" y="560" width="24" height="32"/><rect x="690" y="560" width="24" height="32"/><rect x="735" y="560" width="24" height="32"/>
+    <rect x="645" y="625" width="24" height="32"/><rect x="735" y="625" width="24" height="32"/>
+    <rect x="645" y="690" width="24" height="32"/><rect x="690" y="690" width="24" height="32"/><rect x="735" y="690" width="24" height="32"/>
+  </g>
+  <!-- волосы сзади -->
+  <path d="M290 330c0-110 60-180 112-180s112 70 112 180c0 90-6 190-30 250H318c-22-60-28-160-28-250z" fill="url(#hair)"/>
+  <!-- шея -->
+  <path d="M366 440h72v110c0 20-16 34-36 34s-36-14-36-34z" fill="#d9a882"/>
+  <!-- пиджак -->
+  <path d="M150 1000c0-200 60-350 190-400l62 70 62-70c130 50 186 200 186 400z" fill="url(#coat)"/>
+  <!-- блузка -->
+  <path d="M352 598l50 72 50-72 18 8-68 150-68-150z" fill="#f7efe4"/>
+  <!-- лацканы -->
+  <path d="M340 600l62 70-40 70-52-118z" fill="#4a382c"/>
+  <path d="M464 600l-62 70 40 70 52-118z" fill="#4a382c"/>
+  <!-- значок -->
+  <circle cx="512" cy="720" r="9" fill="#c8a063"/>
+  <!-- лицо -->
+  <ellipse cx="402" cy="345" rx="92" ry="112" fill="#eec29d"/>
+  <!-- чёлка -->
+  <path d="M308 330c6-100 52-150 98-150 60 0 92 50 96 110-40-6-90-30-120-70-10 50-40 90-74 110z" fill="url(#hair)"/>
+  <!-- лёгкая улыбка и румянец -->
+  <ellipse cx="360" cy="375" rx="16" ry="9" fill="#e8a888" opacity=".45"/>
+  <ellipse cx="444" cy="375" rx="16" ry="9" fill="#e8a888" opacity=".45"/>
+  <path d="M380 398q22 16 44 0" fill="none" stroke="#b9765c" stroke-width="5" stroke-linecap="round"/>
+  <path d="M362 340q12-8 24 0M418 340q12-8 24 0" fill="none" stroke="#3a2a20" stroke-width="5" stroke-linecap="round"/>
+  <!-- ключи в руке -->
+  <g transform="translate(250 840) rotate(-18)">
+    <circle cx="0" cy="0" r="26" fill="none" stroke="#d4ab6a" stroke-width="10"/>
+    <rect x="22" y="-6" width="80" height="12" rx="6" fill="#d4ab6a"/>
+    <rect x="80" y="4" width="10" height="18" fill="#d4ab6a"/>
+    <rect x="64" y="4" width="10" height="13" fill="#d4ab6a"/>
+  </g>
+</svg>
