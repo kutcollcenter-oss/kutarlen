@@ -1,0 +1,168 @@
+/* =====================================================================
+   Кабинет «Тёмный премиум» (решение 22.11.2026): как сайты дорогих авто.
+   Тёмный фон, острые углы, тонкие линии вместо карточек с тенями, много воздуха,
+   крупные тонкие заголовки шрифтом сайта (Unbounded), мелкие подписи заглавными вразрядку,
+   кнопки — контуром. Подключается последним и перекрывает apple-admin.css.
+   ===================================================================== */
+:root {
+  --bg: #0d0d0d; --s1: #131313; --s2: #181818; --s3: #222;
+  --ink: #ececec; --muted: #8c8c8c; --line: #232323; --line2: #3a3a3a;
+  --primary: #ececec; --accent: #ececec; --accent-l: rgba(255, 255, 255, .08);
+  --ok: #9fd18a; --warn: #e3b35c; --bad: #ff6b5a; --sage: #ececec; --sage-l: rgba(255, 255, 255, .08);
+  --font: 'Golos Text', Inter, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --head: Unbounded, 'Golos Text', Arial, sans-serif;
+  --mono: var(--font);
+  --sh-1: none; --sh-2: none;
+  --glass: #0d0d0d; --glass-edge: #232323;
+  --cap: 500 11px/1.3 var(--font); /* мелкая подпись заглавными */
+}
+*, *::before, *::after { border-radius: 0 !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font); letter-spacing: 0; }
+::selection { background: rgba(255, 255, 255, .2); color: #fff; }
+
+/* Шапка: имя вразрядку, тонкая линия снизу */
+.top { background: var(--bg); -webkit-backdrop-filter: none; backdrop-filter: none; border-bottom: 1px solid var(--line); }
+.top a, .top button { font: var(--cap); letter-spacing: .2em; text-transform: uppercase; color: var(--muted); }
+.top a:hover, .top button:hover, .top .on { color: #fff; background: none; }
+.top .on::after { background: #fff; height: 1px; }
+.top .ext { color: var(--ok); }
+.top-title { font: 400 12px var(--font); letter-spacing: .32em; text-transform: uppercase; color: #fff; }
+#logout { font: var(--cap) !important; letter-spacing: .2em !important; text-transform: uppercase !important; color: var(--muted) !important; }
+#logout:hover { color: var(--bad) !important; }
+
+/* Заголовки: крупный тонкий Unbounded */
+h1 { font-family: var(--head); font-weight: 300; letter-spacing: -.03em; font-size: clamp(32px, 7vw, 44px); line-height: 1.05; margin: 30px 0 18px; color: #fff; }
+.card > h2:first-child, details.card > summary b, :is(#sf, #pwf) .card h2, #pwf > h2, .modal-box h2 {
+  font-family: var(--head) !important; font-weight: 400 !important; letter-spacing: -.01em !important;
+  font-size: 18px !important; text-transform: none !important; color: #fff !important; }
+
+/* Блоки: вместо карточек с тенью — тёмная плашка с тонкой рамкой */
+.card, .kpi, .linkbox, .stat-grid div, .tariff, table, .install, .auth .login, .auth-help {
+  background: var(--s1); border: 1px solid var(--line); box-shadow: none; }
+.rev, .news-ed, .mapbox, .calcbox { background: var(--s2); border: 1px solid var(--line); box-shadow: none; }
+.linkbox > span, .tariff-head span, .kpi span, .tbl th { font: var(--cap); letter-spacing: .2em; text-transform: uppercase; color: var(--muted); }
+.hint, :is(#sf, #pwf) .hint, .item .s, .rt-stats { color: var(--muted); }
+.linkrow code, .tagrow code, pre { background: var(--bg); border: 1px solid var(--line); color: var(--ink); }
+
+/* Список квартир: строки, разделённые линиями */
+#items { gap: 0; border-top: 1px solid var(--line); }
+.item, .item.apt-row { background: transparent; border: 0; border-bottom: 1px solid var(--line); box-shadow: none; padding: 16px 4px; }
+.item:hover, .item.apt-row:hover { background: #121212; box-shadow: none; }
+.item.apt-row { grid-template-columns: 104px 1fr auto; gap: 16px; }
+.apt-row img, .apt-row .noimg { width: 104px; height: 70px; }
+.apt-row-txt .t, .item .t { font-family: var(--head); font-weight: 400; font-size: 15px; letter-spacing: -.01em; }
+.apt-row-txt .s { font-size: 13px; margin-top: 3px; }
+.more-btn { background: transparent; border: 1px solid var(--line2); color: var(--muted); width: 38px; height: 38px; }
+.more-btn:hover { background: transparent; border-color: #fff; color: #fff; }
+.item.rt.is-blocked { background: #1a1110; box-shadow: inset 2px 0 0 var(--bad); }
+
+/* Кнопки: контур, заглавные вразрядку */
+.btn { font: 500 12px var(--font); letter-spacing: .2em; text-transform: uppercase; background: transparent; color: var(--ink);
+  border: 1px solid var(--line2); box-shadow: none; min-height: 46px; padding: 12px 18px; transition: border-color .2s, background .2s, color .2s; }
+.btn:hover { background: transparent; border-color: #fff; color: #fff; }
+.btn:active { transform: none; background: rgba(255, 255, 255, .06); }
+.btn-primary, .auth .login .btn-primary { background: transparent; color: #fff; border: 1px solid #ececec; box-shadow: none; }
+.btn-primary:hover, .auth .login .btn-primary:hover { background: #ececec; color: #0d0d0d; }
+.btn-danger { background: transparent; color: var(--bad); border-color: rgba(255, 107, 90, .45); }
+.btn-danger:hover { background: transparent; border-color: var(--bad); color: var(--bad); }
+.btn-danger-fill { background: var(--bad); color: #0d0d0d; border-color: var(--bad); }
+.btn-wa-admin { background: transparent; color: var(--ok); border: 1px solid rgba(159, 209, 138, .5); box-shadow: none; }
+.btn-wa-admin:hover { border-color: var(--ok); color: var(--ok); }
+.btn.btn-on { background: transparent; color: var(--ok); border-color: rgba(159, 209, 138, .5); }
+
+/* Фильтры и вкладки: подчёркивание, как меню на сайтах авто */
+.filters, .ptabs { gap: 22px; border-bottom: 1px solid var(--line); padding-bottom: 0; }
+.filters button, .ptabs button { background: transparent !important; border: 0 !important; color: #6f6f6f; font: var(--cap); letter-spacing: .16em;
+  text-transform: uppercase; padding: 10px 0 12px; min-height: 0; box-shadow: none !important; }
+.filters button.on, .ptabs button.on, .ptabs button.btn-primary { color: #fff; box-shadow: inset 0 -1px 0 #fff !important; }
+.ptabs { margin-bottom: 22px; }
+
+/* Поиск */
+.search { background: transparent; border: 1px solid var(--line); color: var(--muted); min-height: 46px; }
+.search input[type=search] { color: var(--ink); }
+
+/* Поля: тёмные, тонкая рамка, подписи заглавными */
+label.f > span, .f > span, :is(#sf, #pwf) .f > span, .auth .login label.f > span {
+  font: var(--cap) !important; letter-spacing: .16em !important; text-transform: uppercase !important; color: var(--muted) !important; }
+input[type=text], input[type=number], input[type=password], input[type=tel], input[type=date], input[type=email], select, textarea,
+.rev input, .modal-box .modal-in, .slug-in, .auth .login input {
+  background: var(--bg); color: var(--ink); border: 1px solid var(--line2); box-shadow: none; font-family: var(--font); }
+input::placeholder, textarea::placeholder, :is(#sf, #pwf) ::placeholder { color: #555; }
+input:focus, select:focus, textarea:focus, .slug-in:focus-within, .auth .login input:focus {
+  background: var(--bg) !important; border-color: #ececec !important; box-shadow: none !important; }
+select option { background: #131313; color: var(--ink); }
+.upload { background: transparent; border: 1px dashed var(--line2); color: var(--ink); font: var(--cap); letter-spacing: .16em; text-transform: uppercase; }
+.upload:hover { background: transparent; border-color: #fff; }
+.check input { accent-color: #ececec; }
+/* Выбор типа квартиры — сетка с линиями */
+.seg { background: transparent; border: 1px solid var(--line2); padding: 0; gap: 0; }
+.seg button { color: var(--muted); border: 0; }
+.seg button + button { box-shadow: inset 1px 0 0 var(--line2); }
+.seg button.on { background: #ececec; color: #0d0d0d; box-shadow: none; }
+.seg button.on small { color: #444; }
+.photo .main { background: #ececec; color: #0d0d0d; }
+.photo .pa button { background: rgba(13, 13, 13, .8); border: 1px solid var(--line2); }
+.savebar { background: linear-gradient(transparent, var(--bg) 40%); }
+
+/* Метки и статусы: текст заглавными, без плашек */
+.badge, .st { font: 600 10px var(--font); letter-spacing: .18em; text-transform: uppercase; background: transparent !important; padding: 0; }
+.badge-new, .badge-installment { color: #cfcfcf; }
+.badge-resale, .badge-cash { color: var(--warn); }
+.badge-commercial { color: #c9a2ff; }
+.badge-land, .st-active, .st-unlimited { color: var(--ok); }
+.st-ending { color: var(--warn); }
+.st-expired, .st-blocked { color: var(--bad); }
+/* Предупреждения: тонкие линии сверху и снизу, без заливки */
+.warn { background: transparent; color: #cfcfcf; border: 0; border-top: 1px solid var(--line2); border-bottom: 1px solid var(--line2); padding: 12px 0; }
+.warn.bad { background: transparent; color: #ffb3a8; border-color: rgba(255, 107, 90, .45); }
+.warn a { color: #fff; }
+.up { color: var(--ok); } .down, .err { color: var(--bad); }
+.tariff.warn-t { background: var(--s1); box-shadow: inset 2px 0 0 var(--warn); }
+.tariff.bad { background: var(--s1); box-shadow: inset 2px 0 0 var(--bad); }
+.refer { background: var(--s1); box-shadow: inset 2px 0 0 #c9a15a; border: 1px solid var(--line); }
+.refer-t { color: #e3c38a; }
+
+/* Цифры: крупный тонкий шрифт */
+.kpi b { font-family: var(--head); font-weight: 300; font-size: 32px; letter-spacing: -.03em; color: #fff; }
+.chart .bar, .lv { background: #1d1d1d; }
+.chart .bar i, .lw { background: #ececec; }
+.fn-bar, .mini-bar { background: #1d1d1d; }
+.fn-bar i, .mini-bar i { background: var(--ok); }
+.dev { background: #ececec; } .dev i { background: #2a2a2a; }
+
+/* Нижнее меню: плоская полоса на всю ширину */
+@media (max-width: 1023px) {
+  .atab { left: 0; right: 0; bottom: 0; padding: 0 0 env(safe-area-inset-bottom); gap: 0; background: var(--bg);
+    border: 0; border-top: 1px solid var(--line); box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .atab a { font: 400 9px var(--font); letter-spacing: .06em; text-transform: uppercase; color: #6f6f6f; min-height: 64px; gap: 6px; background: none; }
+  .atab a svg { width: 21px; height: 21px; stroke-width: 1.4; }
+  .atab a.on { color: #fff; background: none; box-shadow: inset 0 1px 0 #fff; }
+  .atab a.ext { color: var(--ok); }
+  body { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+  .savebar { bottom: calc(64px + env(safe-area-inset-bottom)); }
+}
+
+/* Окна, шторка, сообщения */
+.modal { background: rgba(0, 0, 0, .7); -webkit-backdrop-filter: none; backdrop-filter: none; }
+.modal-box { background: #131313; border: 1px solid var(--line2); box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.sheet-group, .sheet-cancel { background: #131313; border: 1px solid var(--line2); -webkit-backdrop-filter: none; backdrop-filter: none; }
+.sheet-title { font: var(--cap); letter-spacing: .2em; text-transform: uppercase; color: var(--muted); border-bottom-color: var(--line); }
+.sheet-btn { color: #fff; font-size: 16px; }
+.sheet-group .sheet-btn + .sheet-btn { border-top-color: var(--line); }
+.sheet-btn.danger { color: var(--bad); }
+.toast { background: #ececec; color: #0d0d0d; font: 500 12px var(--font); letter-spacing: .14em; text-transform: uppercase; box-shadow: none; }
+.install-x { background: transparent; border: 1px solid var(--line2); }
+.install-txt span { color: var(--muted); }
+
+/* Экран входа */
+.auth, .auth-side { background: var(--bg); }
+.auth-cover { background: var(--bg); border-right: 1px solid var(--line); }
+.auth-kicker { font: var(--cap); letter-spacing: .3em; text-transform: uppercase; color: var(--muted); }
+.auth-cover h1 { font-family: var(--head); font-weight: 300; letter-spacing: -.03em; color: #fff; }
+.auth-cover h1 em { color: #6f6f6f; }
+.auth-points li { color: #bdbdbd; }
+.auth-points li::before { background: #ececec; width: 4px; height: 4px; }
+.auth .login h2 { font-family: var(--head); font-weight: 400; color: #fff; }
+.auth-wa { border-color: var(--line2); }
+.login .note-box { background: transparent; border: 1px solid rgba(227, 179, 92, .45); color: #e3c38a; }
+.filters { scrollbar-width: none; } .filters::-webkit-scrollbar { display: none; }
