@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0d0d0d">
+<title>Учёт товаров</title>
+<link rel="icon" type="image/png" sizes="32x32" href="/img/brand/icon-32.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=Unbounded:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Стиль «Тёмный премиум», как кабинет: острые углы, тонкие линии, заголовки Unbounded */
+  :root { --bg: #0d0d0d; --p1: #131313; --p2: #1a1a1a; --ink: #ececec; --muted: #8c8c8c; --dim: #5f5f5f; --line: #232323; --line2: #3a3a3a;
+    --ok: #9fd18a; --bad: #ff6b5a; --gold: #e3c38a;
+    --head: Unbounded, 'Golos Text', Arial, sans-serif; --font: 'Golos Text', -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; }
+  * { box-sizing: border-box; border-radius: 0; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 15px; -webkit-font-smoothing: antialiased; }
+  button, input, select { font: inherit; color: inherit; }
+  [hidden] { display: none !important; }
+  .cap { font: 500 11px/1.3 var(--font); letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
+  .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pos { color: var(--ok); } .neg { color: var(--bad); }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 18px calc(96px + env(safe-area-inset-bottom)); }
+
+  /* Шапка */
+  .top { position: sticky; top: 0; z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); }
+  .top .wrap { display: flex; align-items: center; justify-content: space-between; height: 56px; padding-bottom: 0; }
+  .top b { font: 400 12px var(--font); letter-spacing: .32em; text-transform: uppercase; }
+  .linkbtn { background: none; border: 0; cursor: pointer; font: 500 11px var(--font); letter-spacing: .2em; text-transform: uppercase; color: var(--muted); padding: 8px 0; }
+  .linkbtn:hover { color: #fff; }
+
+  h1 { font: 600 clamp(30px, 7vw, 44px)/1.08 var(--head); letter-spacing: -.025em; margin: 30px 0 6px; }
+  .sub { color: var(--muted); margin-bottom: 22px; }
+  h2 { font: 600 18px var(--head); letter-spacing: -.01em; margin: 32px 0 14px; }
+
+  /* Кнопки — контуром */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 12px 20px; cursor: pointer;
+    background: transparent; border: 1px solid var(--line2); font: 500 12px var(--font); letter-spacing: .18em; text-transform: uppercase; color: var(--ink); }
+  .btn:hover { border-color: #fff; color: #fff; }
+  a.btn { text-decoration: none; }
+  .help { color: var(--muted); font-size: 13px; line-height: 1.5; margin-top: 12px; }
+  .btn-main { border-color: #ececec; color: #fff; }
+  .btn-main:hover { background: #ececec; color: var(--bg); }
+  .btn-ok { border-color: rgba(159, 209, 138, .55); color: var(--ok); }
+  .btn-ok:hover { border-color: var(--ok); color: var(--ok); }
+  .btn-bad { border-color: rgba(255, 107, 90, .45); color: var(--bad); }
+  .btn-bad:hover { border-color: var(--bad); color: var(--bad); }
+  .btn-block { width: 100%; }
+  .acts { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 18px; }
+
+  /* Сводка */
+  .kpis { display: grid; grid-template-columns: repeat(2, 1fr); border-top: 1px solid var(--line); border-left: 1px solid var(--line); margin-bottom: 8px; }
+  @media (min-width: 760px) { .kpis { grid-template-columns: repeat(4, 1fr); } }
+  .kpi { padding: 16px 14px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); min-width: 0; }
+  .kpi b { display: block; font: 600 clamp(17px, 4.6vw, 26px)/1.15 var(--head); letter-spacing: -.025em; margin-top: 8px; overflow: hidden; text-overflow: ellipsis; }
+  .kpi small { display: block; color: var(--muted); font-size: 12px; margin-top: 4px; }
+  .kpi.hl b { color: var(--gold); }
+
+  /* Таблица товаров: на телефоне прокручивается вбок, название товара остаётся на месте */
+  .tbl-wrap { overflow-x: auto; border: 1px solid var(--line); -webkit-overflow-scrolling: touch; }
+  table { width: 100%; border-collapse: collapse; min-width: 620px; }
+  th, td { padding: 13px 12px; text-align: right; border-bottom: 1px solid var(--line); }
+  th { font: 500 10px var(--font); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); background: var(--p1); white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; position: sticky; left: 0; background: var(--bg); z-index: 1; border-right: 1px solid var(--line); max-width: 190px; }
+  th:first-child { background: var(--p1); }
+  td:first-child b { display: block; font: 600 14px var(--head); letter-spacing: -.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  td small { display: block; color: var(--muted); font-size: 12px; margin-top: 3px; }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover td { background: #121212; }
+  tfoot td { font-weight: 600; background: var(--p1); border-bottom: 0; }
+  tfoot td:first-child { background: var(--p1); }
+  .low { color: var(--gold); } .zero { color: var(--bad); }
+  /* Телефон: каждый товар — строка с названием и под ним 5 колонок с подписями */
+  @media (max-width: 640px) {
+    .tbl-wrap { overflow: visible; border: 0; border-top: 1px solid var(--line); }
+    table { min-width: 0; }
+    thead { display: none; }
+    tr { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-bottom: 1px solid var(--line); padding: 12px 0; }
+    td, td:first-child { position: static; border: 0; padding: 0 4px 0 0; text-align: left; background: none; max-width: none; min-width: 0; }
+    td:first-child { grid-column: 1 / -1; padding-bottom: 10px; }
+    td:first-child b { white-space: normal; }
+    td[data-l]::before { content: attr(data-l); display: block; font: 500 9px var(--font); letter-spacing: .12em; text-transform: uppercase; color: var(--dim); margin-bottom: 4px; }
+    td.num { font-size: 13px; white-space: normal; overflow-wrap: anywhere; }
+    td small { display: none; }
+    tbody tr:hover td { background: none; }
+    tfoot tr { background: var(--p1); padding: 12px 8px; }
+    tfoot td, tfoot td:first-child { background: none; }
+  }
+  /* Категории — подчёркивание, прокрутка вбок на телефоне */
+  .filters { display: flex; gap: 22px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--line); margin: 0 0 16px; }
+  .filters::-webkit-scrollbar { display: none; }
+  .filters button { flex: none; background: none; border: 0; cursor: pointer; padding: 10px 0 12px; color: #6f6f6f; font: 500 11px var(--font); letter-spacing: .14em; text-transform: uppercase; }
+  .filters button i { font-style: normal; color: var(--dim); margin-left: 3px; letter-spacing: 0; }
+  .filters button.on { color: #fff; box-shadow: inset 0 -1px 0 #fff; }
+  /* Выбор категории в форме товара */
+  .pick { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line2); }
+  .pick label { position: relative; cursor: pointer; }
+  .pick input { position: absolute; opacity: 0; }
+  .pick span { display: block; padding: 12px 4px; text-align: center; font-size: 13px; color: var(--muted); box-shadow: inset -1px -1px 0 var(--line2); }
+  .pick input:checked + span { background: #ececec; color: var(--bg); }
+  .pick input:focus-visible + span { outline: 1px solid #fff; }
+  .seg2 { display: inline-flex; border: 1px solid var(--line2); margin-left: 8px; vertical-align: middle; }
+  .seg2 button { background: none; border: 0; color: var(--muted); padding: 4px 10px; cursor: pointer; font-size: 12px; }
+  .seg2 button.on { background: #ececec; color: var(--bg); }
+  .empty { padding: 40px 16px; text-align: center; color: var(--muted); border: 1px solid var(--line); }
+  .empty b { display: block; font: 600 20px var(--head); color: var(--ink); margin-bottom: 8px; }
+
+  /* Месяц */
+  .month { display: flex; align-items: center; gap: 4px; margin: 0 0 20px; border: 1px solid var(--line); width: max-content; max-width: 100%; }
+  .month button { background: none; border: 0; color: var(--muted); width: 46px; height: 44px; cursor: pointer; font-size: 18px; }
+  .month button:hover { color: #fff; }
+  .month span { min-width: 150px; text-align: center; font: 500 12px var(--font); letter-spacing: .18em; text-transform: uppercase; }
+
+  /* Журнал */
+  .log { border-top: 1px solid var(--line); }
+  .log-day { padding: 18px 0 8px; }
+  .log-row { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; padding: 13px 0; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .log-row:hover { background: #111; }
+  .log-row b { font-weight: 500; }
+  .log-row small { display: block; color: var(--muted); font-size: 13px; margin-top: 3px; }
+  .log-row .r { text-align: right; }
+  .tag { font: 600 10px var(--font); letter-spacing: .16em; text-transform: uppercase; margin-right: 8px; }
+
+  /* Графики */
+  .chart { display: flex; align-items: flex-end; gap: 3px; height: 150px; border-bottom: 1px solid var(--line2); padding-top: 10px; }
+  .chart i { flex: 1; background: #ececec; min-height: 1px; position: relative; }
+  .chart i.z { background: #262626; }
+  .chart-x { display: flex; justify-content: space-between; color: var(--dim); font-size: 11px; margin-top: 6px; }
+  .bars { border-top: 1px solid var(--line); }
+  .bar { padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .bar .l { display: flex; justify-content: space-between; gap: 12px; }
+  .bar .l span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar i { display: block; height: 3px; background: #262626; margin-top: 9px; }
+  .bar i em { display: block; height: 100%; background: var(--ok); }
+  .bar i em.n { background: var(--bad); }
+  .note { border-top: 1px solid var(--line2); border-bottom: 1px solid var(--line2); padding: 12px 0; margin: 10px 0; color: #cfcfcf; line-height: 1.45; }
+  .two { display: grid; gap: 0 34px; } @media (min-width: 860px) { .two { grid-template-columns: 1fr 1fr; } }
+
+  /* Нижнее меню */
+  .tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; display: grid; grid-template-columns: repeat(4, 1fr); background: var(--bg);
+    border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); }
+  .tabbar button { background: none; border: 0; cursor: pointer; color: #6f6f6f; min-height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    font: 400 9.5px var(--font); letter-spacing: .12em; text-transform: uppercase; }
+  .tabbar button svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+  .tabbar button.on { color: #fff; box-shadow: inset 0 1px 0 #fff; }
+  @media (min-width: 1024px) { .tabbar { top: 0; bottom: auto; left: 50%; right: auto; transform: translateX(-50%); grid-template-columns: repeat(4, auto); gap: 26px;
+    border: 0; background: none; padding: 0; height: 56px; z-index: 7; }
+    .tabbar button { flex-direction: row; min-height: 56px; font-size: 11px; letter-spacing: .2em; } .tabbar button svg { display: none; }
+    .tabbar button.on { box-shadow: inset 0 -1px 0 #fff; } .wrap { padding-bottom: 60px; } }
+
+  /* Листы снизу (формы) */
+  .scrim { position: fixed; inset: 0; z-index: 20; background: rgba(0, 0, 0, .72); display: flex; align-items: flex-end; justify-content: center; }
+  .sheet { width: 100%; max-width: 520px; max-height: 92vh; overflow: auto; background: var(--p1); border: 1px solid var(--line2); border-bottom: 0;
+    padding: 22px 20px calc(22px + env(safe-area-inset-bottom)); animation: up .26s cubic-bezier(.2, .8, .2, 1); }
+  @media (min-width: 700px) { .scrim { align-items: center; } .sheet { border-bottom: 1px solid var(--line2); } }
+  @keyframes up { from { transform: translateY(40px); opacity: 0; } }
+  .sheet h3 { font: 600 20px var(--head); letter-spacing: -.01em; margin: 0 0 4px; }
+  .sheet .sub { margin-bottom: 18px; }
+  .f { display: block; margin-bottom: 14px; }
+  .f > span { display: block; margin-bottom: 7px; }
+  .f input, .f select { width: 100%; min-height: 50px; padding: 0 14px; background: var(--bg); border: 1px solid var(--line2); color: var(--ink); font-size: 16px; outline: none; }
+  .f input:focus, .f select:focus { border-color: #ececec; }
+  .f input.big { font: 600 26px var(--head); min-height: 64px; letter-spacing: -.02em; }
+  .f em { display: block; font-style: normal; color: var(--bad); font-size: 13px; margin-top: 6px; }
+  .f em:empty { display: none; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: end; }
+  .calc { border-top: 1px solid var(--line2); border-bottom: 1px solid var(--line2); padding: 12px 0; margin: 4px 0 16px; display: flex; justify-content: space-between; gap: 10px; color: var(--muted); }
+  .calc b { color: var(--ink); font-weight: 600; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: -4px 0 14px; }
+  .chips button { background: none; border: 1px solid var(--line2); color: var(--muted); padding: 8px 12px; cursor: pointer; font-size: 13px; }
+  .chips button:hover { color: #fff; border-color: #fff; }
+  .sheet .btns { display: grid; gap: 10px; margin-top: 6px; }
+  .hist { margin: 18px 0 6px; border-top: 1px solid var(--line); }
+  .hist .log-row { cursor: default; }
+  .x { background: none; border: 1px solid var(--line2); color: var(--muted); width: 34px; height: 34px; cursor: pointer; }
+  .x:hover { color: var(--bad); border-color: var(--bad); }
+
+  /* Вход */
+  .lock { min-height: 100vh; display: grid; place-items: center; padding: 30px 20px; }
+  .lock-in { width: 100%; max-width: 360px; }
+  .lock h1 { margin-top: 0; }
+  .lock .f input { text-align: center; letter-spacing: .5em; font: 600 26px var(--head); }
+  .err { color: var(--bad); min-height: 20px; margin: 4px 0 10px; font-size: 14px; }
+  .toast { position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 30; background: #ececec; color: var(--bg);
+    font: 500 12px var(--font); letter-spacing: .14em; text-transform: uppercase; padding: 12px 18px; opacity: 0; pointer-events: none; transition: opacity .2s; white-space: nowrap; }
+  .toast.on { opacity: 1; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script>
+(() => {
+  const NAME = location.pathname.split('/')[2].toLowerCase();
+  const API = `/api/s/${NAME}`;
+  const INVITE = new URLSearchParams(location.search).get('invite') || '';
+  const app = document.getElementById('app');
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const nf = new Intl.NumberFormat('ru-RU');
+  const fmt = n => nf.format(Math.round(n || 0));
+  const som = n => `${fmt(n)} с`;
+  const sgn = n => (n > 0 ? 'pos' : n < 0 ? 'neg' : '');
+  const today = () => { const d = new Date(); return new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); };
+  const MONTHS = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+  const MONTHS_G = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+  const dayName = d => { const [y, m, dd] = d.split('-').map(Number); return `${dd} ${MONTHS_G[m - 1]}${y !== new Date().getFullYear() ? ' ' + y : ''}`; };
+  const toast = t => { const el = document.getElementById('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('on'), 2200); };
+  const digits = v => String(v || '').replace(/\D/g, '');
+
+  async function api(method, url, body) {
+    const r = await fetch(API + url, { method, headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined, credentials: 'same-origin' });
+    let j = {}; try { j = await r.json(); } catch (e) { /* пусто */ }
+    if (r.status === 401 && j.error === 'auth') { lockScreen(); throw new Error('auth'); }
+    if (!r.ok) { const e = new Error(j.error || 'Ошибка'); e.errors = j.errors; throw e; }
+    return j;
+  }
+
+  // ---------- Вход ----------
+  let ME = {};
+  async function start() {
+    ME = await (await fetch(`${API}/me${INVITE ? `?invite=${encodeURIComponent(INVITE)}` : ''}`, { credentials: 'same-origin' })).json();
+    document.title = `Учёт товаров · ${ME.title || NAME}`;
+    if (ME.in) return load();
+    lockScreen();
+  }
+  function lockScreen() {
+    const setup = ME.setup;
+    app.innerHTML = `<div class="lock"><form class="lock-in" id="lk">
+      <div class="cap" style="margin-bottom:10px">Учёт товаров</div>
+      <h1>${esc(ME.title || NAME)}</h1>
+      <p class="sub">${setup ? (ME.canSetup ? 'Придумайте цифровой пароль — он нужен для входа.' : 'Откройте ссылку-приглашение, которую вам прислали.') : 'Введите пароль'}</p>
+      ${setup && !ME.canSetup ? '' : `<label class="f"><input id="pin" type="password" inputmode="numeric" autocomplete="${setup ? 'new-password' : 'current-password'}" maxlength="12" required></label>
+      ${setup ? '<label class="f"><span class="cap">Ещё раз</span><input id="pin2" type="password" inputmode="numeric" maxlength="12" required></label>' : ''}
+      <div class="err" id="lkErr">${ME.lockedMin ? `Слишком много попыток. Попробуйте через ${ME.lockedMin} мин.` : ''}</div>
+      <button class="btn btn-main btn-block">${setup ? 'Сохранить пароль' : 'Войти'}</button>`}
+    </form></div>`;
+    const f = document.getElementById('lk'); if (!f) return;
+    const pin = document.getElementById('pin'); pin && pin.focus();
+    f.onsubmit = async e => {
+      e.preventDefault();
+      const err = document.getElementById('lkErr');
+      const v = digits(pin.value);
+      if (setup && v !== digits(document.getElementById('pin2').value)) { err.textContent = 'Пароли не совпадают'; return; }
+      try {
+        const r = await fetch(`${API}/${setup ? 'setpin' : 'login'}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ pin: v, invite: INVITE }) });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) { err.textContent = j.error || 'Ошибка'; return; }
+        if (INVITE) history.replaceState(null, '', location.pathname);
+        load();
+      } catch (er) { err.textContent = 'Нет связи. Попробуйте ещё раз'; }
+    };
+  }
+
+  // ---------- Данные и расчёты ----------
+  let S = { products: [], moves: [], expenses: [] };
+  let TAB = 'goods', YM = today().slice(0, 7);
+  async function load() { S = await api('GET', ''); render(); }
+  const setData = d => { S = d; render(); };
+  const ymShift = (ym, k) => { const [y, m] = ym.split('-').map(Number); const d = new Date(Date.UTC(y, m - 1 + k, 1)); return d.toISOString().slice(0, 7); };
+  const ymName = ym => { const [y, m] = ym.split('-').map(Number); return `${MONTHS[m - 1]} ${y}`; };
+  const pName = id => (S.products.find(p => p.id === id) || { name: 'Удалённый товар' }).name;
+
+  // По каждому товару: куплено, средняя цена закупки (себестоимость), продано, выручка, прибыль, остаток
+  function stats() {
+    const m = {};
+    for (const p of S.products) m[p.id] = { p, bq: 0, bs: 0, sq: 0, ss: 0, disc: 0, last: '' };
+    for (const x of S.moves) {
+      const r = m[x.productId]; if (!r) continue;
+      // ss — сколько реально получили: цена × штук минус скидка
+      if (x.type === 'buy') { r.bq += x.qty; r.bs += x.qty * x.price; } else { r.sq += x.qty; r.disc += x.discount || 0; r.ss += paid(x); if (x.date > r.last) r.last = x.date; }
+    }
+    for (const r of Object.values(m)) { r.avg = r.bq ? r.bs / r.bq : 0; r.profit = r.ss - r.sq * r.avg; r.left = r.bq - r.sq; }
+    return m;
+  }
+  // Итоги месяца: выручка, себестоимость проданного, прибыль с товаров, расходы, чистая прибыль
+  function monthSum(ym, st) {
+    const sells = S.moves.filter(x => x.type === 'sell' && x.date.startsWith(ym));
+    const rev = sells.reduce((s, x) => s + paid(x), 0);
+    const disc = sells.reduce((s, x) => s + (x.discount || 0), 0);
+    const cost = sells.reduce((s, x) => s + x.qty * ((st[x.productId] || {}).avg || 0), 0);
+    const qty = sells.reduce((s, x) => s + x.qty, 0);
+    const exp = S.expenses.filter(e => e.date.startsWith(ym)).reduce((s, e) => s + e.amount, 0);
+    const buy = S.moves.filter(x => x.type === 'buy' && x.date.startsWith(ym)).reduce((s, x) => s + x.qty * x.price, 0);
+    return { sells, rev, disc, cost, gross: rev - cost, qty, exp, net: rev - cost - exp, buy, count: sells.length };
+  }
+  // Сколько заплатил покупатель: цена × штук − скидка
+  const paid = x => x.qty * x.price - (x.discount || 0);
+  // Категории: мужское, женское, детское, аксессуары, носки
+  const CATS = () => S.cats || {};
+  const catName = k => CATS()[k] || 'Без категории';
+  let CAT = 'all';
+
+  // ---------- Экраны ----------
+  const ICONS = {
+    goods: '<path d="M21 8 12 3 3 8v8l9 5 9-5V8Z"/><path d="m3 8 9 5 9-5M12 13v8"/>',
+    sales: '<path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/>',
+    exp: '<rect x="2" y="6" width="20" height="13"/><path d="M2 10h20M6 15h4"/>',
+    an: '<path d="M4 20V11M12 20V4M20 20v-6"/>',
+  };
+  const TABS = [['goods', 'Товары'], ['sales', 'Продажи'], ['exp', 'Расходы'], ['an', 'Анализ']];
+  function render() {
+    const st = stats();
+    const body = TAB === 'goods' ? goods(st) : TAB === 'sales' ? sales(st) : TAB === 'exp' ? expenses() : analysis(st);
+    app.innerHTML = `<header class="top"><div class="wrap"><b>${esc(ME.title || NAME)}</b><button class="linkbtn" id="out">Выйти</button></div></header>
+      <nav class="tabbar">${TABS.map(([k, l]) => `<button data-tab="${k}" class="${TAB === k ? 'on' : ''}"><svg viewBox="0 0 24 24">${ICONS[k]}</svg>${l}</button>`).join('')}</nav>
+      <main class="wrap">${body}</main>`;
+    app.querySelectorAll('[data-tab]').forEach(b => { b.onclick = () => { TAB = b.dataset.tab; render(); scrollTo(0, 0); }; });
+    document.getElementById('out').onclick = async () => { await fetch(`${API}/logout`, { method: 'POST', credentials: 'same-origin' }); ME.in = false; lockScreen(); };
+    app.querySelectorAll('[data-m]').forEach(b => { b.onclick = () => { YM = ymShift(YM, +b.dataset.m); render(); }; });
+    app.querySelectorAll('[data-act]').forEach(b => { b.onclick = () => ACT[b.dataset.act](b.dataset.id); });
+    app.querySelectorAll('[data-cat]').forEach(b => { b.onclick = () => { CAT = b.dataset.cat; render(); }; });
+    app.querySelectorAll('[data-pid]').forEach(r => { r.onclick = () => productSheet(r.dataset.pid); });
+    app.querySelectorAll('[data-mv]').forEach(r => { r.onclick = () => moveSheet(r.dataset.mv); });
+    app.querySelectorAll('[data-ex]').forEach(r => { r.onclick = () => expenseDel(r.dataset.ex); });
+  }
+  const monthPicker = () => `<div class="month"><button data-m="-1" aria-label="Прошлый месяц">‹</button><span>${ymName(YM)}</span><button data-m="1" aria-label="Следующий месяц">›</button></div>`;
+
+  // Товары: таблица — Товар | Штук | Купил | Продал | Прибыль | Остаток
+  function goods(st) {
+    const allRows = S.products.map(p => st[p.id]);
+    const rows = allRows.filter(r => CAT === 'all' || (r.p.cat || '') === CAT).sort((a, b) => (b.last || '').localeCompare(a.last || '') || a.p.name.localeCompare(b.p.name));
+    const cnt = k => allRows.filter(r => (r.p.cat || '') === k).length;
+    const catBar = S.products.length ? `<div class="filters">${[['all', 'Все', allRows.length], ...Object.entries(CATS()).map(([k, n]) => [k, n, cnt(k)]), ...(cnt('') ? [['', 'Без категории', cnt('')]] : [])]
+      .map(([k, n, c]) => `<button data-cat="${k}" class="${CAT === k ? 'on' : ''}">${esc(n)} <i>${c}</i></button>`).join('')}</div>` : '';
+    const tot =rows.reduce((t, r) => ({ bq: t.bq + r.bq, bs: t.bs + r.bs, sq: t.sq + r.sq, ss: t.ss + r.ss, profit: t.profit + r.profit, left: t.left + r.left, val: t.val + r.left * r.avg }), { bq: 0, bs: 0, sq: 0, ss: 0, profit: 0, left: 0, val: 0 });
+    const head = `<div class="cap" style="margin-top:30px">Учёт товаров</div><h1>Товары</h1>
+      <p class="sub">${S.products.length ? `${S.products.length} ${plural(S.products.length, 'товар', 'товара', 'товаров')} · на складе ${fmt(tot.left)} шт. на ${som(tot.val)}` : 'Добавьте первый товар — сколько штук и за сколько купили'}</p>
+      <div class="acts"><button class="btn btn-main" data-act="newProduct">+ Товар</button>${S.products.length ? '<button class="btn btn-ok" data-act="newSale">+ Продажа</button><a class="btn" href="' + API + '/csv">Excel</a>' : ''}</div>`;
+    if (!allRows.length) return head + `<div class="empty"><b>Пока пусто</b>Нажмите «+ Товар»: название, категория, сколько штук купили и почём.</div>`;
+    if (!rows.length) return head + catBar + `<div class="empty"><b>В «${esc(catName(CAT))}» товаров нет</b>Добавьте товар и выберите эту категорию.</div>`;
+    return head + catBar + `<div class="tbl-wrap"><table>
+      <thead><tr><th>Товар</th><th>Штук</th><th>Купил</th><th>Продал</th><th>Прибыль</th><th>Остаток</th></tr></thead>
+      <tbody>${rows.map(r => `<tr data-pid="${esc(r.p.id)}">
+        <td><b>${esc(r.p.name)}</b><small>${esc(catName(r.p.cat))}${r.p.sellPrice ? ` · продаю по ${som(r.p.sellPrice)}` : ''}</small></td>
+        <td class="num" data-l="Штук">${fmt(r.bq)}</td>
+        <td class="num" data-l="Купил">${som(r.avg)}<small>за шт · всего ${som(r.bs)}</small></td>
+        <td class="num" data-l="Продал">${fmt(r.sq)} шт<small>на ${som(r.ss)}${r.disc ? ` · скидки ${som(r.disc)}` : ''}</small></td>
+        <td class="num ${sgn(r.profit)}" data-l="Прибыль">${som(r.profit)}</td>
+        <td class="num ${r.left <= 0 ? 'zero' : r.left <= 3 ? 'low' : ''}" data-l="Остаток">${fmt(r.left)} шт</td></tr>`).join('')}</tbody>
+      <tfoot><tr><td>Итого</td><td class="num" data-l="Штук">${fmt(tot.bq)}</td><td class="num" data-l="Закупка">${som(tot.bs)}</td><td class="num" data-l="Продал">${fmt(tot.sq)} шт<small>на ${som(tot.ss)}</small></td>
+        <td class="num ${sgn(tot.profit)}" data-l="Прибыль">${som(tot.profit)}</td><td class="num" data-l="Остаток">${fmt(tot.left)} шт</td></tr></tfoot>
+    </table></div>
+    <p class="help">«Купил» — средняя цена закупки за штуку. Прибыль = продажи со скидкой − закупочная цена проданных штук. Нажмите на товар, чтобы продать, докупить или изменить.</p>`;
+  }
+
+  // Продажи и закупки месяца — по дням
+  function sales(st) {
+    const ms = S.moves.filter(x => x.date.startsWith(YM)).sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || '').localeCompare(a.createdAt || ''));
+    const sum = monthSum(YM, st);
+    let html = `<div class="cap" style="margin-top:30px">Журнал</div><h1>Продажи</h1>${monthPicker()}
+      <div class="kpis"><div class="kpi"><span class="cap">Продано</span><b>${som(sum.rev)}</b><small>${fmt(sum.qty)} шт · ${sum.count} ${plural(sum.count, 'продажа', 'продажи', 'продаж')}</small></div>
+        <div class="kpi hl"><span class="cap">Прибыль с товаров</span><b>${som(sum.gross)}</b><small>${sum.disc ? `скидки −${som(sum.disc)} · ` : ''}без расходов месяца</small></div></div>
+      <div class="acts" style="margin-top:16px"><button class="btn btn-ok" data-act="newSale">+ Продажа</button><button class="btn" data-act="newBuy">+ Закупка</button></div>`;
+    if (!ms.length) return html + `<div class="empty"><b>В этом месяце пусто</b>Отметьте продажу кнопкой «+ Продажа».</div>`;
+    html += '<div class="log">';
+    let day = '';
+    for (const x of ms) {
+      if (x.date !== day) { day = x.date; html += `<div class="log-day cap">${dayName(day)}</div>`; }
+      const s = x.type === 'sell' ? paid(x) : x.qty * x.price, pr = x.type === 'sell' ? s - x.qty * ((st[x.productId] || {}).avg || 0) : 0;
+      html += `<div class="log-row" data-mv="${esc(x.id)}"><div><b><span class="tag ${x.type === 'sell' ? 'pos' : ''}">${x.type === 'sell' ? 'Продажа' : 'Закупка'}</span>${esc(pName(x.productId))}</b>
+        <small>${fmt(x.qty)} шт × ${som(x.price)}${x.discount ? ` · скидка ${som(x.discount)}` : ''}${x.note ? ' · ' + esc(x.note) : ''}</small></div>
+        <div class="r num"><b>${x.type === 'sell' ? '+' : '−'}${som(s)}</b>${x.type === 'sell' ? `<small class="${sgn(pr)}">прибыль ${som(pr)}</small>` : ''}</div></div>`;
+    }
+    return html + '</div>';
+  }
+
+  // Расходы месяца
+  function expenses() {
+    const list = S.expenses.filter(e => e.date.startsWith(YM)).sort((a, b) => b.date.localeCompare(a.date));
+    const total = list.reduce((s, e) => s + e.amount, 0);
+    const by = {}; for (const e of list) by[e.name] = (by[e.name] || 0) + e.amount;
+    const top = Object.entries(by).sort((a, b) => b[1] - a[1]);
+    let html = `<div class="cap" style="margin-top:30px">Аренда, зарплата, доставка…</div><h1>Расходы</h1>${monthPicker()}
+      <div class="kpis"><div class="kpi"><span class="cap">Расходы за месяц</span><b>${som(total)}</b><small>${list.length} ${plural(list.length, 'запись', 'записи', 'записей')}</small></div>
+      <div class="kpi"><span class="cap">Самый большой</span><b style="font-size:18px">${top[0] ? esc(top[0][0]) : '—'}</b><small>${top[0] ? som(top[0][1]) : ''}</small></div></div>
+      <div class="acts" style="margin-top:16px"><button class="btn btn-main" data-act="newExpense">+ Расход</button></div>`;
+    if (!list.length) return html + `<div class="empty"><b>Расходов нет</b>Добавьте аренду, зарплату, доставку — они вычтутся из прибыли месяца.</div>`;
+    if (top.length > 1) html += `<div class="bars" style="margin-bottom:24px">${top.map(([n, v]) => `<div class="bar"><div class="l"><span>${esc(n)}</span><b class="num">${som(v)}</b></div><i><em class="n" style="width:${(v / top[0][1] * 100).toFixed(1)}%"></em></i></div>`).join('')}</div>`;
+    html += '<div class="log">' + list.map(e => `<div class="log-row" data-ex="${esc(e.id)}"><div><b>${esc(e.name)}</b><small>${dayName(e.date)}</small></div><div class="r num"><b class="neg">−${som(e.amount)}</b><small>нажмите, чтобы удалить</small></div></div>`).join('') + '</div>';
+    return html;
+  }
+
+  // Анализ продаж за месяц
+  function analysis(st) {
+    const cur = monthSum(YM, st), prev = monthSum(ymShift(YM, -1), st);
+    const pct = (a, b) => (b ? `${a >= b ? '+' : ''}${Math.round((a - b) / Math.abs(b) * 100)}% к прошлому месяцу` : 'прошлый месяц без данных');
+    const margin = cur.rev ? Math.round(cur.gross / cur.rev * 100) : 0;
+    // Выручка по дням
+    const [y, m] = YM.split('-').map(Number), days = new Date(y, m, 0).getDate();
+    const perDay = Array.from({ length: days }, () => 0);
+    for (const x of cur.sells) perDay[+x.date.slice(8) - 1] += paid(x);
+    const maxDay = Math.max(...perDay, 1);
+    const bestDay = perDay.indexOf(Math.max(...perDay));
+    // Товары и категории месяца: выручка (со скидкой) и прибыль
+    const byP = {}, byC = {};
+    for (const x of cur.sells) {
+      const pr = paid(x) - x.qty * ((st[x.productId] || {}).avg || 0);
+      const r = byP[x.productId] || (byP[x.productId] = { q: 0, rev: 0, pr: 0 }); r.q += x.qty; r.rev += paid(x); r.pr += pr;
+      const ck = ((st[x.productId] || {}).p || {}).cat || '';
+      const c = byC[ck] || (byC[ck] = { q: 0, rev: 0, pr: 0, disc: 0 }); c.q += x.qty; c.rev += paid(x); c.pr += pr; c.disc += x.discount || 0;
+    }
+    const topP = Object.entries(byP).sort((a, b) => b[1].pr - a[1].pr);
+    const maxPr = Math.max(...topP.map(([, r]) => Math.abs(r.pr)), 1);
+    const topC = Object.entries(byC).sort((a, b) => b[1].rev - a[1].rev);
+    const maxC = Math.max(...topC.map(([, r]) => r.rev), 1);
+    const discPct = cur.rev + cur.disc ? Math.round(cur.disc / (cur.rev + cur.disc) * 100) : 0;
+    // Заканчивается: продавался, а осталось ≤ 3. Лежит без движения: есть на складе, а продаж 30 дней нет.
+    const d30 = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
+    const low = Object.values(st).filter(r => r.sq > 0 && r.left > 0 && r.left <= 3);
+    const out = Object.values(st).filter(r => r.bq > 0 && r.left <= 0);
+    const still = Object.values(st).filter(r => r.left > 0 && (!r.last || r.last < d30) && r.p.createdAt.slice(0, 10) < d30);
+    const tips = [];
+    if (cur.rev && cur.net < 0) tips.push(`Месяц в минусе на <b>${som(-cur.net)}</b>: расходы больше, чем прибыль с товаров. Нужно продать ещё примерно на <b>${som(margin ? -cur.net / (margin / 100) : 0)}</b> или сократить расходы.`);
+    if (topP[0] && topP[0][1].pr > 0) tips.push(`Больше всего заработали на «<b>${esc(pName(topP[0][0]))}</b>» — ${som(topP[0][1].pr)}. Его стоит держать в наличии.`);
+    if (topP.some(([, r]) => r.pr < 0)) tips.push(`Есть продажи в убыток: ${topP.filter(([, r]) => r.pr < 0).map(([id]) => '«' + esc(pName(id)) + '»').join(', ')} — проверьте цену продажи.`);
+    if (low.length) tips.push(`Заканчивается: ${low.map(r => `«${esc(r.p.name)}» (${r.left} шт)`).join(', ')}. Пора докупить.`);
+    if (cur.disc) tips.push(`Скидками отдали <b>${som(cur.disc)}</b> — ${discPct}% от цены проданного. Без скидок чистая прибыль была бы ${som(cur.net + cur.disc)}.`);
+    if (topC.length > 1) tips.push(`Лучше всего продаётся «<b>${esc(catName(topC[0][0]))}</b>»: ${som(topC[0][1].rev)} выручки, прибыль ${som(topC[0][1].pr)}.`);
+    if (still.length) tips.push(`Лежит без продаж больше 30 дней: ${still.slice(0, 5).map(r => `«${esc(r.p.name)}»`).join(', ')} — на складе на ${som(still.reduce((s, r) => s + r.left * r.avg, 0))}. Можно сделать скидку.`);
+
+    return `<div class="cap" style="margin-top:30px">Анализ продаж</div><h1>Итоги</h1>${monthPicker()}
+      <div class="kpis">
+        <div class="kpi"><span class="cap">Выручка</span><b>${som(cur.rev)}</b><small>${pct(cur.rev, prev.rev)}</small></div>
+        <div class="kpi"><span class="cap">Прибыль с товаров</span><b>${som(cur.gross)}</b><small>наценка ${margin}%</small></div>
+        <div class="kpi"><span class="cap">Расходы</span><b>${som(cur.exp)}</b><small>${pct(cur.exp, prev.exp)}</small></div>
+        <div class="kpi hl"><span class="cap">Чистая прибыль</span><b class="${sgn(cur.net)}">${som(cur.net)}</b><small>${pct(cur.net, prev.net)}</small></div>
+        <div class="kpi"><span class="cap">Продано штук</span><b>${fmt(cur.qty)}</b><small>${cur.count} ${plural(cur.count, 'продажа', 'продажи', 'продаж')} · чек ${som(cur.count ? cur.rev / cur.count : 0)}</small></div>
+        <div class="kpi"><span class="cap">Скидки</span><b class="${cur.disc ? 'neg' : ''}">${cur.disc ? '−' : ''}${som(cur.disc)}</b><small>${cur.disc ? `${discPct}% от цены · вычтено из прибыли` : 'скидок не было'}</small></div>
+        <div class="kpi"><span class="cap">Закупил товара</span><b>${som(cur.buy)}</b><small>в этом месяце</small></div>
+        <div class="kpi"><span class="cap">Лучший день</span><b>${perDay[bestDay] ? dayName(`${YM}-${String(bestDay + 1).padStart(2, '0')}`).replace(/ \d{4}$/, '') : '—'}</b><small>${perDay[bestDay] ? som(perDay[bestDay]) : ''}</small></div>
+      </div>
+      ${tips.length ? `<h2>Что видно</h2>${tips.map(t => `<div class="note">${t}</div>`).join('')}` : ''}
+      <h2>Выручка по дням</h2>
+      <div class="chart">${perDay.map((v, i) => `<i class="${v ? '' : 'z'}" style="height:${v ? Math.max(2, v / maxDay * 100) : 1}%" title="${i + 1}: ${som(v)}"></i>`).join('')}</div>
+      <div class="chart-x"><span>1</span><span>${Math.ceil(days / 2)}</span><span>${days}</span></div>
+      <h2>По категориям</h2>
+      ${topC.length ? `<div class="bars">${topC.map(([k, r]) => `<div class="bar"><div class="l"><span>${esc(catName(k))} <small class="cap" style="letter-spacing:.06em">${fmt(r.q)} шт${r.disc ? ` · скидки ${som(r.disc)}` : ''}</small></span><b class="num">${som(r.rev)} <small class="${sgn(r.pr)}" style="font-weight:400">· прибыль ${som(r.pr)}</small></b></div><i><em style="width:${(r.rev / maxC * 100).toFixed(1)}%;background:#ececec"></em></i></div>`).join('')}</div>` : '<div class="empty">Продаж в этом месяце нет</div>'}
+      <div class="two">
+        <div><h2>Прибыль по товарам</h2>${topP.length ? `<div class="bars">${topP.slice(0, 10).map(([id, r]) => `<div class="bar"><div class="l"><span>${esc(pName(id))} <small class="cap" style="letter-spacing:.06em">${fmt(r.q)} шт</small></span><b class="num ${sgn(r.pr)}">${som(r.pr)}</b></div><i><em class="${r.pr < 0 ? 'n' : ''}" style="width:${(Math.abs(r.pr) / maxPr * 100).toFixed(1)}%"></em></i></div>`).join('')}</div>` : '<div class="empty">Продаж в этом месяце нет</div>'}</div>
+        <div><h2>Склад</h2><div class="bars">
+          <div class="bar"><div class="l"><span>Заканчивается (≤ 3 шт)</span><b>${low.length}</b></div></div>
+          <div class="bar"><div class="l"><span>Закончилось</span><b class="${out.length ? 'neg' : ''}">${out.length}</b></div></div>
+          <div class="bar"><div class="l"><span>Без продаж 30+ дней</span><b>${still.length}</b></div></div>
+          <div class="bar"><div class="l"><span>Товар на складе по закупке</span><b class="num">${som(Object.values(st).reduce((s, r) => s + Math.max(0, r.left) * r.avg, 0))}</b></div></div>
+        </div></div>
+      </div>`;
+  }
+  const plural = (n, a, b, c) => { const k = Math.abs(n) % 100, l = k % 10; return k > 10 && k < 20 ? c : l === 1 ? a : l > 1 && l < 5 ? b : c; };
+
+  // ---------- Листы с формами ----------
+  function sheet(html, onReady) {
+    const s = document.createElement('div');
+    s.className = 'scrim';
+    s.innerHTML = `<div class="sheet" role="dialog" aria-modal="true">${html}</div>`;
+    s.onclick = e => { if (e.target === s) close(); };
+    const close = () => { s.remove(); document.removeEventListener('keydown', key); };
+    const key = e => { if (e.key === 'Escape') close(); };
+    document.addEventListener('keydown', key);
+    document.body.appendChild(s);
+    onReady && onReady(s, close);
+    const first = s.querySelector('input:not([type=date]), select'); first && setTimeout(() => first.focus(), 50);
+    return close;
+  }
+  const field = (name, label, attrs = '', val = '') => `<label class="f"><span class="cap">${label}</span><input name="${name}" value="${esc(val)}" ${attrs}><em data-e="${name}"></em></label>`;
+  const showErr = (s, e) => { s.querySelectorAll('[data-e]').forEach(el => { el.textContent = (e.errors || {})[el.dataset.e] || ''; }); if (!e.errors) toast(e.message); };
+  // Ввод чисел с пробелами между разрядами: «12 500»
+  const money = s => s.querySelectorAll('[data-num]').forEach(i => { i.oninput = () => { const d = digits(i.value); i.value = d ? fmt(+d) : ''; i.dispatchEvent(new Event('calc')); }; });
+
+  function productForm(p) {
+    const isNew = !p;
+    sheet(`<h3>${isNew ? 'Новый товар' : 'Изменить товар'}</h3><p class="sub">${isNew ? 'Сразу укажите первую закупку — сколько штук и почём купили.' : esc(p.name)}</p>
+      <form id="pf">${field('name', 'Название товара', 'required maxlength="60" placeholder="Например: Кроссовки Nike 42"', p ? p.name : '')}
+      <div class="f"><span class="cap">Категория</span><div class="pick">${Object.entries(CATS()).map(([k, n]) => `<label><input type="radio" name="cat" value="${k}" ${(p ? p.cat : CAT !== 'all' ? CAT : '') === k ? 'checked' : ''}><span>${esc(n)}</span></label>`).join('')}</div><em data-e="cat"></em></div>
+      ${isNew ? `<div class="row2">${field('qty', 'Купил штук', 'inputmode="numeric" data-num placeholder="10"')}${field('buyPrice', 'Почём за шт', 'inputmode="numeric" data-num placeholder="1 500"')}</div>` : ''}
+      ${field('sellPrice', 'Продаю по (за шт, можно потом)', 'inputmode="numeric" data-num placeholder="2 500"', p && p.sellPrice ? fmt(p.sellPrice) : '')}
+      ${isNew ? '<div class="calc" id="pc" hidden></div>' : ''}
+      <div class="btns"><button class="btn btn-main">${isNew ? 'Добавить товар' : 'Сохранить'}</button></div></form>`, (s, close) => {
+      money(s);
+      const f = s.querySelector('#pf'), pc = s.querySelector('#pc');
+      const calc = () => { if (!pc) return; const q = +digits(f.qty.value), b = +digits(f.buyPrice.value), sp = +digits(f.sellPrice.value);
+        pc.hidden = !(q && b); pc.innerHTML = `<span>Закупка: <b>${som(q * b)}</b></span>${sp ? `<span>Если продать всё: <b class="${sgn(q * (sp - b))}">+${som(q * (sp - b))}</b></span>` : ''}`; };
+      f.querySelectorAll('[data-num]').forEach(i => i.addEventListener('calc', calc));
+      f.onsubmit = async e => {
+        e.preventDefault();
+        const body = { name: f.name.value, cat: (f.querySelector('[name=cat]:checked') || {}).value || '', sellPrice: digits(f.sellPrice.value) };
+        if (isNew && digits(f.qty.value)) Object.assign(body, { qty: digits(f.qty.value), buyPrice: digits(f.buyPrice.value), date: today() });
+        try { setData(isNew ? await api('POST', '/products', body) : await api('PUT', `/products/${p.id}`, body)); close(); toast(isNew ? 'Товар добавлен' : 'Сохранено'); }
+        catch (er) { showErr(s, er); }
+      };
+    });
+  }
+
+  // Продажа или закупка. type: sell | buy. pid — товар (если уже выбран). mv — запись для изменения.
+  function moveForm(type, pid, mv) {
+    const st = stats();
+    const list = S.products.filter(p => type === 'buy' || st[p.id].left > 0 || (mv && mv.productId === p.id));
+    if (!list.length) { toast(type === 'sell' ? 'Нет товара на складе' : 'Сначала добавьте товар'); return; }
+    const sel = mv ? mv.productId : pid && list.some(p => p.id === pid) ? pid : list[0].id;
+    const sell = type === 'sell';
+    const defPrice = id => { const r = st[id]; return mv ? mv.price : sell ? (r.p.sellPrice || 0) : Math.round(r.avg) || 0; };
+    sheet(`<h3>${mv ? 'Изменить запись' : sell ? 'Продажа' : 'Закупка'}</h3><p class="sub">${sell ? 'Сколько штук продали и по какой цене' : 'Сколько штук докупили и почём'}</p>
+      <form id="mf">
+      <label class="f"><span class="cap">Товар</span><select name="productId" ${mv ? 'disabled' : ''}>${list.map(p => `<option value="${esc(p.id)}" ${p.id === sel ? 'selected' : ''}>${esc(p.name)}${sell ? ` — есть ${st[p.id].left + (mv && mv.productId === p.id ? mv.qty : 0)} шт` : ''}</option>`).join('')}</select><em data-e="productId"></em></label>
+      <div class="row2">${field('qty', 'Штук', 'inputmode="numeric" data-num required class="big"', mv ? fmt(mv.qty) : '1')}${field('price', 'Цена за шт', 'inputmode="numeric" data-num required class="big"', defPrice(sel) ? fmt(defPrice(sel)) : '')}</div>
+      ${sell ? `<label class="f"><span class="cap">Скидка<span class="seg2"><button type="button" data-u="som" class="on">сом</button><button type="button" data-u="pct">%</button></span></span>
+        <input name="discount" inputmode="numeric" placeholder="0 — без скидки" value="${mv && mv.discount ? fmt(mv.discount) : ''}"><em data-e="discount"></em></label>` : ''}
+      ${field('date', 'Дата', 'type="date" required', mv ? mv.date : today())}
+      <div class="calc" id="mc"></div>
+      <div class="btns"><button class="btn ${sell ? 'btn-ok' : 'btn-main'}">${mv ? 'Сохранить' : sell ? 'Записать продажу' : 'Записать закупку'}</button></div></form>`, (s, close) => {
+      money(s);
+      const f = s.querySelector('#mf'), mc = s.querySelector('#mc');
+      // Скидка: в сомах на всю продажу или в процентах от суммы (на сервер уходит в сомах)
+      let unit = 'som';
+      const discSom = () => { if (!f.discount) return 0; const v = +digits(f.discount.value), q = +digits(f.qty.value), p = +digits(f.price.value);
+        return unit === 'pct' ? Math.round(q * p * Math.min(v, 100) / 100) : v; };
+      s.querySelectorAll('[data-u]').forEach(b => { b.onclick = () => { unit = b.dataset.u; s.querySelectorAll('[data-u]').forEach(x => x.classList.toggle('on', x === b)); f.discount.value = ''; f.discount.placeholder = unit === 'pct' ? '10 — это 10%' : '0 — без скидки'; f.discount.focus(); calc(); }; });
+      if (f.discount) f.discount.oninput = () => { const d = digits(f.discount.value); f.discount.value = d ? (unit === 'pct' ? String(Math.min(+d, 100)) : fmt(+d)) : ''; calc(); };
+      const calc = () => { const q = +digits(f.qty.value), p = +digits(f.price.value), r = st[f.productId.value], d = discSom(), sum = q * p - d;
+        mc.innerHTML = sell ? `<span>${d ? `Скидка −${som(d)} · ` : ''}К оплате: <b>${som(sum)}</b></span>${r ? `<span>Прибыль: <b class="${sgn(sum - q * r.avg)}">${som(sum - q * r.avg)}</b></span>` : ''}`
+          : `<span>Сумма: <b>${som(q * p)}</b></span>`; };
+      f.querySelectorAll('[data-num]').forEach(i => i.addEventListener('calc', calc));
+      f.productId.onchange = () => { const v = defPrice(f.productId.value); f.price.value = v ? fmt(v) : ''; calc(); };
+      calc();
+      f.onsubmit = async e => {
+        e.preventDefault();
+        const body = { type, productId: f.productId.value, qty: digits(f.qty.value), price: digits(f.price.value), date: f.date.value, ...(sell ? { discount: discSom() } : {}) };
+        try { setData(mv ? await api('PUT', `/moves/${mv.id}`, body) : await api('POST', '/moves', body)); close(); toast(mv ? 'Сохранено' : sell ? 'Продажа записана' : 'Закупка записана'); }
+        catch (er) { showErr(s, er); }
+      };
+    });
+  }
+
+  // Карточка товара: цифры, кнопки и вся история закупок и продаж
+  function productSheet(id) {
+    const st = stats(), r = st[id]; if (!r) return;
+    const ms = S.moves.filter(x => x.productId === id).sort((a, b) => b.date.localeCompare(a.date));
+    sheet(`<h3>${esc(r.p.name)}</h3><p class="sub">Осталось <b class="${r.left <= 0 ? 'neg' : ''}">${fmt(r.left)} шт</b> · прибыль <b class="${sgn(r.profit)}">${som(r.profit)}</b></p>
+      <div class="kpis" style="margin-bottom:18px"><div class="kpi"><span class="cap">Купил</span><b>${fmt(r.bq)} шт</b><small>по ${som(r.avg)} в среднем</small></div>
+        <div class="kpi"><span class="cap">Продал</span><b>${fmt(r.sq)} шт</b><small>на ${som(r.ss)}</small></div></div>
+      <div class="btns"><button class="btn btn-ok" data-a="sell" ${r.left > 0 ? '' : 'disabled style="opacity:.4"'}>Продал</button><button class="btn" data-a="buy">Докупил</button>
+        <div class="row2"><button class="btn" data-a="edit">Изменить</button><button class="btn btn-bad" data-a="del">Удалить</button></div></div>
+      ${ms.length ? `<div class="hist">${ms.map(x => `<div class="log-row"><div><b><span class="tag ${x.type === 'sell' ? 'pos' : ''}">${x.type === 'sell' ? 'Продажа' : 'Закупка'}</span>${fmt(x.qty)} шт × ${som(x.price)}</b><small>${dayName(x.date)}${x.discount ? ` · скидка ${som(x.discount)}` : ''}</small></div>
+        <div class="r"><button class="x" data-x="${esc(x.id)}" aria-label="Удалить запись">×</button></div></div>`).join('')}</div>` : ''}`, (s, close) => {
+      s.querySelectorAll('[data-a]').forEach(b => {
+        b.onclick = async () => {
+          const a = b.dataset.a;
+          if (a === 'sell' || a === 'buy') { close(); moveForm(a, id); }
+          if (a === 'edit') { close(); productForm(r.p); }
+          if (a === 'del') {
+            if (!confirm(`Удалить «${r.p.name}» и всю его историю (${ms.length} ${plural(ms.length, 'запись', 'записи', 'записей')})? Вернуть будет нельзя.`)) return;
+            try { setData(await api('DELETE', `/products/${id}`)); close(); toast('Товар удалён'); } catch (er) { toast(er.message); }
+          }
+        };
+      });
+      s.querySelectorAll('[data-x]').forEach(b => {
+        b.onclick = async () => {
+          if (!confirm('Удалить эту запись?')) return;
+          try { setData(await api('DELETE', `/moves/${b.dataset.x}`)); close(); productSheet(id); toast('Запись удалена'); } catch (er) { toast(er.message); }
+        };
+      });
+    });
+  }
+  // Запись в журнале: изменить или удалить
+  function moveSheet(mid) {
+    const mv = S.moves.find(x => x.id === mid); if (!mv) return;
+    sheet(`<h3>${mv.type === 'sell' ? 'Продажа' : 'Закупка'}</h3><p class="sub">${esc(pName(mv.productId))} · ${fmt(mv.qty)} шт × ${som(mv.price)} · ${dayName(mv.date)}</p>
+      <div class="btns"><button class="btn" data-a="edit">Изменить</button><button class="btn btn-bad" data-a="del">Удалить</button></div>`, (s, close) => {
+      s.querySelector('[data-a=edit]').onclick = () => { close(); moveForm(mv.type, mv.productId, mv); };
+      s.querySelector('[data-a=del]').onclick = async () => {
+        try { setData(await api('DELETE', `/moves/${mv.id}`)); close(); toast('Запись удалена'); } catch (er) { toast(er.message); }
+      };
+    });
+  }
+
+  const EXP_CHIPS = ['Аренда', 'Зарплата', 'Доставка', 'Реклама', 'Налоги', 'Связь', 'Коммуналка', 'Такси'];
+  function expenseForm() {
+    sheet(`<h3>Расход</h3><p class="sub">Вычтется из прибыли месяца</p><form id="ef">
+      ${field('name', 'На что', 'required maxlength="60" placeholder="Аренда"')}
+      <div class="chips">${EXP_CHIPS.map(c => `<button type="button" data-c="${c}">${c}</button>`).join('')}</div>
+      ${field('amount', 'Сумма, сом', 'inputmode="numeric" data-num required class="big"')}
+      ${field('date', 'Дата', 'type="date" required', YM === today().slice(0, 7) ? today() : YM + '-01')}
+      <div class="btns"><button class="btn btn-main">Добавить расход</button></div></form>`, (s, close) => {
+      money(s);
+      const f = s.querySelector('#ef');
+      s.querySelectorAll('[data-c]').forEach(b => { b.onclick = () => { f.name.value = b.dataset.c; f.amount.focus(); }; });
+      f.onsubmit = async e => {
+        e.preventDefault();
+        try { setData(await api('POST', '/expenses', { name: f.name.value, amount: digits(f.amount.value), date: f.date.value })); close(); toast('Расход добавлен'); }
+        catch (er) { showErr(s, er); }
+      };
+    });
+  }
+  async function expenseDel(id) {
+    const e = S.expenses.find(x => x.id === id); if (!e) return;
+    if (!confirm(`Удалить расход «${e.name}» — ${som(e.amount)}?`)) return;
+    try { setData(await api('DELETE', `/expenses/${id}`)); toast('Расход удалён'); } catch (er) { toast(er.message); }
+  }
+
+  const ACT = { newProduct: () => productForm(), newSale: () => moveForm('sell'), newBuy: () => moveForm('buy'), newExpense: () => expenseForm() };
+  start().catch(() => { app.innerHTML = '<div class="lock"><p class="sub">Нет связи. Обновите страницу.</p></div>'; });
+})();
+</script>
+</body>
+</html>

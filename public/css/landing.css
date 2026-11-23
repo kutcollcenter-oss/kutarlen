@@ -254,8 +254,8 @@ body.lx {
 /* ===== Стиль iPhone (как сайты менеджеров и кабинет), цвета прежние: тёмно-зелёный и золото.
    Скругления, шрифт Inter вместо «машинописного», стеклянная шапка, отдельные карточки вместо сетки линий.
    Убрать этот блок — вернётся прежний вид. ===== */
-body.lx { --lx-r: 22px; --lx-glass: rgba(21, 36, 27, .72); font-family: Inter, -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
-.lx h1, .lx h2, .lx h3 { font-family: inherit; font-weight: 700 !important; letter-spacing: -.035em; }
+body.lx { --lx-r: 22px; --lx-glass: rgba(21, 36, 27, .72); font-family: 'Golos Text', Inter, -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+.lx h1, .lx h2, .lx h3 { font-family: Unbounded, 'Golos Text', Arial, sans-serif; font-weight: 600 !important; letter-spacing: -.025em; }
 /* Вместо машинописного шрифта с капслоком — обычный, как в iOS */
 .lx .lx-kicker, .lx .lx-login, .lx .lx-btn, .lx .lx-price, .lx .lx-calc-in span, .lx .lx-calc-out > span, .lx .lx-steps li::before,
 .lx .lx-plan-badge, .lx .lx-plan-name, .lx .lx-phone-link, .lx .lx-brand small { font-family: inherit; text-transform: none; letter-spacing: -.01em; }

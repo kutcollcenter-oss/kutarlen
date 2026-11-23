@@ -205,6 +205,9 @@ require('./lib/money').mount(app, { D, save: () => db.save(), cookies, newId: ()
   managerOf: id => { const r = id && D().realtors.find(x => x.id === id); return r ? { name: (r.settings && r.settings.name) || r.slug, active: statusOf(r).active } : null; },
   renewLink: text => { const p = product(); return p.whatsapp ? waLink(p.whatsapp, text) : ''; },
   isOwner: req => { const s = auth.readSession(D().secret, cookies(req).sess, id => D().users.find(u => u.id === id)); return !!(s && s.user.role === 'owner'); } });
+// Учёт товаров для бизнеса: kvartiry.asia/shop/<имя> — товары, закупки, продажи, расходы, анализ. Людей заводит владелец.
+require('./lib/shop').mount(app, { D, save: () => db.save(), cookies, newId: () => db.newId(), requireAuth, ownerOnly,
+  isOwner: req => { const s = auth.readSession(D().secret, cookies(req).sess, id => D().users.find(u => u.id === id)); return !!(s && s.user.role === 'owner'); } });
 
 // ИИ-помощник на сайтах менеджеров (ключ и включение — у владельца в кабинете)
 const aiChat = require('./lib/aichat').mount(app, { D, save: () => db.save(), requireAuth, ownerOnly, waLink, money,

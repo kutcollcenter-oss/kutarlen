@@ -1090,12 +1090,79 @@
     }
     users = initial; bind();
   }
+  // ---------- Учёт товаров (/shop/<имя>) — так же, как учёт денег: приглашение по ссылке, свой пароль ----------
+  const shopLink = x => `${location.origin}/shop/${x.name}${x.invite ? `?invite=${x.invite}` : ''}`;
+  function shopUsersHtml(users) {
+    return `<p class="hint" style="margin:0 0 12px">Для бизнесменов: товары, закупки, продажи, расходы месяца и анализ продаж — по адресу <b>${esc(location.host)}/shop/имя</b>. Вы заводите человека и отправляете ему ссылку-приглашение — по ней он сам придумает пароль. Его товары и продажи видит только он.</p>
+      ${users.map(x => `<div class="rt" data-su="${esc(x.name)}" style="padding:12px 0;border-top:1px solid var(--line, #eee)">
+        <div><b>${esc(x.title)}</b> · <a href="/shop/${esc(x.name)}" target="_blank" rel="noopener">/shop/${esc(x.name)}</a></div>
+        <div class="hint" style="margin:4px 0 8px">${x.active ? `Пароль задан ✓${x.lastLogin ? ` · последний вход ${esc(fmtDate(x.lastLogin.slice(0, 10)))}` : ''}` : 'Ждёт: человек ещё не открыл приглашение'}</div>
+        <div class="row" style="display:flex;flex-wrap:wrap;gap:8px">
+          ${x.invite ? '<button class="btn" type="button" data-sact="copy">Скопировать приглашение</button>' : ''}
+          <button class="btn" type="button" data-sact="reset">Сбросить пароль</button><button class="btn btn-danger" type="button" data-sact="del">Удалить</button>
+        </div></div>`).join('')}
+      <form id="shpNew" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line, #eee)">
+        <b>+ Новый учёт товаров</b>
+        <div style="margin-top:10px">
+          <label class="f"><span>Как зовут</span><input name="title" required placeholder="Магазин Айбека"></label>
+          <label class="f"><span>Имя в адресе (латиницей)</span><input name="name" required autocapitalize="none" spellcheck="false" placeholder="aibek" pattern="[a-zA-Z0-9][a-zA-Z0-9-]{1,29}"></label>
+        </div>
+        <p class="err" id="shpErr"></p>
+        <button class="btn btn-primary" type="submit">Создать и получить приглашение</button>
+      </form>`;
+  }
+  function bindShopUsers(initial) {
+    const body = document.getElementById('shpBody');
+    if (!body) return;
+    let users = initial;
+    const draw = list => { users = list; body.innerHTML = shopUsersHtml(list); bind(); };
+    const invite = async x => {
+      const link = shopLink(x);
+      const go = await modal({ title: `Приглашение для «${x.title}»`, html: `<p>Отправьте человеку эту ссылку (например, в WhatsApp). По ней он придумает свой пароль — после этого ссылка перестанет работать.</p><p style="word-break:break-all"><b>${esc(link)}</b></p>`, okText: 'Скопировать ссылку', cancelText: 'Закрыть' });
+      if (go) await copy(link, 'Приглашение скопировано — отправьте его человеку');
+    };
+    function bind() {
+      const nameIn = body.querySelector('#shpNew [name=name]'), titleIn = body.querySelector('#shpNew [name=title]');
+      let touched = false;
+      nameIn.oninput = () => { touched = true; };
+      titleIn.oninput = () => { if (!touched) nameIn.value = translit(titleIn.value); };
+      body.querySelector('#shpNew').onsubmit = async e => {
+        e.preventDefault();
+        const f = e.target;
+        try {
+          const list = await api('POST', '/api/owner/shop-users', { title: f.title.value, name: f.name.value });
+          draw(list);
+          const x = list.find(u => u.name === f.name.value.trim().toLowerCase());
+          if (x) await invite(x);
+        } catch (err) { document.getElementById('shpErr').textContent = err.message; }
+      };
+      body.querySelectorAll('[data-sact]').forEach(b => {
+        b.onclick = async () => {
+          const x = users.find(u => u.name === b.closest('[data-su]').dataset.su);
+          if (!x) return;
+          try {
+            if (b.dataset.sact === 'copy') return invite(x);
+            if (b.dataset.sact === 'reset') {
+              if (!await modal({ title: 'Сбросить пароль?', text: `Учёт «${x.title}» закроется на всех телефонах. Товары и продажи останутся. Человек получит новую ссылку-приглашение.`, okText: 'Сбросить' })) return;
+              const list = await api('POST', `/api/owner/shop-users/${encodeURIComponent(x.name)}/reset`);
+              draw(list); return invite(list.find(u => u.name === x.name));
+            }
+            if (b.dataset.sact === 'del') {
+              if (!await modal({ title: `Удалить учёт «${x.title}»?`, text: 'Все его товары, продажи и расходы удалятся навсегда. Вернуть их будет нельзя.', okText: 'Удалить навсегда', danger: true })) return;
+              draw(await api('DELETE', `/api/owner/shop-users/${encodeURIComponent(x.name)}`)); toast('Учёт удалён');
+            }
+          } catch (err) { toast(err.message); }
+        };
+      });
+    }
+    bind();
+  }
   const TR = { а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ё: 'e', ж: 'zh', з: 'z', и: 'i', й: 'y', к: 'k', л: 'l', м: 'm', н: 'n', ң: 'n', о: 'o', ө: 'o', п: 'p', р: 'r', с: 's', т: 't', у: 'u', ү: 'u', ф: 'f', х: 'h', ц: 'ts', ч: 'ch', ш: 'sh', щ: 'sch', ъ: '', ы: 'y', ь: '', э: 'e', ю: 'yu', я: 'ya' };
   const translit = s => String(s || '').toLowerCase().split('').map(ch => (ch in TR ? TR[ch] : ch)).join('').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30);
 
   async function renderRealtors() {
     if (!isOwner()) { location.hash = '#list'; return; }
-    const [list, product, mine, ai, mUsers, cos] = await Promise.all([api('GET', '/api/owner/realtors'), api('GET', '/api/owner/product'), api('GET', '/api/admin/apartments'), api('GET', '/api/owner/aichat'), api('GET', '/api/owner/money-users'), api('GET', '/api/owner/companies')]);
+    const [list, product, mine, ai, mUsers, cos, sUsers] = await Promise.all([api('GET', '/api/owner/realtors'), api('GET', '/api/owner/product'), api('GET', '/api/admin/apartments'), api('GET', '/api/owner/aichat'), api('GET', '/api/owner/money-users'), api('GET', '/api/owner/companies'), api('GET', '/api/owner/shop-users')]);
     // Сколько квартир в рассрочку скопируется новому менеджеру (наличные не копируются)
     const myInstallment = mine.filter(a => a.computed.installment || (!cashLike(typeOf(a)) && a.computed.price)).length;
     const others = list.filter(x => x.role !== 'owner');
@@ -1198,6 +1265,9 @@
       </details>
       <details class="card" id="mnyCard"><summary><b>Учёт денег</b> · ${mUsers.length} ${mUsers.length === 1 ? 'учёт' : mUsers.length < 5 && mUsers.length > 1 ? 'учёта' : 'учётов'}</summary>
         <div id="mnyBody" style="margin-top:12px">${moneyUsersHtml(mUsers)}</div>
+      </details>
+      <details class="card" id="shpCard"><summary><b>Учёт товаров</b> · ${sUsers.length} ${sUsers.length === 1 ? 'учёт' : sUsers.length < 5 && sUsers.length > 1 ? 'учёта' : 'учётов'}</summary>
+        <div id="shpBody" style="margin-top:12px">${shopUsersHtml(sUsers)}</div>
       </details>
 
       <details class="card" id="aiCard"><summary><b>ИИ-помощник на сайтах</b> · ${ai.on && ai.providers.some(p => p.hasKey) ? `работает ✓ · у ${list.filter(x => x.aiAccess).length} из ${list.length}` : 'выключен'}</summary>
@@ -1303,6 +1373,7 @@
 
     // Уроки и журнал разговоров
     bindMoneyUsers(mUsers);
+    bindShopUsers(sUsers);
     const reopenAi = async () => { await renderRealtors(); document.getElementById('aiCard').open = true; document.getElementById('aiTeach').scrollIntoView({ block: 'start' }); };
     const addLesson = async (q, a, errId) => {
       try { await api('POST', '/api/owner/aichat/lessons', { q, a }); toast('Урок добавлен — ИИ учтёт его со следующего ответа'); await reopenAi(); }
