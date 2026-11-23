@@ -54,6 +54,11 @@
 
   /* Списки и карточки */
   .card { background: var(--panel); border-radius: 18px; padding: 14px 16px; margin: 0 12px 12px; }
+  /* Слово дня — над «Доходами» на главном экране */
+  .word { margin: 4px 12px 14px; padding: 14px 16px; border-radius: 18px; background: linear-gradient(135deg, #2a2312, var(--panel) 70%); box-shadow: inset 0 0 0 1px rgba(255, 214, 10, .18); }
+  .word .word-cap { display: block; font-size: 12px; font-weight: 600; color: #ffd60a; letter-spacing: .02em; }
+  .word blockquote { margin: 6px 0 0; font-size: 16px; line-height: 1.45; font-weight: 500; color: #f5f0e6; }
+  .word figcaption { margin-top: 6px; font-size: 12px; color: var(--muted); }
   .card h3 { margin: 0 0 10px; font-size: 17px; }
   .muted { color: var(--muted); font-size: 14px; }
   .day { margin: 16px 18px 6px; color: var(--muted); font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
@@ -343,6 +348,7 @@
 
 <div id="sheetBox"></div>
 
+<script src="/js/words.js"></script>
 <script>
 (function () {
   const $ = id => document.getElementById(id);
@@ -360,6 +366,8 @@
   const ICONS = ['💰', '🏠', '🌐', '💼', '🤝', '📈', '🏡', '🥤', '🛒', '🚕', '🍔', '🌴', '📱', '👕', '📣', '🖥️', '🎁', '💄', '⛽', '💊', '🎓', '✈️', '🐾', '👶', '🔧', '🧾', '☕', '🎬', '👛', '💳', '🏦', '💵'];
 
   let D = { entries: [], cats: [], wallets: [] }, month = today().slice(0, 7), tab = 'panel', closed = {};
+  // Слово дня (общий список с /shop — /js/words.js): в полночь главный экран обновляется сам
+  if (window.WordOfDay) WordOfDay.onMidnight(() => { if (!$('app').hidden && tab === 'panel') render(); });
   try { closed = JSON.parse(localStorage.getItem('mnyClosed:' + USER) || '{}'); } catch (e) { /* без памяти */ }
 
   async function api(method, url, body) {
@@ -513,7 +521,7 @@
       ${open.sort((a, b) => (a.due || '9').localeCompare(b.due || '9')).map(d => { const late = d.due && d.due < today();
         return `<div class="row" data-debt="${d.id}"><span class="dot" style="--c:${d.dir === 'they' ? '#30a46c' : '#d9534f'}">${d.dir === 'they' ? '↘' : '↗'}</span><div class="t"><b>${esc(d.who)}</b><span${late ? ' class="late"' : ''}>${d.dir === 'they' ? 'должен мне' : 'я должен'}${d.due ? ` · ${late ? 'просрочено, ' : 'до '}${fmtDay(d.due)}` : ''}${d.note ? ' · ' + esc(d.note) : ''}</span></div><span class="a ${d.dir === 'they' ? 'in' : 'out'}">${money(d.amount, d.currency)}</span></div>`; }).join('')}</div>`;
 
-    $('view').innerHTML = soonCard +
+    $('view').innerHTML = (window.WordOfDay ? WordOfDay.html() : '') + soonCard +
       section('in', 'Доходы', multi(cur('in')), byVal(D.cats.filter(c => c.kind === 'in'), c => catVal(inMap, c)).map(c => tile(c.name, c.icon, c.color, catSum(inMap, c), `data-cat="${c.id}"`)).join('') + addTile('in')) +
       section('w', 'Кошельки', multi(wTot), byVal(D.wallets, w => som(balance(w), w.currency)).map(w => tile(w.name, w.icon, w.color, money(balance(w), w.currency), `data-wallet="${w.id}"`)).join('') + addTile('wallet'), wSub) +
       section('out', 'Расходы', multi(cur('out')), byVal(D.cats.filter(c => c.kind === 'out'), c => catVal(outMap, c)).map(outTile).join('') + addTile('out')) +
