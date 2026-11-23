@@ -87,12 +87,24 @@
     tfoot tr { background: var(--p1); padding: 12px 8px; }
     tfoot td, tfoot td:first-child { background: none; }
   }
+  /* Слово дня */
+  .word { margin: 24px 0 0; padding: 16px 18px; border-left: 2px solid var(--gold); background: linear-gradient(90deg, rgba(227, 195, 138, .07), transparent 80%); }
+  .word blockquote { margin: 8px 0 0; font: 500 16px/1.5 var(--font); color: #f2ead9; }
+  .word figcaption { margin-top: 8px; color: var(--gold); font-size: 12px; letter-spacing: .04em; }
+  .word + div.cap { margin-top: 22px !important; }
   /* Категории — подчёркивание, прокрутка вбок на телефоне */
   .filters { display: flex; gap: 22px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--line); margin: 0 0 16px; }
   .filters::-webkit-scrollbar { display: none; }
   .filters button { flex: none; background: none; border: 0; cursor: pointer; padding: 10px 0 12px; color: #6f6f6f; font: 500 11px var(--font); letter-spacing: .14em; text-transform: uppercase; }
   .filters button i { font-style: normal; color: var(--dim); margin-left: 3px; letter-spacing: 0; }
   .filters button.on { color: #fff; box-shadow: inset 0 -1px 0 #fff; }
+  .cat-row { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .cat-row small { color: var(--muted); font-size: 12px; margin-left: 6px; }
+  .cat-new { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 8px; }
+  .cat-new input { min-height: 46px; padding: 0 12px; background: var(--bg); border: 1px solid var(--line2); color: var(--ink); font-size: 16px; outline: none; }
+  .cat-new input:focus { border-color: #ececec; }
+  .cat-new .btn { min-height: 46px; padding: 0 14px; }
+  .pick .pick-add span { color: var(--gold); }
   /* Выбор категории в форме товара */
   .pick { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line2); }
   .pick label { position: relative; cursor: pointer; }
@@ -155,6 +167,10 @@
     padding: 22px 20px calc(22px + env(safe-area-inset-bottom)); animation: up .26s cubic-bezier(.2, .8, .2, 1); }
   @media (min-width: 700px) { .scrim { align-items: center; } .sheet { border-bottom: 1px solid var(--line2); } }
   @keyframes up { from { transform: translateY(40px); opacity: 0; } }
+  .sheet { position: relative; }
+  .sheet-x { position: absolute; top: 14px; right: 14px; }
+  .sheet-x:hover { color: #fff; border-color: #fff; }
+  .sheet h3 { padding-right: 44px; }
   .sheet h3 { font: 600 20px var(--head); letter-spacing: -.01em; margin: 0 0 4px; }
   .sheet .sub { margin-bottom: 18px; }
   .f { display: block; margin-bottom: 14px; }
@@ -199,7 +215,7 @@
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const nf = new Intl.NumberFormat('ru-RU');
   const fmt = n => nf.format(Math.round(n || 0));
-  const som = n => `${fmt(n)} с`;
+  const som = n => `${fmt(n).replace('-', '−')} с`;
   const sgn = n => (n > 0 ? 'pos' : n < 0 ? 'neg' : '');
   const today = () => { const d = new Date(); return new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); };
   const MONTHS = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
@@ -299,13 +315,59 @@
     an: '<path d="M4 20V11M12 20V4M20 20v-6"/>',
   };
   const TABS = [['goods', 'Товары'], ['sales', 'Продажи'], ['exp', 'Расходы'], ['an', 'Анализ']];
+  // ---------- Слово дня: 30 фраз, каждый день в полночь (по времени телефона) — следующая ----------
+  // Часть — из Корана и хадисов о честной торговле (их признаёт и ханафитский мазхаб), часть — простые советы продавцу.
+  const WORDS = [
+    ['«Аллах разрешил торговлю и запретил ростовщичество».', 'Коран, сура «Аль-Бакара», 2:275'],
+    ['Каждая продажа начинается с улыбки и честной цены.', ''],
+    ['«Честный и правдивый торговец будет вместе с пророками, правдивыми и мучениками».', 'Хадис, ат-Тирмизи'],
+    ['Маленький шаг каждый день важнее большого рывка раз в год.', ''],
+    ['«Воистину, за тягостью — облегчение».', 'Коран, сура «Аш-Шарх», 94:6'],
+    ['Считай деньги каждый день — и они начнут тебя слушаться.', ''],
+    ['«Да помилует Аллах человека, который мягок, когда продаёт, когда покупает и когда требует долг».', 'Хадис, аль-Бухари'],
+    ['Клиент, которому ты помог, вернётся и приведёт друга.', ''],
+    ['«Наполняйте меру, когда отмериваете, и взвешивайте на верных весах».', 'Коран, сура «Аль-Исра», 17:35'],
+    ['Товар на складе — это деньги, которые ждут. Помоги им вернуться.', ''],
+    ['«Никто не ел пищи лучше той, что заработал своими руками».', 'Хадис, аль-Бухари'],
+    ['Спроси покупателя «что ещё вам показать?» — так растёт средний чек.', ''],
+    ['«Кто уповает на Аллаха, тому Он достаточен».', 'Коран, сура «Ат-Таляк», 65:3'],
+    ['Лучшая реклама — довольный покупатель.', ''],
+    ['«Кто обманывает, тот не из нас».', 'Хадис, Муслим'],
+    ['Сегодняшние записи — завтрашние решения.', ''],
+    ['Имам Абу Ханифа, основатель ханафитского мазхаба, был торговцем тканями и славился честностью: скрыть изъян товара он считал недопустимым.', 'Из жизни имама Абу Ханифы'],
+    ['Цена — это то, что ты просишь. Ценность — то, что ты даёшь.', ''],
+    ['«Если продавец и покупатель были правдивы и всё разъяснили, их сделка будет благословенна».', 'Хадис, аль-Бухари и Муслим'],
+    ['Скидка должна приводить покупателя, а не забирать твою прибыль.', ''],
+    ['«Когда молитва завершится, расходитесь по земле и ищите милость Аллаха».', 'Коран, сура «Аль-Джумуа», 62:10'],
+    ['Порядок в учёте — свобода в делах.', ''],
+    ['«Самые любимые дела для Аллаха — постоянные, даже если они малы».', 'Хадис, аль-Бухари и Муслим'],
+    ['Пустая полка не продаёт. Докупи вовремя.', ''],
+    ['Каждое «нет» приближает тебя к «да».', ''],
+    ['Работай честно — доверие стоит дороже любой выручки.', ''],
+    ['Большой магазин тоже когда-то начинался с одной полки.', ''],
+    ['Знай свою прибыль, а не только выручку.', ''],
+    ['Терпение и постоянство превращают торговлю в дело всей жизни.', ''],
+    ['Начни день с плана: что продать, что докупить, кому написать.', ''],
+  ];
+  const dayNo = () => { const d = new Date(); return Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5); };
+  const wordOfDay = () => {
+    const [text, src] = WORDS[dayNo() % WORDS.length];
+    return `<figure class="word"><span class="cap">Слово дня · ${dayName(today())}</span><blockquote>${esc(text)}</blockquote>${src ? `<figcaption>${esc(src)}</figcaption>` : ''}</figure>`;
+  };
+  // Страница открыта через полночь — слово меняется само
+  (function atMidnight() {
+    const d = new Date(), next = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 0, 0, 5);
+    setTimeout(() => { if (ME.in) render(); atMidnight(); }, next - d);
+  })();
+
   function render() {
     const st = stats();
     const body = TAB === 'goods' ? goods(st) : TAB === 'sales' ? sales(st) : TAB === 'exp' ? expenses() : analysis(st);
-    app.innerHTML = `<header class="top"><div class="wrap"><b>${esc(ME.title || NAME)}</b><button class="linkbtn" id="out">Выйти</button></div></header>
+    app.innerHTML = `<header class="top"><div class="wrap"><b>${esc(ME.title || NAME)}</b><span><button class="linkbtn" id="pw" style="margin-right:18px">Пароль</button><button class="linkbtn" id="out">Выйти</button></span></div></header>
       <nav class="tabbar">${TABS.map(([k, l]) => `<button data-tab="${k}" class="${TAB === k ? 'on' : ''}"><svg viewBox="0 0 24 24">${ICONS[k]}</svg>${l}</button>`).join('')}</nav>
-      <main class="wrap">${body}</main>`;
+      <main class="wrap">${wordOfDay()}${body}</main>`;
     app.querySelectorAll('[data-tab]').forEach(b => { b.onclick = () => { TAB = b.dataset.tab; render(); scrollTo(0, 0); }; });
+    document.getElementById('pw').onclick = () => pinForm();
     document.getElementById('out').onclick = async () => { await fetch(`${API}/logout`, { method: 'POST', credentials: 'same-origin' }); ME.in = false; lockScreen(); };
     app.querySelectorAll('[data-m]').forEach(b => { b.onclick = () => { YM = ymShift(YM, +b.dataset.m); render(); }; });
     app.querySelectorAll('[data-act]').forEach(b => { b.onclick = () => ACT[b.dataset.act](b.dataset.id); });
@@ -314,7 +376,8 @@
     app.querySelectorAll('[data-mv]').forEach(r => { r.onclick = () => moveSheet(r.dataset.mv); });
     app.querySelectorAll('[data-ex]').forEach(r => { r.onclick = () => expenseDel(r.dataset.ex); });
   }
-  const monthPicker = () => `<div class="month"><button data-m="-1" aria-label="Прошлый месяц">‹</button><span>${ymName(YM)}</span><button data-m="1" aria-label="Следующий месяц">›</button></div>`;
+  // Будущие месяцы не открываем — там ничего нет
+  const monthPicker = () => `<div class="month"><button data-m="-1" aria-label="Прошлый месяц">‹</button><span>${ymName(YM)}</span><button data-m="1" aria-label="Следующий месяц" ${YM >= today().slice(0, 7) ? 'disabled style="opacity:.25;cursor:default"' : ''}>›</button></div>`;
 
   // Товары: таблица — Товар | Штук | Купил | Продал | Прибыль | Остаток
   function goods(st) {
@@ -384,7 +447,10 @@
   // Анализ продаж за месяц
   function analysis(st) {
     const cur = monthSum(YM, st), prev = monthSum(ymShift(YM, -1), st);
-    const pct = (a, b) => (b ? `${a >= b ? '+' : ''}${Math.round((a - b) / Math.abs(b) * 100)}% к прошлому месяцу` : 'прошлый месяц без данных');
+    const empty = !cur.count && !cur.exp;
+    const pct = (a, b) => (empty ? 'в этом месяце пусто' : b ? `${a >= b ? '+' : ''}${Math.round((a - b) / Math.abs(b) * 100)}% к прошлому месяцу` : 'прошлый месяц без данных');
+    // Чистая прибыль бывает в минусе — сравниваем в сомах, а не в процентах
+    const diff = (a, b) => (empty ? 'в этом месяце пусто' : !prev.count && !prev.exp ? 'прошлый месяц без данных' : `${a >= b ? '+' : '−'}${fmt(Math.abs(a - b))} с к прошлому месяцу`);
     const margin = cur.rev ? Math.round(cur.gross / cur.rev * 100) : 0;
     // Выручка по дням
     const [y, m] = YM.split('-').map(Number), days = new Date(y, m, 0).getDate();
@@ -424,7 +490,7 @@
         <div class="kpi"><span class="cap">Выручка</span><b>${som(cur.rev)}</b><small>${pct(cur.rev, prev.rev)}</small></div>
         <div class="kpi"><span class="cap">Прибыль с товаров</span><b>${som(cur.gross)}</b><small>наценка ${margin}%</small></div>
         <div class="kpi"><span class="cap">Расходы</span><b>${som(cur.exp)}</b><small>${pct(cur.exp, prev.exp)}</small></div>
-        <div class="kpi hl"><span class="cap">Чистая прибыль</span><b class="${sgn(cur.net)}">${som(cur.net)}</b><small>${pct(cur.net, prev.net)}</small></div>
+        <div class="kpi hl"><span class="cap">Чистая прибыль</span><b class="${sgn(cur.net)}">${som(cur.net)}</b><small>${diff(cur.net, prev.net)}</small></div>
         <div class="kpi"><span class="cap">Продано штук</span><b>${fmt(cur.qty)}</b><small>${cur.count} ${plural(cur.count, 'продажа', 'продажи', 'продаж')} · чек ${som(cur.count ? cur.rev / cur.count : 0)}</small></div>
         <div class="kpi"><span class="cap">Скидки</span><b class="${cur.disc ? 'neg' : ''}">${cur.disc ? '−' : ''}${som(cur.disc)}</b><small>${cur.disc ? `${discPct}% от цены · вычтено из прибыли` : 'скидок не было'}</small></div>
         <div class="kpi"><span class="cap">Закупил товара</span><b>${som(cur.buy)}</b><small>в этом месяце</small></div>
@@ -452,8 +518,9 @@
   function sheet(html, onReady) {
     const s = document.createElement('div');
     s.className = 'scrim';
-    s.innerHTML = `<div class="sheet" role="dialog" aria-modal="true">${html}</div>`;
+    s.innerHTML = `<div class="sheet" role="dialog" aria-modal="true"><button type="button" class="x sheet-x" aria-label="Закрыть">×</button>${html}</div>`;
     s.onclick = e => { if (e.target === s) close(); };
+    s.querySelector('.sheet-x').onclick = () => close();
     const close = () => { s.remove(); document.removeEventListener('keydown', key); };
     const key = e => { if (e.key === 'Escape') close(); };
     document.addEventListener('keydown', key);
@@ -467,11 +534,46 @@
   // Ввод чисел с пробелами между разрядами: «12 500»
   const money = s => s.querySelectorAll('[data-num]').forEach(i => { i.oninput = () => { const d = digits(i.value); i.value = d ? fmt(+d) : ''; i.dispatchEvent(new Event('calc')); }; });
 
+  // Плитки категорий в форме товара + плитка «+ Своя»
+  const pickHtml = sel => Object.entries(CATS()).map(([k, n]) => `<label><input type="radio" name="cat" value="${esc(k)}" ${sel === k ? 'checked' : ''}><span>${esc(n)}</span></label>`).join('')
+    + '<label class="pick-add"><input type="radio" name="catadd"><span>+ Своя</span></label>';
+
+  // Свои категории: список, переименовать, удалить, добавить
+  function catsSheet() {
+    const own = S.own || [];
+    const used = id => S.products.filter(p => p.cat === id).length;
+    sheet(`<h3>Категории</h3><p class="sub">Пять общих есть у всех. Добавьте свои — например, «Обувь» или «Сумки».</p>
+      ${own.length ? own.map(c => `<div class="cat-row" data-cid="${esc(c.id)}"><span>${esc(c.name)}<small>${used(c.id)} ${plural(used(c.id), 'товар', 'товара', 'товаров')}</small></span>
+        <button class="x" data-ren title="Переименовать" aria-label="Переименовать">✎</button><button class="x" data-del title="Удалить" aria-label="Удалить">×</button></div>`).join('') : '<p class="help" style="margin-top:0">Своих категорий пока нет.</p>'}
+      <div class="cat-new"><input id="cn" placeholder="Новая категория, например: Обувь" maxlength="30"><button class="btn btn-main" id="ca">Добавить</button></div>
+      <p class="err" id="cerr"></p>
+      <p class="help">Общие: ${Object.values(S.cats || {}).slice(0, 5).map(esc).join(', ')}.</p>`, (s, close) => {
+      const err = s.querySelector('#cerr'), inp = s.querySelector('#cn');
+      const again = d => { S = d; close(); render(); catsSheet(); };
+      const add = async () => { try { const d = await api('POST', '/cats', { name: inp.value }); toast('Категория добавлена'); again(d); } catch (e) { err.textContent = e.message; } };
+      s.querySelector('#ca').onclick = add;
+      inp.onkeydown = e => { if (e.key === 'Enter') add(); };
+      s.querySelectorAll('[data-cid]').forEach(row => {
+        const c = own.find(x => x.id === row.dataset.cid);
+        row.querySelector('[data-ren]').onclick = async () => {
+          const name = prompt('Новое название категории', c.name);
+          if (name == null || name.trim() === c.name) return;
+          try { again(await api('PUT', `/cats/${c.id}`, { name })); toast('Переименовано'); } catch (e) { err.textContent = e.message; }
+        };
+        row.querySelector('[data-del]').onclick = async () => {
+          if (!confirm(`Удалить категорию «${c.name}»?`)) return;
+          try { const d = await api('DELETE', `/cats/${c.id}`); if (CAT === c.id) CAT = 'all'; again(d); toast('Категория удалена'); } catch (e) { err.textContent = e.message; }
+        };
+      });
+    });
+  }
+
   function productForm(p) {
     const isNew = !p;
     sheet(`<h3>${isNew ? 'Новый товар' : 'Изменить товар'}</h3><p class="sub">${isNew ? 'Сразу укажите первую закупку — сколько штук и почём купили.' : esc(p.name)}</p>
       <form id="pf">${field('name', 'Название товара', 'required maxlength="60" placeholder="Например: Кроссовки Nike 42"', p ? p.name : '')}
-      <div class="f"><span class="cap">Категория</span><div class="pick">${Object.entries(CATS()).map(([k, n]) => `<label><input type="radio" name="cat" value="${k}" ${(p ? p.cat : CAT !== 'all' ? CAT : '') === k ? 'checked' : ''}><span>${esc(n)}</span></label>`).join('')}</div><em data-e="cat"></em></div>
+      <div class="f"><span class="cap">Категория${(S.own || []).length ? ' · <button type="button" class="linkbtn" id="myCats" style="padding:0;font-size:11px">мои категории</button>' : ''}</span><div class="pick" id="pick">${pickHtml(p ? p.cat : CAT !== 'all' ? CAT : '')}</div>
+        <div class="cat-new" id="pickNew" hidden><input placeholder="Например: Обувь" maxlength="30"><button type="button" class="btn">Добавить</button></div><em data-e="cat"></em></div>
       ${isNew ? `<div class="row2">${field('qty', 'Купил штук', 'inputmode="numeric" data-num placeholder="10"')}${field('buyPrice', 'Почём за шт', 'inputmode="numeric" data-num placeholder="1 500"')}</div>` : ''}
       ${field('sellPrice', 'Продаю по (за шт, можно потом)', 'inputmode="numeric" data-num placeholder="2 500"', p && p.sellPrice ? fmt(p.sellPrice) : '')}
       ${isNew ? '<div class="calc" id="pc" hidden></div>' : ''}
@@ -481,6 +583,21 @@
       const calc = () => { if (!pc) return; const q = +digits(f.qty.value), b = +digits(f.buyPrice.value), sp = +digits(f.sellPrice.value);
         pc.hidden = !(q && b); pc.innerHTML = `<span>Закупка: <b>${som(q * b)}</b></span>${sp ? `<span>Если продать всё: <b class="${sgn(q * (sp - b))}">+${som(q * (sp - b))}</b></span>` : ''}`; };
       f.querySelectorAll('[data-num]').forEach(i => i.addEventListener('calc', calc));
+      // «+ Своя»: прямо в форме добавить категорию (например, «Обувь») — она сразу выбирается
+      const pick = s.querySelector('#pick'), box = s.querySelector('#pickNew'), inp = box.querySelector('input');
+      const bindPick = () => { const a = pick.querySelector('.pick-add input'); a.onchange = () => { a.checked = false; box.hidden = false; inp.focus(); }; };
+      bindPick();
+      const mc = s.querySelector('#myCats'); if (mc) mc.onclick = () => { close(); catsSheet(); };
+      const addCat = async () => {
+        try {
+          const d = await api('POST', '/cats', { name: inp.value });
+          S = d; const made = d.own[d.own.length - 1];
+          pick.innerHTML = pickHtml(made.id); bindPick(); box.hidden = true; inp.value = ''; showErr(s, { errors: {} });
+          toast(`Категория «${made.name}» добавлена`);
+        } catch (er) { showErr(s, { errors: { cat: er.message } }); }
+      };
+      box.querySelector('button').onclick = addCat;
+      inp.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); addCat(); } };
       f.onsubmit = async e => {
         e.preventDefault();
         const body = { name: f.name.value, cat: (f.querySelector('[name=cat]:checked') || {}).value || '', sellPrice: digits(f.sellPrice.value) };
@@ -568,7 +685,25 @@
       <div class="btns"><button class="btn" data-a="edit">Изменить</button><button class="btn btn-bad" data-a="del">Удалить</button></div>`, (s, close) => {
       s.querySelector('[data-a=edit]').onclick = () => { close(); moveForm(mv.type, mv.productId, mv); };
       s.querySelector('[data-a=del]').onclick = async () => {
+        if (!confirm(`Удалить ${mv.type === 'sell' ? 'продажу' : 'закупку'}: ${pName(mv.productId)}, ${fmt(mv.qty)} шт?`)) return;
         try { setData(await api('DELETE', `/moves/${mv.id}`)); close(); toast('Запись удалена'); } catch (er) { toast(er.message); }
+      };
+    });
+  }
+
+  // Смена пароля: нужен старый; после смены другие телефоны выходят из учёта
+  function pinForm() {
+    sheet(`<h3>Сменить пароль</h3><p class="sub">Только цифры, от 2 до 12. На других телефонах учёт закроется.</p><form id="pinf">
+      ${field('old', 'Старый пароль', 'type="password" inputmode="numeric" maxlength="12" required autocomplete="current-password"')}
+      ${field('pin', 'Новый пароль', 'type="password" inputmode="numeric" maxlength="12" required autocomplete="new-password"')}
+      ${field('pin2', 'Новый ещё раз', 'type="password" inputmode="numeric" maxlength="12" required autocomplete="new-password"')}
+      <div class="btns"><button class="btn btn-main">Сменить пароль</button></div></form>`, (s, close) => {
+      const f = s.querySelector('#pinf');
+      f.onsubmit = async e => {
+        e.preventDefault();
+        if (digits(f.pin.value) !== digits(f.pin2.value)) return showErr(s, { errors: { pin2: 'Пароли не совпадают' } });
+        try { await api('PUT', '/pin', { old: digits(f.old.value), pin: digits(f.pin.value) }); close(); toast('Пароль изменён'); }
+        catch (er) { showErr(s, er); }
       };
     });
   }
@@ -597,7 +732,7 @@
     try { setData(await api('DELETE', `/expenses/${id}`)); toast('Расход удалён'); } catch (er) { toast(er.message); }
   }
 
-  const ACT = { newProduct: () => productForm(), newSale: () => moveForm('sell'), newBuy: () => moveForm('buy'), newExpense: () => expenseForm() };
+  const ACT = { cats: () => catsSheet(), newProduct: () => productForm(), newSale: () => moveForm('sell'), newBuy: () => moveForm('buy'), newExpense: () => expenseForm() };
   start().catch(() => { app.innerHTML = '<div class="lock"><p class="sub">Нет связи. Обновите страницу.</p></div>'; });
 })();
 </script>

@@ -1030,7 +1030,7 @@
         <b>+ Новый учёт</b>
         <div style="margin-top:10px">
           <label class="f"><span>Как зовут</span><input name="title" required placeholder="Айбек"></label>
-          <label class="f"><span>Имя в адресе (латиницей)</span><input name="name" required autocapitalize="none" spellcheck="false" placeholder="aibek" pattern="[a-zA-Z0-9][a-zA-Z0-9-]{1,29}"></label>
+          <label class="f"><span>Имя в адресе (латиницей)</span><input name="name" required autocapitalize="none" spellcheck="false" placeholder="aibek" pattern="[a-zA-Z0-9][a-zA-Z0-9\\-]{1,29}"></label>
           <label class="f"><span>Чья подписка (менеджер)</span><select name="realtorId">${mgrOptions('')}</select></label>
         </div>
         <p class="err" id="mnyErr"></p>
@@ -1105,7 +1105,7 @@
         <b>+ Новый учёт товаров</b>
         <div style="margin-top:10px">
           <label class="f"><span>Как зовут</span><input name="title" required placeholder="Магазин Айбека"></label>
-          <label class="f"><span>Имя в адресе (латиницей)</span><input name="name" required autocapitalize="none" spellcheck="false" placeholder="aibek" pattern="[a-zA-Z0-9][a-zA-Z0-9-]{1,29}"></label>
+          <label class="f"><span>Имя в адресе (латиницей)</span><input name="name" required autocapitalize="none" spellcheck="false" placeholder="aibek" pattern="[a-zA-Z0-9][a-zA-Z0-9\\-]{1,29}"></label>
         </div>
         <p class="err" id="shpErr"></p>
         <button class="btn btn-primary" type="submit">Создать и получить приглашение</button>
