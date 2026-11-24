@@ -1270,3 +1270,8 @@ a.apt-complex { text-decoration: none; display: inline-block; } a.apt-complex:ho
 /* «Подходят под ваш выбор: 2 из 6 · Показать все» */
 .zkp-only { margin: 0 0 10px; padding: 10px 14px; border-radius: 12px; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, .12); font-size: 15px; color: var(--ink); }
 .zkp-only button { border: 0; background: none; padding: 0; font: 600 15px var(--sans); color: var(--gold-dark, #8a6d3b); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+/* Карточка квартиры в результатах фильтра: ЖК и адрес (как на elitka.kg) */
+.card-zk { margin-top: 4px; font-weight: 600; font-size: 14px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cards .card-addr { display: block !important; margin-top: 2px; font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cards .card-addr svg { width: 13px; height: 13px; vertical-align: -2px; margin-right: 3px; display: inline-block; color: var(--gold, #a8834a); }
+@media (max-width: 639px) { .card-zk { font-size: 13px; } .cards .card-addr { font-size: 12px; } }

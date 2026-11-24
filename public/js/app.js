@@ -339,6 +339,8 @@
         <div class="card-body">
           ${main}
           <div class="card-title">${a.roomsLabel}, ${a.area} ${a.unit}</div>
+          ${a.title ? `<div class="card-zk">${esc(a.title)}</div>` : ''}
+          ${a.address || a.district ? `<div class="card-addr">${I.pin}${esc([a.district, String(a.address || '').replace(/[​-‍⁠﻿]/g, '').trim()].filter(x => x && !/^https?:/i.test(x)).join(' · '))}</div>` : ''}
           ${pay}
           <div class="feats">
             ${''/* комнаты и площадь уже есть в названии карточки — здесь не повторяем */}
@@ -453,9 +455,18 @@
     }
     lastCount = list.length;
     if (window.__wiz) window.__wiz();
-    if (list.length) {
+    // Как на elitka.kg: без фильтра — ЖК; выбрали взнос, платёж, комнаты или площадь — сами квартиры
+    // (в карточке — ЖК и адрес), нажатие открывает квартиру
+    const filtered = st.down != null || st.monthly != null || st.rooms.size > 0
+      || !!(B && B.area && (st.area[0] > B.area.min || st.area[1] < B.area.max));
+    if (list.length && !filtered) {
       drawObjs(list);
+    } else if (list.length) {
+      $('cards').classList.remove('zk-view');
+      $('cards').innerHTML = list.map(card).join('');
+      window.RS.slides($('cards').querySelectorAll('.card-photo'));
     } else {
+      $('cards').classList.remove('zk-view');
       const budget = [
         st.down != null && L('budgetDown', { x: money(st.down, c) }),
         st.monthly != null && L('budgetMonthly', { x: money(st.monthly, c) }),
