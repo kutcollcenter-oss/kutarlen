@@ -385,8 +385,16 @@
       : a0.handover ? `<span class="tag">${esc(a0.tags.find(t => t.includes(a0.handover)) || a0.handover)}</span>` : '';
     const place = placeOf(g);
     const name = a0.title || a0.address || L('objOther');
-    // ЖК без названия и адреса (одна квартира) — сразу на страницу квартиры
-    const href = a0.zk ? `${a0.zk}?t=${encodeURIComponent(st.type)}` : a0.url;
+    // Куда ведёт карточка ЖК — с учётом фильтра:
+    //  • под фильтр подходит одна квартира (или у ЖК нет названия) — сразу на неё, с выбранным взносом;
+    //  • подходят не все квартиры ЖК — на страницу ЖК только с ними (ids), там есть «Показать все»;
+    //  • подходят все — на страницу ЖК.
+    const aptHref = a => (a.installment && a.o.down !== a.down ? `${a.url}?down=${a.o.down}` : a.url);
+    const total = APTS.filter(x => x.zk === a0.zk && x.type === a0.type).length;
+    const down = a0.installment && st.down != null ? `&down=${st.down}` : '';
+    const href = !a0.zk || g.length === 1 ? aptHref(a0)
+      : g.length < total ? `${a0.zk}?t=${encodeURIComponent(st.type)}&ids=${g.map(a => a.id).join('.')}${down}`
+        : `${a0.zk}?t=${encodeURIComponent(st.type)}${down}`;
     return `<a class="zk" href="${esc(href)}">
         <div class="card-photo zk-photo">${photo}<div class="tags">${tag}</div></div>
         <div class="zk-body">

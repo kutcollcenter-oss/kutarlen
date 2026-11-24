@@ -1267,3 +1267,6 @@ a.apt-complex { text-decoration: none; display: inline-block; } a.apt-complex:ho
 .zkp-types::-webkit-scrollbar { display: none; }
 .zkp-types button { flex: none !important; width: auto !important; height: 43px; padding: 0 16px !important; border-radius: 12px !important; border: .8px solid #dfdddd !important; background: #f4f4f4 !important; color: #1f2020 !important; font: 500 14px var(--sans) !important; text-transform: none !important; letter-spacing: 0 !important; box-shadow: none !important; white-space: nowrap; }
 .zkp-types button.on { background: #fff !important; border-color: transparent !important; box-shadow: 0 1px 4px rgba(0, 0, 0, .25) !important; padding: 0 28px !important; }
+/* «Подходят под ваш выбор: 2 из 6 · Показать все» */
+.zkp-only { margin: 0 0 10px; padding: 10px 14px; border-radius: 12px; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, .12); font-size: 15px; color: var(--ink); }
+.zkp-only button { border: 0; background: none; padding: 0; font: 600 15px var(--sans); color: var(--gold-dark, #8a6d3b); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }

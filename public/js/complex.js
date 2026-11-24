@@ -10,11 +10,29 @@
   // Подписи как на elitka.kg: «1-комнатные», «Студии», «4+-комнатные»
   const roomName = (r, g) => (r === '0' ? L('zkStudios') : /^\d$/.test(r) ? L('zkRoomsFull', { n: r === '4' ? '4+' : r }) : g[0].dataset.l);
 
+  // Пришли с главной после фильтра: показываем только подходящие квартиры (ids) и кнопку «Показать все».
+  // Выбранный взнос (down) передаём дальше — на странице квартиры расчёт будет с ним.
+  const q = window.RS.params || new URLSearchParams(location.search); // common.js уже убрал down из адреса, но сохранил здесь
+  let only = q.get('ids') ? new Set(q.get('ids').split('.')) : null;
+  const wantDown = +q.get('down') || 0;
+  if (wantDown) rows.forEach(x => { if (x.dataset.down && wantDown > +x.dataset.down) x.href = `${x.getAttribute('href')}?down=${wantDown}`; });
+  function drawOnly(all) {
+    const box = $('zkOnly');
+    const n = all.filter(x => only && only.has(x.dataset.id)).length;
+    box.hidden = !only || !n;
+    if (box.hidden) return;
+    box.innerHTML = `${L('zkOnly', { n, m: all.length })} · <button type="button" id="zkAll">${L('zkShowAll')}</button>`;
+    $('zkAll').onclick = () => { only = null; history.replaceState(null, '', location.pathname + `?t=${type}`); draw(); };
+  }
+
   const yearsOf = x => (x.dataset.y ? x.dataset.y.split(' ') : []);
   function draw() {
     // Цифры вверху — выбранной категории
     document.querySelectorAll('.zkp-facts').forEach(x => { x.hidden = x.dataset.t !== type; });
-    const inType = rows.filter(x => x.dataset.t === type);
+    const allType = rows.filter(x => x.dataset.t === type);
+    if (only && !allType.some(x => only.has(x.dataset.id))) only = null; // в этой категории нет выбранных — показываем все
+    drawOnly(allType);
+    const inType = only ? allType.filter(x => only.has(x.dataset.id)) : allType;
     // Этапы сдачи (например, 2028 и 2030) — вкладками, если их больше одного
     const years = [...new Set(inType.flatMap(yearsOf))].sort();
     if (stage && !years.includes(stage)) stage = '';
