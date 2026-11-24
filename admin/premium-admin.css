@@ -174,3 +174,7 @@ select option { background: #131313; color: var(--ink); }
 .wa-phone { color: inherit !important; text-underline-offset: 3px; font-size: 17px; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .wa-item [data-del] { padding: 4px 10px; min-height: 0; }
 .wa-apt { font-weight: 600; }
+
+/* Переключатель «Фото ЖК» на фото квартиры */
+.photo .pk { position: absolute; left: 4px; bottom: 4px; border: 1px solid rgba(255,255,255,.35); background: rgba(0,0,0,.7); color: #fff; font: 600 11px 'Golos Text', sans-serif; padding: 5px 8px; cursor: pointer; border-radius: 0; }
+.photo .pk.on { background: #c8a86b; border-color: #c8a86b; color: #111; }

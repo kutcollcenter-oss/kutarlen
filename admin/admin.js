@@ -450,6 +450,8 @@
       a.type = typeOf(a);
     }
     let photos = [...(a.photos || [])];
+    // Какие фото — «фото ЖК» (видны на странице ЖК), какие — только в квартире (планировки, ремонт)
+    const kinds = {};
     const v = k => esc(a[k] === 0 && k !== 'rooms' ? '' : a[k]);
     const f = (name, label, attrs = '') =>
       `<label class="f"><span>${label}</span><input type="text" name="${name}" value="${v(name)}" ${attrs}></label>`;
@@ -561,16 +563,30 @@
       document.getElementById('photos').innerHTML = photos.map((p, i) => `
         <div class="photo"><img src="/uploads/${p}-t.webp" alt="">
           ${i === 0 ? '<span class="main">Главное</span>' : ''}
+          <button type="button" class="pk${kinds[p] === 'zk' ? ' on' : ''}" data-zk="${i}" title="Показывать на странице ЖК (здание снаружи). Планировки — только в квартире">${kinds[p] === 'zk' ? '✓ Фото ЖК' : 'Фото ЖК?'}</button>
           <div class="pa">${i ? `<button type="button" data-main="${i}" title="Сделать главным">★</button>` : ''}<button type="button" data-rm="${i}" title="Убрать">✕</button></div>
         </div>`).join('');
     }
 
     setType(type); drawPhotos();
+    const loadKinds = async list => {
+      if (!list.length) return;
+      Object.assign(kinds, await api('GET', `/api/admin/photo-kinds?names=${list.join(',')}`).catch(() => ({})));
+      drawPhotos();
+    };
+    loadKinds(photos);
     form.addEventListener('input', updCalc);
     form.querySelector('#type').onclick = e => { const b = e.target.closest('button'); if (b) setType(b.dataset.v); };
 
     document.getElementById('photos').onclick = e => {
-      const m = e.target.closest('[data-main]'), r = e.target.closest('[data-rm]');
+      const m = e.target.closest('[data-main]'), r = e.target.closest('[data-rm]'), z = e.target.closest('[data-zk]');
+      if (z) {
+        const name = photos[+z.dataset.zk], zk = kinds[name] !== 'zk';
+        api('PUT', '/api/admin/photo-kind', { name, zk })
+          .then(x => { kinds[name] = x.kind; drawPhotos(); toast(zk ? 'Фото будет на странице ЖК' : 'Фото только в квартире'); })
+          .catch(err => toast(err.message));
+        return;
+      }
       if (m) { const [p] = photos.splice(+m.dataset.main, 1); photos.unshift(p); drawPhotos(); }
       if (r) { photos.splice(+r.dataset.rm, 1); drawPhotos(); }
     };
@@ -582,7 +598,7 @@
       toast(`Загрузка ${files.length} фото…`);
       try {
         const r = await api('POST', '/api/admin/photos', fd);
-        photos.push(...r.photos); drawPhotos(); toast('Фото загружены — не забудьте сохранить');
+        photos.push(...r.photos); Object.assign(kinds, r.kinds || {}); drawPhotos(); toast('Фото загружены — не забудьте сохранить');
       } catch (err) { toast(err.message); }
       e.target.value = '';
     };

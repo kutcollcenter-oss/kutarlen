@@ -367,8 +367,9 @@
   const placeOf = g => [topOf(g.map(a => a.district)), topOf(g.map(a => zkClean(a.address)).filter(x => !/^https?:/i.test(x)))].filter(Boolean).join(' · ');
   function objCard(g) {
     const a0 = g[0], c = a0.currency;
-    const withPhoto = g.find(a => a.photos.length);
-    const photos = withPhoto ? withPhoto.photos.slice(0, 8) : [];
+    // Только фото ЖК (здание снаружи), без планировок; без повторов
+    const seenPh = new Set(), photos = [];
+    g.forEach(a => a.photos.forEach(p => { if (p.zk && !seenPh.has(p.src) && photos.length < 8) { seenPh.add(p.src); photos.push(p); } }));
     const photo = photos.length
       ? `<div class="cp-track">${photos.map(p => `<img src="${p.thumb}" alt="" loading="lazy">`).join('')}</div>
          ${photos.length > 1 ? `<div class="cp-dots">${photos.map((p, i) => `<i${i ? '' : ' class="on"'}></i>`).join('')}</div>` : ''}`

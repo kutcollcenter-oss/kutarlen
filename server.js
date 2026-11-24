@@ -23,6 +23,8 @@ const zkPrep = require('./lib/zk-prep');
 
 const PORT = process.env.PORT || 3000;
 const UPLOAD_DIR = path.join(__dirname, 'uploads');
+// Какие фото — «фото ЖК», какие — только для квартиры (D и db объявлены ниже; используются уже после запуска)
+const photoKind = require('./lib/photo-kind').mount({ D: () => D(), save: () => db.save(), uploadDir: UPLOAD_DIR });
 const SESSION_DAYS = 30;
 // Вход без галочки «Это моё устройство»: кабинет закрывается после часа без действий и при закрытии браузера
 const IDLE_MIN = 60;
@@ -96,7 +98,12 @@ const siteUrl = (req, r) => `${base(req)}/${r.slug}`;
 const langOf = req => langOk(cookies(req).lang);
 // Тексты профиля на языке страницы: на кыргызской версии — кыргызские варианты (если менеджер их заполнил)
 const ctxOf = (r, req) => ({ s: localizeSettings(r.settings, langOf(req)), base: base(req), prefix: `/${r.slug}`, slug: r.slug, partnerCta: r.partnerCta !== false, lang: langOf(req), ai: aiChat.ready() && aiAllowed(r) && (aiChat.logging() ? 'log' : true), kut: kutCompany(r) });
-const pub = (r, a, req, lang = langOf(req)) => publicApt(a, r.settings, base(req), `/${r.slug}`, lang);
+// У каждого фото — отметка zk: «фото ЖК» (для страницы и карточки ЖК) или только для квартиры (планировки и т.п.)
+const pub = (r, a, req, lang = langOf(req)) => {
+  const p = publicApt(a, r.settings, base(req), `/${r.slug}`, lang);
+  p.photos = p.photos.map((x, i) => ({ ...x, zk: photoKind.kindOf((a.photos || [])[i]) === 'zk' }));
+  return p;
+};
 const aptLabel = a => `${a.title ? a.title + ' · ' : ''}${kindLabel(a)}, ${a.area} ${unitOf(a)}`;
 
 function similarTo(r, a, req, limit = 4) {
@@ -589,13 +596,29 @@ const limitError = max => ({ error: `Лимит тарифа — ${max} квар
 
 app.post('/api/admin/photos', requireAuth, upload.array('photos', 30), async (req, res) => {
   try {
-    const names = [];
-    for (const f of req.files || []) names.push(await savePhoto(f.buffer));
-    res.json({ photos: names });
+    const names = [], kinds = {};
+    for (const f of req.files || []) {
+      const name = await savePhoto(f.buffer);
+      names.push(name);
+      kinds[name] = await photoKind.onUpload(name, req.realtor.id); // фото ЖК или только для квартиры — догадка, менеджер может поправить
+    }
+    res.json({ photos: names, kinds });
   } catch (e) {
     console.error(e);
     res.status(400).json({ error: 'Не удалось обработать фото' });
   }
+});
+// Фото ЖК или только для квартиры: узнать (для кабинета) и переключить
+app.get('/api/admin/photo-kinds', requireAuth, (req, res) => {
+  const names = String(req.query.names || '').split(',').filter(n => PHOTO_RE.test(n)).slice(0, 200);
+  res.json(Object.fromEntries(names.map(n => [n, photoKind.kindOf(n)])));
+});
+app.put('/api/admin/photo-kind', requireAuth, (req, res) => {
+  const name = String((req.body || {}).name || '');
+  if (!PHOTO_RE.test(name)) return res.status(400).json({ error: 'Нет такого фото' });
+  if (!photoKind.canEdit(name, req.user, req.realtor)) return res.status(403).json({ error: 'Это фото не из ваших квартир' });
+  photoKind.set(name, !!req.body.zk);
+  res.json({ name, kind: photoKind.kindOf(name) });
 });
 
 // Ссылка на карту (одно поле mapLink → a.map): 2ГИС или Google Карты. Точку распознаём при сохранении
@@ -991,6 +1014,8 @@ app.use((req, res) => res.status(404).send(pages.renderInvalid(D().product, base
     db.save();
     console.log(`ЖК: почищено ${z.cleaned}, названий выровнено ${z.titles}, ссылок в поле карты ${z.maps}, адресов дополнено ${z.addresses}, районов заполнено ${z.districts}`);
   }
+  // Один раз: какие фото — «фото ЖК», какие — только для квартиры (lib/photo-kind.js). Ничего не удаляет.
+  try { await photoKind.prepareAll(); } catch (e) { console.error('Разметка фото ЖК: ' + e.message); }
   // Один раз: кыргызские переводы текстов, которые уже есть у менеджеров (lib/ky-fill.js) — только в пустые кыргызские поля.
   // Отметка done.kyFill — чтобы потом не трогать то, что менеджер поменял или очистил сам.
   if (!D().done.kyFill) {
