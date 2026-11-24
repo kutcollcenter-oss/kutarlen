@@ -551,6 +551,35 @@ app.get('/api/admin/apartments', requireAuth, (req, res) => {
   res.json(list.map(a => adminApt(req.realtor, a, req)));
 });
 
+// Список ЖК для выбора в карточке квартиры: из квартир всех менеджеров (одно написание, город, район, адрес,
+// этажность, срок сдачи, карта — самые частые). Выбрал ЖК — эти поля подставляются сами, без опечаток.
+app.get('/api/admin/complexes', requireAuth, (req, res) => {
+  const top = arr => { const n = new Map(); arr.filter(Boolean).forEach(x => n.set(x, (n.get(x) || 0) + 1)); return ([...n.entries()].sort((a, b) => b[1] - a[1])[0] || [''])[0]; };
+  const groups = new Map();
+  for (const a of D().apartments) {
+    if (typeOf(a) === 'land') continue;
+    const k = zkPrep.zkKey(a.title);
+    if (!k) continue;
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(a);
+  }
+  const list = [...groups.entries()].map(([key, g]) => {
+    // «I квартал 2029» и «1-квартал 2029 г» — один срок: сравниваем этапы, а не написание
+    const withHo = g.filter(a => String(a.handover || '').trim());
+    const stageSets = new Set(withHo.map(a => require('./lib/calc').handoverStages(a.handover).map(x => `${x.y}.${x.q}`).join(',') || String(a.handover).trim().toLowerCase()));
+    const hos = stageSets.size === 1 ? [top(withHo.map(a => String(a.handover).trim()))] : [];
+    return {
+      key, name: top(g.map(a => a.title)), n: g.length, mine: g.filter(a => a.realtorId === req.realtor.id).length,
+      city: top(g.map(a => a.city || 'Бишкек')), district: top(g.map(a => a.district)),
+      address: top(g.map(a => a.address).filter(x => !/^https?:/i.test(x || ''))),
+      floors: Number(top(g.map(a => a.floors && String(a.floors)))) || '',
+      handover: hos.length === 1 ? hos[0] : '', // у ЖК в несколько этапов срок не подставляем — он у квартир разный
+      mapLink: top(g.map(a => (a.map || a.map2gis || {}).link)),
+    };
+  }).sort((a, b) => b.mine - a.mine || b.n - a.n || a.name.localeCompare(b.name, 'ru'));
+  res.json(list);
+});
+
 const FIELDS = {
   type: v => typeOf({ type: v }),
   title: v => String(v || '').trim().slice(0, 120),

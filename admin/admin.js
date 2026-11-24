@@ -475,7 +475,9 @@
           <div class="hint">Первое фото — главное. Фото автоматически сжимаются.</div>
         </div>
         <div class="card">
-          <label class="f"><span id="titleLbl">Название (ЖК / дом)</span><input type="text" name="title" value="${v('title')}"></label>
+          <label class="f" id="zkPickWrap"><span>ЖК</span><select id="zkPick"><option value="">Загружаю список ЖК…</option></select></label>
+          <div class="hint" id="zkPickHint" style="margin:-6px 0 10px" hidden></div>
+          <label class="f" id="titleWrap"><span id="titleLbl">Название (ЖК / дом)</span><input type="text" name="title" value="${v('title')}"></label>
           <div class="grid2">
             <label class="f" data-for="installment cash"><span>Комнаты</span><select name="rooms">${[0, 1, 2, 3, 4, 5, 6].map(r => `<option value="${r}" ${+a.rooms === r ? 'selected' : ''}>${r === 0 ? 'Студия' : r}</option>`).join('')}</select></label>
             <label class="f"><span id="areaLbl">Площадь, м²</span><input type="text" name="area" value="${v('area')}" inputmode="decimal"></label>
@@ -540,6 +542,7 @@
       const [tl, tp] = TITLE_HINT[t] || TITLE_HINT.installment;
       document.getElementById('titleLbl').textContent = tl;
       form.elements.title.placeholder = tp;
+      if (typeof showPick === 'function') showPick();
       updCalc();
     }
     // Платёж в месяц не вводится — считается: (цена за м² × м² − взнос) / срок
@@ -567,6 +570,62 @@
           <div class="pa">${i ? `<button type="button" data-main="${i}" title="Сделать главным">★</button>` : ''}<button type="button" data-rm="${i}" title="Убрать">✕</button></div>
         </div>`).join('');
     }
+
+    // ---------- ЖК: выбор из списка вместо ручного названия ----------
+    // Выбрали ЖК — подставляем его название как у всех (без опечаток) и пустые поля: город, район, адрес, этажность,
+    // срок сдачи (если у ЖК он один), карту. Поле, которое менеджер уже заполнил сам, не трогаем.
+    // «Новый ЖК» — пишут название; если такой ЖК уже есть (другое написание) — выбираем его.
+    const zkKeyOf = t => String(t || '').replace(/[\u200B-\u200D\u2060\uFEFF]/g, '').toLowerCase().replace(/[«»"'`“”„]/g, '').replace(/^(жк|ж\/к|жилой комплекс)[\s,.:-]+/, '').replace(/ө/g, 'о').replace(/ү/g, 'у').replace(/ң/g, 'н').replace(/\s+/g, ' ').trim();
+    let complexes = [], autoVals = {};
+    const zkPick = document.getElementById('zkPick'), zkHint = document.getElementById('zkPickHint');
+    const fillFrom = c => {
+      const set = (name, val) => {
+        const el = form.elements[name];
+        if (!el) return;
+        const cur = String(el.value || '').trim();
+        if (cur && cur !== String(autoVals[name] ?? '')) return; // менеджер написал своё — не трогаем
+        if ((val === '' || val == null) && name === 'city') return;
+        el.value = val == null ? '' : val; autoVals[name] = String(el.value); // у нового ЖК пусто — подставленное от прошлого убираем
+      };
+      set('city', c.city); set('district', c.district); set('address', c.address);
+      set('floors', c.floors); set('handover', c.handover); set('mapLink', c.mapLink);
+      updCalc();
+    };
+    const showPick = () => {
+      const land = type === 'land';
+      document.getElementById('zkPickWrap').hidden = land;
+      const isNew = land || zkPick.value === '__new';
+      document.getElementById('titleWrap').hidden = !isNew;
+      if (!land && zkPick.value === '__new') document.getElementById('titleLbl').textContent = 'Название нового ЖК';
+    };
+    const pickKey = key => {
+      const c = complexes.find(x => x.key === key);
+      if (c) { form.elements.title.value = c.name; fillFrom(c); zkHint.hidden = false; zkHint.textContent = `Подставлено: ${[c.city, c.district, c.address, c.floors && c.floors + ' эт.', c.handover, c.mapLink && 'карта'].filter(Boolean).join(' · ')}. Проверьте и поправьте, если у этой квартиры по-другому.`; }
+      else zkHint.hidden = true;
+      showPick();
+    };
+    api('GET', '/api/admin/complexes').then(list => {
+      complexes = list;
+      const curKey = zkKeyOf(form.elements.title.value);
+      const known = complexes.some(c => c.key === curKey);
+      zkPick.innerHTML = '<option value="">— Выберите ЖК —</option>'
+        + complexes.map(c => `<option value="${esc(c.key)}">${esc(c.name)}${c.city && c.city !== 'Бишкек' ? ` (${esc(c.city)})` : ''}</option>`).join('')
+        + '<option value="__new">+ Новый ЖК — написать название</option>';
+      zkPick.value = known ? curKey : form.elements.title.value.trim() ? '__new' : '';
+      if (known) form.elements.title.value = complexes.find(c => c.key === curKey).name; // старое написание → как у всех
+      showPick();
+    }).catch(() => { zkPick.innerHTML = '<option value="__new">Написать название</option>'; zkPick.value = '__new'; showPick(); });
+    zkPick.onchange = () => {
+      if (zkPick.value === '__new') { form.elements.title.value = ''; zkHint.hidden = true; showPick(); form.elements.title.focus(); return; }
+      if (!zkPick.value) { form.elements.title.value = ''; zkHint.hidden = true; showPick(); return; }
+      pickKey(zkPick.value);
+    };
+    // Пишут «новый» ЖК, а он уже есть под другим написанием — выбираем существующий
+    form.elements.title.addEventListener('change', () => {
+      if (type === 'land') return;
+      const c = complexes.find(x => x.key === zkKeyOf(form.elements.title.value));
+      if (c) { zkPick.value = c.key; pickKey(c.key); toast(`ЖК «${c.name}» уже есть — выбран из списка`); }
+    });
 
     setType(type); drawPhotos();
     const loadKinds = async list => {
@@ -608,6 +667,7 @@
     };
     const save = async () => {
       const d = readForm();
+      if (type !== 'land' && !String(d.title || '').trim()) { toast('Выберите ЖК из списка или «+ Новый ЖК»'); zkPick.focus(); return; }
       const ok = cashLike(type) ? d.price > 0 && d.area > 0 : d.pricePerM2 > 0 && d.area > 0;
       if (!ok && !(await confirmBox('Сохранить без цены?', 'Цена или площадь не указаны — квартира не появится на сайте, пока их не заполните.', 'Сохранить'))) return;
       if (ok && !cashLike(type) && !(d.months > 0) && !(await confirmBox('Сохранить без срока?', 'Не указан срок рассрочки — на сайте будет только цена при 100% оплате.', 'Сохранить'))) return;
@@ -1337,7 +1397,7 @@
           </div>
         </div>`).join('')}</div>
 
-      <details class="card"><summary><b>Страница сервиса для менеджеров</b></summary>
+      <details class="card"><summary><b>Тарифы и страница /partner</b> · цены, лимит квартир, ваш WhatsApp для продлений</summary>
         <form id="pfm" style="margin-top:12px">
           <div class="hint" style="margin-bottom:10px">Это страница по адресу <b>${esc(location.origin)}/partner</b> — её видят менеджеры, которых вы приглашаете.</div>
           <label class="f"><span>Название сервиса</span><input name="name" value="${esc(product.name)}"></label>
