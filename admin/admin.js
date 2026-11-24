@@ -891,6 +891,42 @@
         </details>`;
       }).join('')}</div>`;
   }
+  // Номера клиентов, написавших в WhatsApp (приходят сами через WhatsApp Cloud API)
+  async function loadWaLeads(q) {
+    const box = document.getElementById('waLeads');
+    if (!box) return;
+    const r = await api('GET', `/api/admin/wa-leads?${q}`).catch(() => null);
+    if (!r) { box.remove(); return; }
+    const when = t => new Date(t).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    const head = '<h2 style="margin-top:0">Номера из WhatsApp</h2>';
+    if (!r.on && !r.list.length) {
+      box.innerHTML = head + `<p class="hint" style="margin:0">Здесь сами появятся номера всех, кто написал вам в WhatsApp: имя, номер, квартира и первое сообщение. ${isOwner() ? 'Подключите WhatsApp в разделе «Менеджеры» → «Номера из WhatsApp».' : 'Пока не подключено — подключает владелец сервиса.'}</p>`;
+      return;
+    }
+    if (!r.list.length) { box.innerHTML = head + `<p class="hint" style="margin:0">За ${anDays} дней новых номеров нет.</p>`; return; }
+    const all = r.list.map(l => '+' + l.phone).join('\n');
+    box.innerHTML = head + `<div class="row" style="justify-content:space-between;align-items:center;margin:-4px 0 10px">
+        <span class="hint" style="margin:0">Новых за ${anDays} дней: <b>${r.list.length}</b></span>
+        <button class="btn" data-copy-text="${esc(all)}">Скопировать все номера</button></div>
+      <div class="wa-list">${r.list.map(l => {
+        const text = l.text.replace(/https?:\/\/\S+/g, '').replace(/\s+/g, ' ').trim();
+        return `<div class="wa-item" data-id="${esc(l.id)}">
+          <div class="wa-top"><b>${esc(l.name || 'Без имени')}</b><span class="hint" style="margin:0">${when(l.firstAt)}${l.n > 1 ? ` · сообщений: ${l.n}` : ''}</span></div>
+          <div class="wa-top"><a class="wa-phone" href="https://wa.me/${esc(l.phone)}" target="_blank" rel="noopener">${esc(fmtPhone(l.phone) || '+' + l.phone)}</a><button class="btn" data-del title="Удалить номер">×</button></div>
+          ${l.aptTitle || l.apt ? `<div class="wa-apt">${esc(l.aptTitle || 'Квартира с сайта')}</div>` : ''}
+          ${text ? `<div class="hint" style="margin:0">${esc(text.length > 140 ? text.slice(0, 140) + '…' : text)}</div>` : ''}
+          ${l.who ? `<div class="hint" style="margin:0">→ ${esc(l.who)}</div>` : ''}
+        </div>`;
+      }).join('')}</div>
+      <p class="hint">Нажмите на номер — откроется чат. Номера хранятся год, потом удаляются сами.</p>`;
+    box.querySelector('[data-copy-text]').onclick = e => copy(e.currentTarget.dataset.copyText, 'Номера скопированы');
+    box.querySelectorAll('[data-del]').forEach(b => { b.onclick = async () => {
+      const tr = b.closest('.wa-item');
+      if (!confirm('Удалить этот номер из списка?')) return;
+      try { await api('DELETE', `/api/admin/wa-leads/${tr.dataset.id}`); tr.remove(); toast('Номер удалён'); } catch (err) { toast(err.message); }
+    }; });
+  }
+
   async function renderAnalytics() {
     const q = new URLSearchParams({ days: anDays });
     if (anRealtor) q.set('realtor', anRealtor);
@@ -924,6 +960,8 @@
         <div class="kpi"><span>Конверсия</span><b>${T.conv}%</b><small>из посетителей написали · было ${P.conv}%</small></div>
       </div>
       <p class="hint">Проценты — сравнение с предыдущими ${anDays} днями.</p>
+
+      <div class="card" id="waLeads"><h2 style="margin-top:0">Номера из WhatsApp</h2><p class="hint">Загружаю…</p></div>
 
       <div class="card"><h2 style="margin-top:0">По дням</h2>
         <div class="chart">${r.daily.map(d => `<div class="col" title="${dayLabel(d.d)}: посетителей ${d.visitors}, заявок ${d.wa}">
@@ -971,6 +1009,7 @@
       ${isOwner() ? '' : '<div id="myChats"></div>'}
     </div>`;
     bindNav();
+    loadWaLeads(q);
     if (!isOwner()) loadMyChats();
     document.getElementById('days').onclick = e => { const b = e.target.closest('button'); if (b) { anDays = +b.dataset.d; renderAnalytics(); } };
     const sel = document.getElementById('anR');
@@ -1111,6 +1150,48 @@
         <button class="btn btn-primary" type="submit">Создать и получить приглашение</button>
       </form>`;
   }
+  // Номера из WhatsApp: подключение WhatsApp Cloud API (Meta)
+  function waCardHtml(w) {
+    const when = t => new Date(t).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    return `<details class="card" id="waCard"><summary><b>Номера из WhatsApp</b> · ${w.hasSecret ? (w.lastAt ? 'работает ✓' : 'ждёт первое сообщение') : 'не подключено'}</summary>
+      <div style="margin-top:12px">
+        <div class="hint" style="margin-bottom:10px">Когда клиент пишет менеджеру в WhatsApp, его имя, номер, квартира и первое сообщение сами появляются в «Аналитике» этого менеджера. Менеджер определяется по номеру WhatsApp из его профиля. Входящие сообщения у Meta бесплатны.</div>
+        ${w.lastAt ? `<p class="hint">Последнее сообщение пришло: <b>${when(w.lastAt)}</b></p>` : ''}
+        ${w.lastUnmatched ? `<p class="hint" style="color:var(--red,#c0392b)">Пришло сообщение на номер +${esc(w.lastUnmatched)}, но ни у одного менеджера в профиле нет такого WhatsApp. Проверьте номер в профиле менеджера.</p>` : ''}
+        <ol class="hint" style="padding-left:18px;line-height:1.6">
+          <li>На <b>developers.facebook.com</b> создайте приложение (тип «Бизнес») и добавьте в него <b>WhatsApp</b>.</li>
+          <li>В WhatsApp → «Настройка API» добавьте номера менеджеров.</li>
+          <li>В WhatsApp → «Конфигурация» → Webhook вставьте адрес и код ниже, затем подпишитесь на поле <b>messages</b>.</li>
+          <li>Настройки приложения → «Основное» → «Секрет приложения»: скопируйте и вставьте сюда.</li>
+        </ol>
+        <div class="linkrow"><code>${esc(w.webhook)}</code><button type="button" class="btn" data-wa-copy="${esc(w.webhook)}">Копировать адрес</button></div>
+        <div class="linkrow"><code>${esc(w.verifyToken)}</code><button type="button" class="btn" data-wa-copy="${esc(w.verifyToken)}">Копировать код</button></div>
+        <form id="wafm" style="margin-top:12px">
+          <label class="f"><span>Секрет приложения ${w.hasSecret ? '(сохранён — чтобы заменить, вставьте новый)' : ''}</span><input name="appSecret" type="password" autocomplete="off" spellcheck="false" placeholder="32 знака"></label>
+          <div class="err" id="waErr"></div>
+          <button class="btn btn-primary">Сохранить</button>
+          ${w.hasSecret ? '<button type="button" class="btn" id="waOff">Отключить</button>' : ''}
+        </form>
+      </div>
+    </details>`;
+  }
+  function bindWaCard() {
+    const card = document.getElementById('waCard');
+    const reopen = async () => { await renderRealtors(); document.getElementById('waCard').open = true; };
+    card.querySelectorAll('[data-wa-copy]').forEach(b => { b.onclick = () => copy(b.dataset.waCopy); });
+    document.getElementById('wafm').onsubmit = async e => {
+      e.preventDefault();
+      const v = e.target.appSecret.value.trim();
+      if (!v) { showErr('waErr', 'Вставьте секрет приложения'); return; }
+      try { await api('PUT', '/api/owner/wa', { appSecret: v }); toast('Сохранено'); await reopen(); } catch (err) { showErr('waErr', err.message); }
+    };
+    const off = document.getElementById('waOff');
+    if (off) off.onclick = async () => {
+      if (!confirm('Отключить? Новые номера перестанут приходить. Уже полученные останутся.')) return;
+      await api('PUT', '/api/owner/wa', { appSecret: null }); toast('Отключено'); await reopen();
+    };
+  }
+
   function bindShopUsers(initial) {
     const body = document.getElementById('shpBody');
     if (!body) return;
@@ -1162,7 +1243,7 @@
 
   async function renderRealtors() {
     if (!isOwner()) { location.hash = '#list'; return; }
-    const [list, product, mine, ai, mUsers, cos, sUsers] = await Promise.all([api('GET', '/api/owner/realtors'), api('GET', '/api/owner/product'), api('GET', '/api/admin/apartments'), api('GET', '/api/owner/aichat'), api('GET', '/api/owner/money-users'), api('GET', '/api/owner/companies'), api('GET', '/api/owner/shop-users')]);
+    const [list, product, mine, ai, mUsers, cos, sUsers, wa] = await Promise.all([api('GET', '/api/owner/realtors'), api('GET', '/api/owner/product'), api('GET', '/api/admin/apartments'), api('GET', '/api/owner/aichat'), api('GET', '/api/owner/money-users'), api('GET', '/api/owner/companies'), api('GET', '/api/owner/shop-users'), api('GET', '/api/owner/wa').catch(() => null)]);
     // Сколько квартир в рассрочку скопируется новому менеджеру (наличные не копируются)
     const myInstallment = mine.filter(a => a.computed.installment || (!cashLike(typeOf(a)) && a.computed.price)).length;
     const others = list.filter(x => x.role !== 'owner');
@@ -1269,6 +1350,7 @@
       <details class="card" id="shpCard"><summary><b>Учёт товаров</b> · ${sUsers.length} ${sUsers.length === 1 ? 'учёт' : sUsers.length < 5 && sUsers.length > 1 ? 'учёта' : 'учётов'}</summary>
         <div id="shpBody" style="margin-top:12px">${shopUsersHtml(sUsers)}</div>
       </details>
+      ${wa ? waCardHtml(wa) : ''}
 
       <details class="card" id="aiCard"><summary><b>ИИ-помощник на сайтах</b> · ${ai.on && ai.providers.some(p => p.hasKey) ? `работает ✓ · у ${list.filter(x => x.aiAccess).length} из ${list.length}` : 'выключен'}</summary>
         <form id="aifm" style="margin-top:12px">
@@ -1374,6 +1456,7 @@
     // Уроки и журнал разговоров
     bindMoneyUsers(mUsers);
     bindShopUsers(sUsers);
+    if (wa) bindWaCard();
     const reopenAi = async () => { await renderRealtors(); document.getElementById('aiCard').open = true; document.getElementById('aiTeach').scrollIntoView({ block: 'start' }); };
     const addLesson = async (q, a, errId) => {
       try { await api('POST', '/api/owner/aichat/lessons', { q, a }); toast('Урок добавлен — ИИ учтёт его со следующего ответа'); await reopenAi(); }

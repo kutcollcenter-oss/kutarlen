@@ -166,3 +166,11 @@ select option { background: #131313; color: var(--ink); }
 .auth-wa { border-color: var(--line2); }
 .login .note-box { background: transparent; border: 1px solid rgba(227, 179, 92, .45); color: #e3c38a; }
 .filters { scrollbar-width: none; } .filters::-webkit-scrollbar { display: none; }
+
+/* Номера из WhatsApp в «Аналитике» */
+.wa-list { display: grid; gap: 0; border-top: 1px solid var(--line, rgba(255,255,255,.12)); }
+.wa-item { padding: 12px 0; border-bottom: 1px solid var(--line, rgba(255,255,255,.12)); display: grid; gap: 4px; }
+.wa-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.wa-phone { color: inherit !important; text-underline-offset: 3px; font-size: 17px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.wa-item [data-del] { padding: 4px 10px; min-height: 0; }
+.wa-apt { font-weight: 600; }

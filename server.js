@@ -61,7 +61,8 @@ app.use((req, res, next) => {
   if (req.secure) res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   next();
 });
-app.use(express.json({ limit: '1mb' }));
+// Для WhatsApp сохраняем тело как есть: по нему проверяется подпись Meta
+app.use(express.json({ limit: '1mb', verify: (req, res, buf) => { if (req.url.startsWith('/api/wa/')) req.rawBody = buf; } }));
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -208,6 +209,9 @@ require('./lib/money').mount(app, { D, save: () => db.save(), cookies, newId: ()
 // Учёт товаров для бизнеса: kvartiry.asia/shop/<имя> — товары, закупки, продажи, расходы, анализ. Людей заводит владелец.
 require('./lib/shop').mount(app, { D, save: () => db.save(), cookies, newId: () => db.newId(), requireAuth, ownerOnly,
   isOwner: req => { const s = auth.readSession(D().secret, cookies(req).sess, id => D().users.find(u => u.id === id)); return !!(s && s.user.role === 'owner'); } });
+
+// Номера клиентов из WhatsApp (WhatsApp Cloud API) — в «Аналитике» менеджера
+require('./lib/wa').mount(app, { D, save: () => db.save(), newId: () => db.newId(), requireAuth, ownerOnly });
 
 // ИИ-помощник на сайтах менеджеров (ключ и включение — у владельца в кабинете)
 const aiChat = require('./lib/aichat').mount(app, { D, save: () => db.save(), requireAuth, ownerOnly, waLink, money,
