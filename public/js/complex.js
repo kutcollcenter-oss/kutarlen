@@ -7,7 +7,8 @@
   let type = (D.complex && D.complex.type) || (rows[0] && rows[0].dataset.t);
   let room = '', stage = '';
   const ROOM_ORDER = ['0', '1', '2', '3', '4', 'commercial', 'land'];
-  const roomName = (r, g) => (r === '0' ? L('studio') : r === '4' ? '4+' : /^\d$/.test(r) ? L('roomsN', { n: r }) : g[0].dataset.l);
+  // Подписи как на elitka.kg: «1-комнатные», «Студии», «4+-комнатные»
+  const roomName = (r, g) => (r === '0' ? L('zkStudios') : /^\d$/.test(r) ? L('zkRoomsFull', { n: r === '4' ? '4+' : r }) : g[0].dataset.l);
 
   const yearsOf = x => (x.dataset.y ? x.dataset.y.split(' ') : []);
   function draw() {
@@ -19,8 +20,8 @@
     if (stage && !years.includes(stage)) stage = '';
     const sb = $('zkStages');
     sb.innerHTML = years.length > 1
-      ? `<span class="zkp-lab">${sb.dataset.label}:</span>` + [['', L('zkAll')], ...years.map(y => [y, y])]
-        .map(([v, label]) => `<button type="button" data-v="${v}" class="${v === stage ? 'on' : ''}">${label} <small>${v ? inType.filter(x => yearsOf(x).includes(v)).length : inType.length}</small></button>`).join('')
+      ? [['', L('zkAllStages')], ...years.map(y => [y, `${sb.dataset.label} ${y}`])]
+        .map(([v, label]) => `<button type="button" data-v="${v}" class="${v === stage ? 'on' : ''}">${label}</button>`).join('')
       : '';
     const ofType = inType.filter(x => !stage || yearsOf(x).includes(stage));
     const keys = ROOM_ORDER.filter(r => ofType.some(x => x.dataset.r === r));
@@ -28,7 +29,7 @@
     // Вкладки комнат: «Все» + по одной на каждое число комнат (только если вариантов больше одного)
     $('zkRooms').innerHTML = keys.length > 1
       ? [['', L('zkAll'), ofType.length], ...keys.map(r => { const g = ofType.filter(x => x.dataset.r === r); return [r, roomName(r, g), g.length]; })]
-        .map(([v, label, n]) => `<button type="button" data-v="${v}" class="${v === room ? 'on' : ''}">${label} <small>${n}</small></button>`).join('')
+        .map(([v, label]) => `<button type="button" data-v="${v}" class="${v === room ? 'on' : ''}">${label}</button>`).join('')
       : '';
     const shown = ofType.filter(x => !room || x.dataset.r === room);
     rows.forEach(x => { x.hidden = !shown.includes(x); });

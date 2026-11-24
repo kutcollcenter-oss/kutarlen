@@ -1255,3 +1255,15 @@ a.apt-complex { text-decoration: none; display: inline-block; } a.apt-complex:ho
 }
 .zkp-photo { aspect-ratio: auto !important; width: 100%; height: 300px; max-height: none; }
 @media (min-width: 900px) { .zkp-photo { aspect-ratio: auto !important; height: 420px; max-height: none; } }
+
+/* Вкладки на странице ЖК — как на elitka.kg: прямоугольные со скруглением, серые с тонкой рамкой; выбранная — белая с тенью */
+.zkp-rooms { flex-wrap: nowrap !important; overflow-x: auto; gap: 12px !important; padding: 2px 2px 6px; margin-bottom: 12px !important; scrollbar-width: none; }
+.zkp-rooms::-webkit-scrollbar { display: none; }
+.zkp-rooms button { flex: none; height: 43px; padding: 0 16px !important; border-radius: 12px !important; border: .8px solid #dfdddd !important; background: #f4f4f4 !important; color: #1f2020 !important; font: 500 14px var(--sans) !important; box-shadow: none !important; white-space: nowrap; transition: background .15s, box-shadow .15s; }
+.zkp-rooms button.on { background: #fff !important; border-color: transparent !important; box-shadow: 0 1px 4px rgba(0, 0, 0, .25) !important; padding: 0 28px !important; }
+@media (hover: hover) { .zkp-rooms button:not(.on):hover { background: #fff !important; } }
+/* Категории на странице ЖК — тем же видом, что комнаты и сроки */
+.zkp-types { display: flex !important; flex-wrap: nowrap; overflow-x: auto; gap: 12px; padding: 2px 2px 6px !important; background: none !important; border: 0 !important; box-shadow: none !important; border-radius: 0 !important; scrollbar-width: none; }
+.zkp-types::-webkit-scrollbar { display: none; }
+.zkp-types button { flex: none !important; width: auto !important; height: 43px; padding: 0 16px !important; border-radius: 12px !important; border: .8px solid #dfdddd !important; background: #f4f4f4 !important; color: #1f2020 !important; font: 500 14px var(--sans) !important; text-transform: none !important; letter-spacing: 0 !important; box-shadow: none !important; white-space: nowrap; }
+.zkp-types button.on { background: #fff !important; border-color: transparent !important; box-shadow: 0 1px 4px rgba(0, 0, 0, .25) !important; padding: 0 28px !important; }
