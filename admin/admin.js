@@ -495,6 +495,8 @@
           </div>
           <label class="f" data-for="installment commercial"><span>Срок сдачи</span><input type="text" name="handover" value="${v('handover')}" maxlength="60" placeholder="Например: IV квартал 2027 или Дом сдан"></label>
           <label class="f"><span>Город</span><select name="city">${['Бишкек', 'Ош'].map(c => `<option ${(a.city || 'Бишкек') === c ? 'selected' : ''}>${c}</option>`).join('')}</select></label>
+          <label class="f"><span>Район или микрорайон</span><input type="text" name="district" value="${v('district')}" maxlength="60" list="districts" placeholder="Например: Джал, Восток-5, Центр"></label>
+          <datalist id="districts">${['Центр', 'Джал', 'Асанбай', 'Восток-5', 'Аламедин-1', 'Тунгуч', 'Кок-Жар', 'Магистраль', 'Ипподром', 'Филармония', 'Политех', 'Пишпек', 'Кызыл-Аскер', 'Арча-Бешик', 'Учкун', 'Джал-23', 'Мкр 5', 'Мкр 6', 'Мкр 7', 'Мкр 8', 'Мкр 10', 'Мкр 11', 'Мкр 12', 'Анар', 'Черёмушки', 'Западный'].map(x => `<option value="${x}">`).join('')}</datalist>
           ${f('address', 'Адрес')}
           <div class="mapbox">
             <label class="f"><span>Ссылка на карту — 2ГИС или Google Карты</span>

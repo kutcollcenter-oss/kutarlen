@@ -277,7 +277,7 @@
   // Нажатие на фото в карточке — просмотр всех фото на весь экран (остальная карточка ведёт на страницу квартиры)
   $('cards').addEventListener('click', e => {
     const ph = e.target.closest('.card-photo');
-    if (!ph || !ph.querySelector('img')) return;
+    if (!ph || !ph.querySelector('img') || ph.classList.contains('zk-photo')) return; // фото ЖК — ведёт на страницу ЖК
     e.preventDefault();
     const a = APTS.find(x => String(x.id) === ph.dataset.id);
     if (!a) return;
@@ -338,8 +338,7 @@
         <div class="card-photo" data-id="${a.id}">${photo}<div class="tags">${a.tags.map(t => `<span class="tag${tagCls(t)}">${esc(t)}</span>`).join('')}</div></div>
         <div class="card-body">
           ${main}
-          <div class="card-title">${a.roomsLabel}, ${a.area} ${a.unit}${a.title ? ` · ${esc(a.title)}` : ''}</div>
-          ${a.address ? `<div class="card-addr">${I.pin}${esc(a.address)}</div>` : ''}
+          <div class="card-title">${a.roomsLabel}, ${a.area} ${a.unit}</div>
           ${pay}
           <div class="feats">
             ${''/* комнаты и площадь уже есть в названии карточки — здесь не повторяем */}
@@ -350,6 +349,59 @@
       </a>
       <div class="card-actions"><a class="btn btn-wa btn-want" href="${esc(wa(text))}" data-wa="card" data-id="${a.id}" target="_blank" rel="noopener">${D.waIcon}${L({ commercial: 'wantCommercial', land: 'wantLand' }[a.type] || 'wantApartment')}</a></div>
     </article>`;
+  }
+
+  // ---------- ЖК (как на elitka.kg): одна карточка на объект; нажали — открылась страница ЖК со всеми его квартирами ----------
+  // Ключ ЖК — адрес его страницы (a.zk, считает сервер): «Алтай Голд» и «ЖК «Алтай Голд»» — один ЖК
+  const zkClean = s => String(s || '').replace(/[​-‍⁠﻿]/g, '').replace(/\s+/g, ' ').trim();
+  const objKey = a => `${a.zk || a.url}|${a.city || ''}`;
+  const topOf = list => { const n = new Map(); list.filter(Boolean).forEach(x => n.set(x, (n.get(x) || 0) + 1)); return ([...n.entries()].sort((a, b) => b[1] - a[1])[0] || [''])[0]; };
+  function groupObjs(list) {
+    const m = new Map();
+    list.forEach(a => { const k = objKey(a); if (!m.has(k)) m.set(k, []); m.get(k).push(a); });
+    return [...m.values()];
+  }
+  // Район и адрес ЖК: самые частые среди его квартир (ссылку на карту вместо адреса не показываем)
+  const placeOf = g => [topOf(g.map(a => a.district)), topOf(g.map(a => zkClean(a.address)).filter(x => !/^https?:/i.test(x)))].filter(Boolean).join(' · ');
+  function objCard(g) {
+    const a0 = g[0], c = a0.currency;
+    const withPhoto = g.find(a => a.photos.length);
+    const photos = withPhoto ? withPhoto.photos.slice(0, 8) : [];
+    const photo = photos.length
+      ? `<div class="cp-track">${photos.map(p => `<img src="${p.thumb}" alt="" loading="lazy">`).join('')}</div>
+         ${photos.length > 1 ? `<div class="cp-dots">${photos.map((p, i) => `<i${i ? '' : ' class="on"'}></i>`).join('')}</div>` : ''}`
+      : '<div class="ph"></div>';
+    const main = a => (a.installment ? a.o.monthly : a.price);
+    const best = g.reduce((x, a) => (main(a) < main(x) ? a : x), g[0]);
+    const unitWord = a0.installment ? L('perMonth') : '';
+    // Варианты по комнатам: «1-комн. от 42 м² ······ от 45 000 сом / мес»
+    const kinds = new Map();
+    g.forEach(a => { const k = a.roomsLabel; const x = kinds.get(k) || { rooms: a.rooms, area: Infinity, v: Infinity }; x.area = Math.min(x.area, a.area); x.v = Math.min(x.v, main(a)); kinds.set(k, x); });
+    const rows = [...kinds.entries()].sort((x, y) => x[1].rooms - y[1].rooms)
+      .map(([k, x]) => `<li><span class="ok-k">${esc(k)} <small>${L('objFrom', { x: `${+x.area.toFixed(1)} ${a0.unit}` })}</small></span><i></i><b>${L('objFrom', { x: money(x.v, c) })}${unitWord ? ` <small>${unitWord}</small>` : ''}</b></li>`).join('');
+    const years = [...new Set(g.flatMap(a => (a.stages || []).map(x => x.y)))].sort();
+    const tag = years.length > 1
+      ? `<span class="tag">${esc(L('handover', { x: years.join(` ${L('hoAnd')} `) }))}</span>`
+      : a0.handover ? `<span class="tag">${esc(a0.tags.find(t => t.includes(a0.handover)) || a0.handover)}</span>` : '';
+    const place = placeOf(g);
+    const name = a0.title || a0.address || L('objOther');
+    // ЖК без названия и адреса (одна квартира) — сразу на страницу квартиры
+    const href = a0.zk ? `${a0.zk}?t=${encodeURIComponent(st.type)}` : a0.url;
+    return `<a class="zk" href="${esc(href)}">
+        <div class="card-photo zk-photo">${photo}<div class="tags">${tag}</div></div>
+        <div class="zk-body">
+          <h3 class="zk-name">${esc(name)}</h3>
+          ${place && place !== name ? `<div class="zk-addr">${I.pin}<span>${esc(place)}</span></div>` : ''}
+          <div class="zk-price">${L('objFrom', { x: `<b>${money(main(best), c)}</b>` })}${unitWord ? ` <span>${unitWord}</span>` : ''}</div>
+          ${kinds.size > 1 ? `<ul class="zk-kinds">${rows}</ul>` : `<div class="zk-one">${esc(a0.roomsLabel)} · ${L('objFrom', { x: `${+Math.min(...g.map(a => a.area)).toFixed(1)} ${a0.unit}` })}</div>`}
+        </div>
+    </a>`;
+  }
+  function drawObjs(list) {
+    const box = $('cards');
+    box.classList.add('zk-view');
+    box.innerHTML = groupObjs(list).map(objCard).join('');
+    window.RS.slides(box.querySelectorAll('.zk-photo'));
   }
 
   // Подменить в сообщении строки «Взнос: …» и «В месяц: …» (их начала — в словаре: waDown, waMonthly)
@@ -394,8 +446,7 @@
     lastCount = list.length;
     if (window.__wiz) window.__wiz();
     if (list.length) {
-      $('cards').innerHTML = list.map(card).join('');
-      window.RS.slides($('cards').querySelectorAll('.card-photo'));
+      drawObjs(list);
     } else {
       const budget = [
         st.down != null && L('budgetDown', { x: money(st.down, c) }),

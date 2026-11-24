@@ -1101,3 +1101,146 @@ h2 { font-size: clamp(24px, 5.4vw, 36px); }
 .about-slim .office:has(.office-logo) { display: grid; grid-template-columns: auto 1fr; column-gap: 22px; align-content: center; }
 .about-slim .office:has(.office-logo) > .office-logo { grid-row: 1 / span 3; margin: 0; align-self: center; }
 .about-slim .office:has(.office-logo) > :not(.office-logo) { grid-column: 2; }
+
+/* ---------- Квартиры по ЖК (как на elitka.kg): одна карточка на объект ---------- */
+#cards.zk-view { display: flex !important; flex-direction: column; gap: 16px !important; border: 0; }
+.zk { background: var(--card); border-radius: var(--r-lg); box-shadow: var(--sh-1); overflow: hidden; }
+.zk-head { display: grid; grid-template-columns: 1fr; cursor: pointer; text-align: left; outline: none; }
+.zk-head:focus-visible { box-shadow: inset 0 0 0 2px var(--gold, #a8834a); border-radius: var(--r-lg); }
+#cards .zk-photo { margin: 0 !important; border-radius: 0 !important; aspect-ratio: 16 / 9 !important; height: auto !important; }
+#cards .zk-photo .cp-track, #cards .zk-photo .ph { aspect-ratio: auto !important; height: 100% !important; }
+#cards .zk-photo img { height: 100% !important; object-fit: cover !important; background: var(--soft) !important; }
+#cards .zk-photo .tag { font-size: 12px !important; padding: 5px 10px !important; }
+.zk-body { padding: 16px 18px 18px; display: grid; gap: 8px; min-width: 0; }
+.zk-name { margin: 0; font-family: var(--sans) !important; font-size: 20px; font-weight: 700; line-height: 1.2; letter-spacing: -.01em; color: var(--ink); }
+.zk-addr { display: flex; align-items: flex-start; gap: 6px; font-size: 15px; line-height: 1.35; color: #4a4a4f; }
+.zk-addr svg { width: 16px; height: 16px; flex: none; margin-top: 2px; color: var(--gold, #a8834a); }
+.zk-price { font-size: 15px; color: var(--muted); }
+.zk-price b { font-size: 22px; font-weight: 700; color: var(--ink); letter-spacing: -.02em; }
+.zk-kinds { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 0; border-top: 1px solid var(--line); }
+.zk-kinds li { display: flex; align-items: baseline; gap: 8px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
+.zk-kinds li i { flex: 1; }
+.zk-kinds li .ok-k { color: var(--ink); font-weight: 600; white-space: nowrap; }
+.zk-kinds li .ok-k small { font-weight: 400; color: var(--muted); font-size: 13.5px; margin-left: 4px; }
+.zk-kinds li b { white-space: nowrap; font-weight: 700; color: var(--ink); }
+.zk-kinds li b small { font-weight: 400; color: var(--muted); font-size: 13px; }
+.zk-more { margin-top: 6px; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; border-radius: var(--pill); border: 1.5px solid var(--ink); color: var(--ink); font-weight: 600; font-size: 15px; transition: background .15s, color .15s; }
+.zk-more::after { content: ''; width: 8px; height: 8px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg) translateY(-2px); transition: transform .2s; }
+.zk.open .zk-more::after { transform: rotate(-135deg) translateY(-2px); }
+@media (hover: hover) { .zk-head:hover .zk-more { background: var(--ink); color: #fff; } }
+.zk.open .zk-more { background: var(--soft); border-color: var(--line); }
+.zk-list:empty { display: none; }
+#cards .zk-list { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 10px !important; padding: 4px 12px 14px; background: var(--card); }
+#cards .zk-list .card { box-shadow: none !important; border: 1px solid var(--line) !important; }
+@media (min-width: 760px) {
+  .zk-head { grid-template-columns: minmax(0, 42%) 1fr; }
+  #cards .zk-photo { aspect-ratio: auto !important; min-height: 100%; }
+  .zk-body { padding: 22px 26px 24px; }
+  .zk-name { font-size: 24px; }
+  .zk-more { justify-self: start; padding: 0 26px; }
+  #cards .zk-list { grid-template-columns: repeat(3, 1fr) !important; gap: 16px !important; padding: 6px 20px 20px; }
+}
+@media (min-width: 760px) and (max-width: 1099px) { #cards .zk-list { grid-template-columns: repeat(2, 1fr) !important; } }
+.zk-more { border-radius: var(--pill) !important; }
+/* Внутри ЖК срок сдачи уже в шапке — на фото квартир повторно не пишем (скидки и свои метки остаются) */
+.zk-list .card-photo .tag:not(.tag-sale) { display: none !important; }
+
+/* Разборчивость на телефоне: мелкий серый текст — крупнее и темнее */
+@media (max-width: 639px) {
+  .cards .card-title { font-size: 14px !important; color: var(--ink) !important; }
+  .cards .card-price span { font-size: 13px !important; }
+  .cards .pay-line { font-size: 13px !important; color: #3a3a3c !important; }
+  .zk-kinds li { font-size: 14.5px; }
+  .zk-kinds li .ok-k small { font-size: 13px; }
+}
+:root { --muted: #5f5a52; }
+.zk-one { font-size: 15px; color: var(--muted); }
+#cards .zk-list .card-price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 6px; }
+#cards .zk-list .card-price b { white-space: nowrap; }
+@media (min-width: 640px) { #cards .zk-list .card-price b { font-size: 26px !important; } }
+
+/* ЖК сеткой: телефон — 1, планшет — 2, компьютер — 3 в ряд (как на elitka.kg). Карточка вертикальная, кнопка внизу. */
+#cards.zk-view { display: grid !important; grid-template-columns: 1fr; gap: 18px !important; align-items: stretch; }
+@media (min-width: 700px) { #cards.zk-view { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1000px) { #cards.zk-view { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px !important; } }
+.zk { display: flex; flex-direction: column; transition: box-shadow .2s, transform .2s; }
+.zk.open { box-shadow: 0 0 0 2px var(--gold, #a8834a), var(--sh-2); }
+@media (hover: hover) { .zk:not(.open):hover { box-shadow: var(--sh-2); transform: translateY(-2px); } }
+.zk .zk-head { display: flex !important; flex-direction: column; flex: 1; }
+#cards .zk .zk-photo { aspect-ratio: 16 / 10 !important; min-height: 0 !important; flex: none; }
+.zk .zk-body { flex: 1; display: flex; flex-direction: column; gap: 8px; padding: 18px 20px 20px; }
+.zk .zk-name { font-size: 20px; }
+.zk .zk-kinds { margin-bottom: 4px; }
+.zk .zk-more { margin-top: auto; justify-self: stretch; padding: 0 16px; }
+/* Квартиры раскрытого ЖК — полоса на весь ряд */
+.zk-panel { grid-column: 1 / -1; background: var(--card); border-radius: var(--r-lg); box-shadow: var(--sh-1); padding: 14px; animation: zkIn .25s ease both; }
+@keyframes zkIn { from { opacity: 0; transform: translateY(-6px); } }
+#cards .zk-panel .zk-list { padding: 0 !important; background: none; }
+@media (min-width: 760px) { .zk-panel { padding: 20px; } #cards .zk-panel .zk-list { grid-template-columns: repeat(3, 1fr) !important; } }
+@media (min-width: 1000px) { #cards .zk-panel .zk-list { grid-template-columns: repeat(4, 1fr) !important; } #cards .zk-panel .card-price b { font-size: 22px !important; } }
+@media (min-width: 760px) and (max-width: 999px) { #cards .zk-panel .zk-list { grid-template-columns: repeat(2, 1fr) !important; } }
+@media (prefers-reduced-motion: reduce) { .zk, .zk-panel { animation: none; transition: none; } }
+.zk-ptitle { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: 2px 4px 14px; }
+.zk-ptitle b { font-size: 18px; font-weight: 700; color: var(--ink); }
+.zk-ptitle span { font-size: 14px; color: var(--muted); }
+.zk.open { outline: 2px solid var(--gold, #a8834a); outline-offset: -2px; }
+#cards.zk-view { grid-template-columns: 1fr !important; }
+@media (min-width: 700px) { #cards.zk-view { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; } }
+@media (min-width: 1000px) { #cards.zk-view { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; } }
+
+/* Карточка ЖК — ссылка на страницу ЖК */
+a.zk { color: inherit; text-decoration: none; }
+a.zk:focus-visible { outline: 2px solid var(--gold, #a8834a); outline-offset: 2px; }
+a.zk .zk-body { flex: 1; }
+
+/* ---------- Страница ЖК (/имя/zhk/…) ---------- */
+.zkp { padding-top: 18px; padding-bottom: 40px; }
+.zkp-back { display: inline-block; color: var(--muted); text-decoration: none; font-size: 15px; margin-bottom: 10px; }
+.zkp-back:hover { color: var(--ink); }
+.zkp h1 { font-family: var(--sans) !important; font-weight: 700 !important; font-size: clamp(26px, 6vw, 40px) !important; line-height: 1.15; margin: 0 0 8px; letter-spacing: -.02em; }
+.zkp-addr { display: flex; gap: 6px; align-items: flex-start; color: #4a4a4f; font-size: 16px; margin-bottom: 18px; }
+.zkp-addr svg { width: 18px; height: 18px; flex: none; margin-top: 2px; color: var(--gold, #a8834a); }
+.zkp-top { display: grid; gap: 18px; }
+.zkp-photo { position: relative; margin: 0 !important; border-radius: var(--r-lg) !important; overflow: hidden; aspect-ratio: 16 / 10; background: var(--soft); cursor: zoom-in; }
+.zkp-photo .cp-track { height: 100%; }
+.zkp-photo img { width: 100%; height: 100%; object-fit: cover; background: var(--soft); }
+.zkp-count { position: absolute; right: 12px; bottom: 12px; background: rgba(0, 0, 0, .55); color: #fff; font-size: 13px; padding: 4px 10px; border-radius: var(--pill); }
+.zkp-side { background: var(--card); border-radius: var(--r-lg); box-shadow: var(--sh-1); padding: 8px 20px 20px; align-self: start; }
+.zkp-facts { margin: 0 0 16px; }
+.zkp-facts div { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
+.zkp-facts dt { color: var(--muted); }
+.zkp-facts dd { margin: 0; font-weight: 700; text-align: right; color: var(--ink); }
+.zkp-wa { width: 100%; justify-content: center; }
+@media (min-width: 900px) {
+  .zkp-top { grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr); gap: 24px; }
+  .zkp-photo { aspect-ratio: auto; min-height: 100%; }
+}
+.zkp-list { margin-top: 34px; }
+.zkp-list h2, .zkp-map h2 { font-family: var(--sans) !important; font-weight: 700 !important; font-size: 24px !important; margin: 0 0 14px; }
+.zkp-types { margin-bottom: 12px; }
+.zkp-rooms { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.zkp-rooms:empty { display: none; }
+.zkp-rooms button { border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: var(--pill); padding: 9px 16px; font: 600 15px var(--sans); cursor: pointer; }
+.zkp-rooms button small { color: var(--muted); font-weight: 400; margin-left: 2px; }
+.zkp-rooms button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+.zkp-rooms button.on small { color: rgba(255, 255, 255, .7); }
+.zkp-sum { color: var(--muted); font-size: 15px; margin: 4px 0 14px; }
+.zkp-sum b { color: var(--ink); }
+.zkp-sum small { font-size: inherit; }
+.zkp-apts { display: grid; gap: 10px; }
+@media (min-width: 900px) { .zkp-apts { grid-template-columns: 1fr 1fr; gap: 14px; } }
+.zk-apt { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 4px 14px; align-items: center; background: var(--card); border-radius: var(--r-md); box-shadow: var(--sh-1); padding: 10px; color: inherit; text-decoration: none; transition: box-shadow .15s, transform .15s; }
+.zk-apt[hidden] { display: none; }
+@media (hover: hover) { .zk-apt:hover { box-shadow: var(--sh-2); transform: translateY(-1px); } }
+.zk-apt-ph { grid-row: span 2; width: 84px; height: 84px; border-radius: 12px; overflow: hidden; background: #fff; }
+.zk-apt-ph img { width: 100%; height: 100%; object-fit: contain; }
+.zk-apt-ph .ph { width: 100%; height: 100%; background: var(--soft); }
+.zk-apt-main b { display: block; font-size: 16px; color: var(--ink); }
+.zk-apt-main span { font-size: 13.5px; color: var(--muted); }
+.zk-apt-price b { display: block; font-size: 18px; font-weight: 700; color: var(--ink); letter-spacing: -.01em; }
+.zk-apt-price b small { font-size: 13px; font-weight: 400; color: var(--muted); }
+.zk-apt-price span { font-size: 13px; color: var(--muted); }
+.zkp-map { margin-top: 34px; }
+.zkp-map iframe { width: 100%; height: 340px; border: 0; border-radius: var(--r-lg); }
+a.apt-complex { text-decoration: none; display: inline-block; } a.apt-complex:hover { text-decoration: underline; }
+.zkp-stages { align-items: center; } .zkp-lab { font-size: 15px; color: var(--muted); margin-right: 2px; }

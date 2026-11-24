@@ -19,6 +19,7 @@ const companies = require('./lib/companies');
 const auth = require('./lib/auth');
 const tenants = require('./lib/tenants');
 const analytics = require('./lib/analytics');
+const zkPrep = require('./lib/zk-prep');
 
 const PORT = process.env.PORT || 3000;
 const UPLOAD_DIR = path.join(__dirname, 'uploads');
@@ -386,11 +387,32 @@ app.get('/' + DEMO_SLUG + '/kvartira/:id', (req, res, next) => {
   res.send(pages.renderApartment(demoCtx(d, req), a, list.filter(x => x.id !== a.id && x.type === a.type).slice(0, 3)));
 });
 
+app.get('/' + DEMO_SLUG + '/zhk/:key', (req, res, next) => {
+  const d = demoRealtor(); if (!d) return next();
+  res.set('X-Robots-Tag', 'noindex');
+  const key = String(req.params.key).toLowerCase();
+  const url = `/${DEMO_SLUG}/zhk/${key}`;
+  const list = demoList(d, req).filter(a => a.zk === url);
+  if (!list.length) return res.redirect(302, '/' + DEMO_SLUG);
+  res.send(pages.renderComplex(demoCtx(d, req), list[0].title || list[0].address, list, { url, type: String(req.query.t || '') }));
+});
+
 app.get('/:slug', (req, res, next) => {
   if (req.params.slug.includes('.')) return next(); // файлы (favicon.ico и т.п.) — дальше, к статике
   const r = siteOf(req, res); if (!r) return;
   const list = aptsOf(r.id).filter(isVisible).map(a => pub(r, a, req));
   res.send(pages.renderIndex(ctxOf(r, req), list));
+});
+
+// Страница ЖК: все квартиры менеджера в этом ЖК (адрес — название ЖК латиницей, см. lib/zk-prep.js)
+app.get('/:slug/zhk/:key', (req, res) => {
+  const r = siteOf(req, res); if (!r) return;
+  const key = String(req.params.key).toLowerCase();
+  const raw = aptsOf(r.id).filter(isVisible).filter(a => zkPrep.zkSlug(a.title || a.address) === key);
+  if (!raw.length) return res.status(404).send(pages.renderGone(ctxOf(r, req), similarTo(r, null, req)));
+  const list = raw.map(a => pub(r, a, req));
+  const name = list[0].title || list[0].address;
+  res.send(pages.renderComplex(ctxOf(r, req), name, list, { url: `/${r.slug}/zhk/${key}`, type: String(req.query.t || '') }));
 });
 
 app.get('/:slug/kvartira/:id', (req, res) => {
@@ -415,7 +437,7 @@ app.get('/:slug/privacy', (req, res) => {
 
 // ---------- Аналитика: приём событий с сайта ----------
 const EVENTS = new Set(['view', 'filter', 'calc', 'cash', 'wa']);
-const PAGES = new Set(['home', 'apt', 'gone', 'privacy']);
+const PAGES = new Set(['home', 'apt', 'gone', 'privacy', 'zhk']);
 const rate = new Map(); // ip → { n, reset }
 const clip = (v, n) => (v == null ? null : String(v).slice(0, n));
 
@@ -537,6 +559,7 @@ const FIELDS = {
   handover: v => String(v || '').trim().slice(0, 60),             // срок сдачи дома: рассрочка и коммерция
   city: v => (CITIES.includes(v) ? v : CITIES[0]),          // город: Бишкек или Ош
   address: v => String(v || '').trim().slice(0, 200),
+  district: v => String(v || '').trim().slice(0, 60),          // район / микрорайон: Джал, Восток-5…
   details: v => String(v || '').trim().slice(0, 5000),
   tags: v => (Array.isArray(v) ? v : String(v || '').split(',')).map(t => String(t).trim()).filter(Boolean).slice(0, 8),
   // Кыргызская версия сайта: детали и метки по-кыргызски (пусто — показываются русские)
@@ -953,6 +976,20 @@ app.use((req, res) => res.status(404).send(pages.renderInvalid(D().product, base
     D().done.handoverTags = new Date().toISOString();
     db.save();
     console.log(`Метки со сроком: перенесено в поле ${t.moved}, убрано повторов ${t.removed}`);
+  }
+  // Один раз: подготовка квартир к показу «по ЖК» (lib/zk-prep.js) — одно написание ЖК, чистые адреса, район из адреса.
+  // Перед этим — копия базы data/backups/before-zk-ДАТА.json. Отметка done.zkPrep — второй раз не запускается.
+  if (!D().done.zkPrep) {
+    const dir = path.join(db.DATA_DIR, 'backups');
+    fs.mkdirSync(dir, { recursive: true });
+    const copy = path.join(dir, `before-zk-${new Date().toISOString().slice(0, 10)}.json`);
+    if (!fs.existsSync(copy)) fs.copyFileSync(path.join(db.DATA_DIR, 'db.json'), copy);
+    console.log('Копия базы перед подготовкой ЖК: ' + copy);
+    const seen = new Set();
+    const z = require('./lib/zk-prep').prepare(D().apartments, line => { if (!seen.has(line)) { seen.add(line); console.log('ЖК — ' + line); } });
+    D().done.zkPrep = new Date().toISOString();
+    db.save();
+    console.log(`ЖК: почищено ${z.cleaned}, названий выровнено ${z.titles}, ссылок в поле карты ${z.maps}, адресов дополнено ${z.addresses}, районов заполнено ${z.districts}`);
   }
   // Один раз: кыргызские переводы текстов, которые уже есть у менеджеров (lib/ky-fill.js) — только в пустые кыргызские поля.
   // Отметка done.kyFill — чтобы потом не трогать то, что менеджер поменял или очистил сам.
