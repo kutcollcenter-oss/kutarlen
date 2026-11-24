@@ -1244,3 +1244,14 @@ a.zk .zk-body { flex: 1; }
 .zkp-map iframe { width: 100%; height: 340px; border: 0; border-radius: var(--r-lg); }
 a.apt-complex { text-decoration: none; display: inline-block; } a.apt-complex:hover { text-decoration: underline; }
 .zkp-stages { align-items: center; } .zkp-lab { font-size: 15px; color: var(--muted); margin-right: 2px; }
+
+/* Фото ЖК — чаще всего планировки: целиком, без обрезки, на белом фоне, высота ограничена */
+.zkp-photo { aspect-ratio: 4 / 3 !important; max-height: 360px; background: #fff !important; }
+.zkp-photo img, #cards .zk .zk-photo img { object-fit: contain !important; background: #fff !important; }
+#cards .zk .zk-photo, #cards .zk .zk-photo .cp-track { background: #fff !important; }
+@media (min-width: 900px) {
+  .zkp-top { align-items: start; }
+  .zkp-photo { aspect-ratio: 4 / 3 !important; min-height: 0 !important; max-height: 440px; }
+}
+.zkp-photo { aspect-ratio: auto !important; width: 100%; height: 300px; max-height: none; }
+@media (min-width: 900px) { .zkp-photo { aspect-ratio: auto !important; height: 420px; max-height: none; } }
