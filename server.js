@@ -99,6 +99,8 @@ const langOf = req => langOk(cookies(req).lang);
 // Тексты профиля на языке страницы: на кыргызской версии — кыргызские варианты (если менеджер их заполнил)
 const ctxOf = (r, req) => ({ s: localizeSettings(r.settings, langOf(req)), base: base(req), prefix: `/${r.slug}`, slug: r.slug, partnerCta: r.partnerCta !== false, lang: langOf(req), ai: aiChat.ready() && aiAllowed(r) && (aiChat.logging() ? 'log' : true), kut: kutCompany(r) });
 // У каждого фото — отметка zk: «фото ЖК» (для страницы и карточки ЖК) или только для квартиры (планировки и т.п.)
+// ЖК — одна запись: адрес, район, город, карта (квартиры берут их у своего ЖК)
+const complexes = require('./lib/complexes').mount({ D: () => D(), save: () => db.save() });
 const pub = (r, a, req, lang = langOf(req)) => {
   const p = publicApt(a, r.settings, base(req), `/${r.slug}`, lang);
   p.photos = p.photos.map((x, i) => ({ ...x, zk: photoKind.kindOf((a.photos || [])[i]) === 'zk' }));
@@ -568,16 +570,47 @@ app.get('/api/admin/complexes', requireAuth, (req, res) => {
     const withHo = g.filter(a => String(a.handover || '').trim());
     const stageSets = new Set(withHo.map(a => require('./lib/calc').handoverStages(a.handover).map(x => `${x.y}.${x.q}`).join(',') || String(a.handover).trim().toLowerCase()));
     const hos = stageSets.size === 1 ? [top(withHo.map(a => String(a.handover).trim()))] : [];
+    // Город, район, адрес и карта — из единой записи ЖК (lib/complexes.js)
+    const c = complexes.get(key) || {};
     return {
-      key, name: top(g.map(a => a.title)), n: g.length, mine: g.filter(a => a.realtorId === req.realtor.id).length,
-      city: top(g.map(a => a.city || 'Бишкек')), district: top(g.map(a => a.district)),
-      address: top(g.map(a => a.address).filter(x => !/^https?:/i.test(x || ''))),
+      key, name: c.name || top(g.map(a => a.title)), n: g.length, mine: g.filter(a => a.realtorId === req.realtor.id).length,
+      city: c.city || top(g.map(a => a.city || 'Бишкек')), district: c.district || '',
+      address: c.address || '', mapLink: (c.map || {}).link || '',
       floors: Number(top(g.map(a => a.floors && String(a.floors)))) || '',
       handover: hos.length === 1 ? hos[0] : '', // у ЖК в несколько этапов срок не подставляем — он у квартир разный
-      mapLink: top(g.map(a => (a.map || a.map2gis || {}).link)),
+      canEdit: canEditComplex(c, req, key),
     };
   }).sort((a, b) => b.mine - a.mine || b.n - a.n || a.name.localeCompare(b.name, 'ru'));
   res.json(list);
+});
+
+// Менять адрес, район, город и карту ЖК: владелец — любой ЖК; менеджер — только ЖК, который создал сам
+// и в котором пока только его квартиры (иначе поменял бы адрес чужим).
+function canEditComplex(c, req, key) {
+  if (req.user.role === 'owner') return true;
+  if (!c || c.createdBy !== req.realtor.id) return false;
+  return D().apartments.every(a => complexes.keyOf(a) !== key || a.realtorId === req.realtor.id);
+}
+// Квартира сохранена: если менеджеру можно — его адрес/карта становятся адресом ЖК; затем квартира берёт всё у ЖК
+function syncComplex(a, body, req) {
+  const key = complexes.keyOf(a), c = complexes.get(key);
+  const touched = ['city', 'district', 'address', 'mapLink'].some(k => k in body);
+  if (c && touched && canEditComplex(c, req, key)) complexes.update(key, { city: a.city, district: a.district, address: a.address, map: a.map || null });
+  complexes.apply(a);
+}
+
+// Владелец: правка ЖК (раздел «ЖК» в кабинете) — сразу у всех квартир этого ЖК
+app.put('/api/owner/complexes/:key', requireAuth, ownerOnly, async (req, res) => {
+  const key = String(req.params.key), c = complexes.get(key);
+  if (!c) return res.status(404).json({ error: 'ЖК не найден' });
+  const b = req.body || {}, patch = {};
+  for (const k of ['city', 'district', 'address']) if (k in b) patch[k] = k === 'city' ? (CITIES.includes(b.city) ? b.city : 'Бишкек') : b[k];
+  if ('mapLink' in b) {
+    const link = String(b.mapLink || '').trim().slice(0, 2000);
+    patch.map = !link ? null : (c.map && c.map.link === link && !c.map.error ? c.map : await resolveMap(link));
+  }
+  const r = complexes.update(key, patch);
+  res.json({ ok: true, apartments: r.apartments, mapError: patch.map && patch.map.error || '' });
 });
 
 const FIELDS = {
@@ -672,6 +705,7 @@ app.post('/api/admin/apartments', requireAuth, async (req, res) => {
     createdAt: new Date().toISOString(), ...pick(req.body || {}),
   };
   await applyMap(a, req.body || {});
+  syncComplex(a, req.body || {}, req); // адрес и карта — как у ЖК (новый ЖК — создаётся из этих полей)
   D().apartments.push(a);
   db.save();
   res.json(adminApt(req.realtor, a, req));
@@ -682,6 +716,7 @@ app.put('/api/admin/apartments/:id', requireAuth, async (req, res) => {
   if (!a) return res.status(404).json({ error: 'not found' });
   Object.assign(a, pick(req.body || {}));
   await applyMap(a, req.body || {});
+  syncComplex(a, req.body || {}, req); // адрес и карта — как у ЖК
   const photos = cleanPhotos(req.body.photos);
   if (photos) {
     const removed = a.photos.filter(p => !photos.includes(p));
@@ -1045,6 +1080,15 @@ app.use((req, res) => res.status(404).send(pages.renderInvalid(D().product, base
   }
   // Один раз: какие фото — «фото ЖК», какие — только для квартиры (lib/photo-kind.js). Ничего не удаляет.
   try { await photoKind.prepareAll(); } catch (e) { console.error('Разметка фото ЖК: ' + e.message); }
+  // Один раз: у каждого ЖК — один адрес, район, город и карта (lib/complexes.js). Перед этим — копия базы.
+  if (!D().done.complexes) {
+    const dir = path.join(db.DATA_DIR, 'backups');
+    fs.mkdirSync(dir, { recursive: true });
+    const copy = path.join(dir, `before-complexes-${new Date().toISOString().slice(0, 10)}.json`);
+    if (!fs.existsSync(copy)) fs.copyFileSync(path.join(db.DATA_DIR, 'db.json'), copy);
+    console.log('Копия базы перед общими адресами ЖК: ' + copy);
+    complexes.buildOnce(line => console.log('ЖК — ' + line));
+  }
   // Один раз: кыргызские переводы текстов, которые уже есть у менеджеров (lib/ky-fill.js) — только в пустые кыргызские поля.
   // Отметка done.kyFill — чтобы потом не трогать то, что менеджер поменял или очистил сам.
   if (!D().done.kyFill) {

@@ -587,21 +587,40 @@
         if ((val === '' || val == null) && name === 'city') return;
         el.value = val == null ? '' : val; autoVals[name] = String(el.value); // у нового ЖК пусто — подставленное от прошлого убираем
       };
-      set('city', c.city); set('district', c.district); set('address', c.address);
-      set('floors', c.floors); set('handover', c.handover); set('mapLink', c.mapLink);
+      // Город, район, адрес и карта — общие для всего ЖК: ставим как у ЖК всегда
+      for (const [n, v] of [['city', c.city || 'Бишкек'], ['district', c.district], ['address', c.address], ['mapLink', c.mapLink]]) {
+        if (form.elements[n]) { form.elements[n].value = v || ''; autoVals[n] = String(v || ''); }
+      }
+      set('floors', c.floors); set('handover', c.handover);
       updCalc();
+    };
+    // У ЖК один адрес и одна карта. Менять их может владелец (у всех квартир ЖК сразу) или менеджер,
+    // который сам создал этот ЖК; остальным поля закрыты.
+    const SHARED = ['city', 'district', 'address', 'mapLink'];
+    const lockFor = c => {
+      const lock = !!c && !c.canEdit;
+      SHARED.forEach(n => { const el = form.elements[n]; if (el) el.disabled = lock; });
+      const mn = form.querySelector('.mapbox-note'); if (mn) mn.hidden = lock; // подсказка, где взять ссылку, — только когда поле открыто
+      let note = document.getElementById('zkShared');
+      if (!note) { note = document.createElement('div'); note.id = 'zkShared'; note.className = 'hint'; form.elements.city.closest('label').before(note); }
+      note.hidden = !c;
+      if (c) note.innerHTML = lock
+        ? `<b>Адрес, район и карта — общие для ${/^жк|^жилой/i.test(c.name) ? esc(c.name) : `ЖК «${esc(c.name)}»`}.</b> Они одинаковые у всех его квартир. Если что-то не так — напишите владельцу сервиса.`
+        : `<b>Адрес, район и карта — общие для ${/^жк|^жилой/i.test(c.name) ? esc(c.name) : `ЖК «${esc(c.name)}»`}.</b> Если поменяете — поменяются у всех его квартир${c.n > 1 ? ` (${c.n})` : ''}.`;
     };
     const showPick = () => {
       const land = type === 'land';
       document.getElementById('zkPickWrap').hidden = land;
+      lockFor(land ? null : complexes.find(x => x.key === zkPick.value) || null); // у участка адрес свой
       const isNew = land || zkPick.value === '__new';
       document.getElementById('titleWrap').hidden = !isNew;
       if (!land && zkPick.value === '__new') document.getElementById('titleLbl').textContent = 'Название нового ЖК';
     };
     const pickKey = key => {
       const c = complexes.find(x => x.key === key);
-      if (c) { form.elements.title.value = c.name; fillFrom(c); zkHint.hidden = false; zkHint.textContent = `Подставлено: ${[c.city, c.district, c.address, c.floors && c.floors + ' эт.', c.handover, c.mapLink && 'карта'].filter(Boolean).join(' · ')}. Проверьте и поправьте, если у этой квартиры по-другому.`; }
+      if (c) { form.elements.title.value = c.name; fillFrom(c); zkHint.hidden = false; zkHint.textContent = `Подставлено: ${[c.city, c.district, c.address, c.floors && c.floors + ' эт.', c.handover, c.mapLink && 'карта'].filter(Boolean).join(' · ')}. Этажность и срок сдачи проверьте — у квартиры они могут быть свои.`; }
       else zkHint.hidden = true;
+      lockFor(c);
       showPick();
     };
     api('GET', '/api/admin/complexes').then(list => {
@@ -613,11 +632,14 @@
         + '<option value="__new">+ Новый ЖК — написать название</option>';
       zkPick.value = known ? curKey : form.elements.title.value.trim() ? '__new' : '';
       if (known) form.elements.title.value = complexes.find(c => c.key === curKey).name; // старое написание → как у всех
+      lockFor(known ? complexes.find(c => c.key === curKey) : null);
       showPick();
     }).catch(() => { zkPick.innerHTML = '<option value="__new">Написать название</option>'; zkPick.value = '__new'; showPick(); });
     zkPick.onchange = () => {
-      if (zkPick.value === '__new') { form.elements.title.value = ''; zkHint.hidden = true; showPick(); form.elements.title.focus(); return; }
-      if (!zkPick.value) { form.elements.title.value = ''; zkHint.hidden = true; showPick(); return; }
+      // Новый ЖК или «не выбран»: адрес и карту от прошлого ЖК убираем, поля открываем
+      const reset = () => { lockFor(null); ['district', 'address', 'mapLink'].forEach(n => { if (form.elements[n] && form.elements[n].value === (autoVals[n] || '')) form.elements[n].value = ''; }); };
+      if (zkPick.value === '__new') { form.elements.title.value = ''; zkHint.hidden = true; reset(); showPick(); form.elements.title.focus(); return; }
+      if (!zkPick.value) { form.elements.title.value = ''; zkHint.hidden = true; reset(); showPick(); return; }
       pickKey(zkPick.value);
     };
     // Пишут «новый» ЖК, а он уже есть под другим написанием — выбираем существующий
@@ -1228,6 +1250,37 @@
         <button class="btn btn-primary" type="submit">Создать и получить приглашение</button>
       </form>`;
   }
+  // ЖК: у каждого один адрес, район, город и карта — правка сразу у всех квартир этого ЖК (у всех менеджеров)
+  function zkCardHtml(zks) {
+    return `<details class="card" id="zkCard"><summary><b>ЖК</b> · ${zks.length} · адрес и карта для всех квартир</summary>
+      <div class="hint" style="margin:12px 0">У каждого ЖК один адрес и одна ссылка на карту. Поменяли здесь — поменяется у всех его квартир у всех менеджеров. Менеджеры эти поля у существующих ЖК не меняют.</div>
+      ${zks.map(c => `<form class="zk-ed" data-key="${esc(c.key)}" style="border-top:1px solid var(--line,#333);padding:12px 0">
+        <b>${esc(c.name)}</b> <span class="hint" style="margin:0">· квартир: ${c.n}</span>
+        <div class="grid2" style="margin-top:8px">
+          <label class="f"><span>Город</span><select name="city">${['Бишкек', 'Ош'].map(x => `<option ${(c.city || 'Бишкек') === x ? 'selected' : ''}>${x}</option>`).join('')}</select></label>
+          <label class="f"><span>Район</span><input type="text" name="district" value="${esc(c.district || '')}" maxlength="60"></label>
+        </div>
+        <label class="f"><span>Адрес</span><input type="text" name="address" value="${esc(c.address || '')}" maxlength="200"></label>
+        <label class="f"><span>Ссылка на карту — 2ГИС или Google</span><input type="text" name="mapLink" value="${esc(c.mapLink || '')}" inputmode="url" placeholder="https://go.2gis.com/… или https://maps.app.goo.gl/…"></label>
+        <div class="err"></div>
+        <button class="btn">Сохранить для всех квартир ЖК</button>
+      </form>`).join('')}
+    </details>`;
+  }
+  function bindZkCard() {
+    document.querySelectorAll('#zkCard .zk-ed').forEach(fm => {
+      fm.onsubmit = async e => {
+        e.preventDefault();
+        const err = fm.querySelector('.err'); err.textContent = '';
+        try {
+          const r = await api('PUT', `/api/owner/complexes/${encodeURIComponent(fm.dataset.key)}`, Object.fromEntries(new FormData(fm)));
+          if (r.mapError) err.textContent = r.mapError;
+          toast(`Сохранено у ${r.apartments} квартир`);
+        } catch (x) { err.textContent = x.message; }
+      };
+    });
+  }
+
   // Номера из WhatsApp: подключение WhatsApp Cloud API (Meta)
   function waCardHtml(w) {
     const when = t => new Date(t).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
@@ -1321,7 +1374,7 @@
 
   async function renderRealtors() {
     if (!isOwner()) { location.hash = '#list'; return; }
-    const [list, product, mine, ai, mUsers, cos, sUsers, wa] = await Promise.all([api('GET', '/api/owner/realtors'), api('GET', '/api/owner/product'), api('GET', '/api/admin/apartments'), api('GET', '/api/owner/aichat'), api('GET', '/api/owner/money-users'), api('GET', '/api/owner/companies'), api('GET', '/api/owner/shop-users'), api('GET', '/api/owner/wa').catch(() => null)]);
+    const [list, product, mine, ai, mUsers, cos, sUsers, wa, zks] = await Promise.all([api('GET', '/api/owner/realtors'), api('GET', '/api/owner/product'), api('GET', '/api/admin/apartments'), api('GET', '/api/owner/aichat'), api('GET', '/api/owner/money-users'), api('GET', '/api/owner/companies'), api('GET', '/api/owner/shop-users'), api('GET', '/api/owner/wa').catch(() => null), api('GET', '/api/admin/complexes').catch(() => [])]);
     // Сколько квартир в рассрочку скопируется новому менеджеру (наличные не копируются)
     const myInstallment = mine.filter(a => a.computed.installment || (!cashLike(typeOf(a)) && a.computed.price)).length;
     const others = list.filter(x => x.role !== 'owner');
@@ -1429,6 +1482,7 @@
         <div id="shpBody" style="margin-top:12px">${shopUsersHtml(sUsers)}</div>
       </details>
       ${wa ? waCardHtml(wa) : ''}
+      ${zkCardHtml(zks)}
 
       <details class="card" id="aiCard"><summary><b>ИИ-помощник на сайтах</b> · ${ai.on && ai.providers.some(p => p.hasKey) ? `работает ✓ · у ${list.filter(x => x.aiAccess).length} из ${list.length}` : 'выключен'}</summary>
         <form id="aifm" style="margin-top:12px">
@@ -1535,6 +1589,7 @@
     bindMoneyUsers(mUsers);
     bindShopUsers(sUsers);
     if (wa) bindWaCard();
+    bindZkCard(zks);
     const reopenAi = async () => { await renderRealtors(); document.getElementById('aiCard').open = true; document.getElementById('aiTeach').scrollIntoView({ block: 'start' }); };
     const addLesson = async (q, a, errId) => {
       try { await api('POST', '/api/owner/aichat/lessons', { q, a }); toast('Урок добавлен — ИИ учтёт его со следующего ответа'); await reopenAi(); }
