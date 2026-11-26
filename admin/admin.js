@@ -275,17 +275,77 @@
     const warn = [];
     if (!st.active) warn.push(`<div class="warn bad">${esc(st.label)}. Сайт для клиентов отключён — ${me.product.whatsapp ? `<a href="https://wa.me/${esc(me.product.whatsapp.replace(/\D/g, ''))}" target="_blank">напишите владельцу сервиса</a>` : 'свяжитесь с владельцем сервиса'}, чтобы продлить.</div>`);
     if (me.defaultPassword) warn.push(`<div class="warn bad">У вас пароль по умолчанию. <a href="#settings">Смените его</a> — иначе в кабинет может войти кто угодно.</div>`);
-    // Ссылку для клиентов показываем только на «Квартирах» — на остальных страницах есть кнопка «Сайт ↗»
-    const link = active === 'list' && !location.hash.startsWith('#edit') ? `
+    // Без номера WhatsApp заявки с сайта никуда не уходят — поэтому кнопки WhatsApp на сайте скрыты, пока номера нет
+    // (на главной «Квартир», пока видны «4 шага», это уже сказано во 2-м шаге)
+    const stepsShown = active === 'list' && !/^#(edit|zk)/.test(location.hash) && !!setupBox();
+    if (!hasWa() && !stepsShown) warn.push(`<div class="warn bad">Укажите номер WhatsApp — без него клиенты не смогут вам написать, кнопки WhatsApp на вашем сайте скрыты. ${active === 'settings' ? 'Поле «Номер WhatsApp» — ниже, в разделе «Контакты».' : '<a href="#settings">Указать номер</a>'}</div>`);
+    // Главная страница «Квартир» (не форма квартиры и не ЖК)
+    const home = active === 'list' && !/^#(edit|zk)/.test(location.hash);
+    const steps = home ? setupBox() : '';
+    // Ссылку для клиентов показываем только на «Квартирах» — на остальных страницах есть кнопка «Сайт ↗».
+    // Пока новый менеджер проходит «4 шага», ссылка — внутри шагов, отдельный блок не нужен.
+    const link = home && !steps ? `
       <div class="linkbox"><span>Ваша ссылка для клиентов</span>
         <div class="linkrow"><code>${esc(r.url)}</code>
           <button class="btn" data-copy="${esc(r.url)}">Копировать</button></div>
         <div class="hint" style="margin-top:6px">Вход в кабинет с телефона: <b>${esc(r.url)}/admin</b></div>
       </div>` : '';
-    const plan = active === 'list' || active === 'settings' ? tariffBox() : '';
-    const refer = active === 'list' && !location.hash.startsWith('#edit') ? referBox() : '';
-    if (!warn.length && !link && !plan && !refer) return '';
-    return `<div class="wrap wrap-banner">${warn.join('')}${plan}${refer}${link}</div>`;
+    // Тариф: полностью — в «Профиле», на «Квартирах» — одна строка (и только когда есть что сказать)
+    const plan = active === 'settings' ? tariffBox() : home ? tariffLine() : '';
+    // «Приведите менеджера» — когда сайт уже наполнен, новичку сначала нужно настроить свой
+    const refer = home && !steps && (aptCount || r.count) ? referBox() : '';
+    if (!warn.length && !steps && !link && !plan && !refer) return '';
+    return `<div class="wrap wrap-banner">${warn.join('')}${steps}${plan}${refer}${link}</div>`;
+  }
+
+  const hasWa = () => !!String((settings && settings.whatsapp) || '').replace(/\D/g, '');
+  // ---------- «Начните за 4 шага» — для нового менеджера, пока не всё сделано ----------
+  // Шаги 1–3 видны по данным (фото, WhatsApp, квартиры), шаг 4 — отмечаем, когда менеджер открыл свой сайт.
+  const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* приватный режим */ } };
+  const siteSeenKey = () => `siteSeen_${me.login}`;
+  function setupBox() {
+    if (isOwner() || lsGet(`setupHide_${me.login}`) === '1') return '';
+    const r = me.realtor;
+    const done = [!!(settings && settings.photo), hasWa(), !!(aptCount || r.count), lsGet(siteSeenKey()) === '1'];
+    // Фото, WhatsApp и квартиры уже есть — менеджер не новичок, шаги не показываем (свой сайт он и так открывал)
+    if (done[0] && done[1] && done[2]) return '';
+    const items = [
+      ['Загрузите своё фото', 'Клиенты охотнее пишут, когда видят человека', '#settings', 'Загрузить'],
+      ['Укажите номер WhatsApp', 'Сюда придут заявки. Пока номера нет, кнопки WhatsApp на сайте скрыты', '#settings', 'Указать'],
+      ['Добавьте ЖК и первую квартиру', 'Цена за м², взнос и срок — расчёт сделает сайт', '#zk-new', 'Добавить'],
+      ['Откройте свой сайт', r.url.replace(/^https?:\/\//, ''), r.url, 'Открыть'],
+    ];
+    const n = done.filter(Boolean).length;
+    return `<div class="setup">
+      <div class="setup-head"><b>Начните за 4 шага</b><span>${n} из 4</span></div>
+      <div class="setup-bar"><i style="width:${n * 25}%"></i></div>
+      <ol class="setup-list">${items.map(([t, sub, href, btn], i) => `<li class="${done[i] ? 'ok' : ''}">
+        <span class="setup-n">${done[i] ? '✓' : i + 1}</span>
+        <span class="setup-t"><b>${t}</b><small>${esc(sub)}</small></span>
+        ${done[i] ? '' : `<a class="btn${i === done.indexOf(false) ? ' btn-primary' : ''}" href="${esc(href)}"${i === 3 ? ' target="_blank" rel="noopener" data-site-open' : ''}>${btn}</a>`}
+      </li>`).join('')}</ol>
+      ${n >= 2 ? `<div class="setup-foot"><button type="button" class="setup-x" data-setup-hide>Скрыть подсказку</button></div>` : ''}
+    </div>`;
+  }
+  // Открыл свой сайт (из шагов или кнопкой «Сайт ↗») — шаг 4 выполнен
+  document.addEventListener('click', e => {
+    if (!me) return;
+    if (e.target.closest('[data-site-open], a.ext')) { lsSet(siteSeenKey(), '1'); setTimeout(() => { if (!/^#(edit|zk)/.test(location.hash)) route(); }, 300); }
+    if (e.target.closest('[data-setup-hide]')) { lsSet(`setupHide_${me.login}`, '1'); route(); }
+  });
+
+  // Тариф одной строкой на «Квартирах»: срок и лимит. Без срока и без лимита — не показываем вовсе.
+  function tariffLine() {
+    if (isOwner()) return '';
+    const plan = me.realtor.plan || {}, until = plan.paidUntil, max = Number(plan.maxApartments) || 0;
+    if (!until && !max) return '';
+    const days = until ? Math.round((Date.parse(until) - Date.parse(new Date().toISOString().slice(0, 10))) / 864e5) : null;
+    const tone = days === null ? '' : days < 0 ? ' bad' : days <= 5 ? ' warn-t' : '';
+    const parts = [];
+    if (days !== null) parts.push(days < 0 ? `оплата закончилась ${fmtDate(until)}` : days === 0 ? 'последний день оплаты' : `оплачено до ${fmtDate(until)} · осталось ${days} ${daysWord(days)}`);
+    if (max) parts.push(`квартир ${aptCount || me.realtor.count || 0} из ${max}`);
+    return `<a class="tariff-line${tone}" href="#settings"><span>Тариф</span><b>${parts.join(' · ')}</b><i>${days !== null && days <= 5 ? 'Продлить' : 'Подробнее'} →</i></a>`;
   }
 
   function bindNav() {
@@ -324,7 +384,7 @@
       <div class="tariff-row"><span>Квартир</span><b>${max ? `${count} из ${max}` : `${count} · без ограничения`}</b></div>
       ${prices ? `<div class="tariff-row"><span>Продление</span><b>${prices}</b></div>` : ''}
       ${extra ? `<div class="tariff-row"><span>Доп. квартира</span><b>${nf.format(extra)} сом в месяц</b></div>` : ''}
-      ${renew ? `<div class="tariff-btns"><a class="btn btn-primary" href="${renew}" target="_blank" rel="noopener">Продлить</a><a class="btn" href="${more}" target="_blank" rel="noopener">Добавить квартиры</a></div>` : ''}
+      ${renew && (until || max) ? `<div class="tariff-btns">${until ? `<a class="btn btn-primary" href="${renew}" target="_blank" rel="noopener">Продлить</a>` : ''}${max ? `<a class="btn" href="${more}" target="_blank" rel="noopener">Добавить квартиры</a>` : ''}</div>` : ''}
     </div>`;
   }
 
@@ -405,7 +465,7 @@
       <div class="row" style="justify-content:space-between"><h1>Квартиры</h1><a class="btn btn-primary" href="#zk-new">+ ЖК</a></div>
       <label class="search"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
         <input type="search" id="lq" placeholder="Поиск квартиры: ЖК, адрес, площадь" value="${esc(listQuery)}" autocomplete="off"></label>
-      ${me.realtor.plan.maxApartments ? `<p class="${apts.length >= me.realtor.plan.maxApartments ? 'warn' : 'hint'}" style="margin-top:-6px">Тариф: ${apts.length} из ${flats(me.realtor.plan.maxApartments)}${apts.length >= me.realtor.plan.maxApartments ? ' — лимит исчерпан, новые добавить нельзя' : ''}</p>` : ''}
+      ${me.realtor.plan.maxApartments && apts.length >= me.realtor.plan.maxApartments ? `<p class="${apts.length >= me.realtor.plan.maxApartments ? 'warn' : 'hint'}" style="margin-top:-6px">Тариф: ${apts.length} из ${flats(me.realtor.plan.maxApartments)}${apts.length >= me.realtor.plan.maxApartments ? ' — лимит исчерпан, новые добавить нельзя' : ''}</p>` : ''}
       <div id="zkGrid" class="zk-grid">
         ${shown.map(c => {
           const mine = byKey.get(c.key) || [];

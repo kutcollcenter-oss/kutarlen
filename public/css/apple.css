@@ -1420,3 +1420,6 @@ body.over-hero .topbar .brand img, body:has(.hero-cover) .topbar .brand img { ba
 body { font-family: var(--sans); }
 h1, h2, h3, .hero h1 { letter-spacing: -.01em !important; }
 .btn, button, .chips button, .seg button, .zk-apt-btn, .zk-more, .tab, select, .news-btn, .hero-cta .btn { font-family: 'Nunito Sans', var(--sans) !important; }
+
+/* ИИ-кнопка над кнопкой/полем/карточкой — уходит в прозрачность, чтобы не закрывать главное (aichat.js) */
+.ai-fab.ai-fab-away { opacity: 0; pointer-events: none; }

@@ -105,6 +105,27 @@
   const shade = document.createElement('div'); shade.className = 'ai-shade';
   document.body.append(shade, box, fab);
 
+  // Кнопка не должна закрывать главное: если под ней кнопка, поле калькулятора или карточка похожей квартиры —
+  // она плавно исчезает и появляется снова, когда место свободно. Меняем только прозрачность — размер и место те же,
+  // поэтому проверка не «мигает».
+  const UNDER = '.btn, [data-wa], input, select, textarea, .mini-list > *, .zk-card, .card-actions';
+  let fabTick = 0;
+  const fabCheck = () => {
+    fabTick = 0;
+    const r = fab.getBoundingClientRect();
+    if (!r.width) return;
+    const hit = [...document.querySelectorAll(UNDER)].some(el => {
+      if (el === fab || fab.contains(el) || el.closest('.tabbar, .topbar, .ai-box')) return false;
+      const b = el.getBoundingClientRect();
+      return b.width > 0 && b.bottom > r.top - 6 && b.top < r.bottom + 6 && b.right > r.left && b.left < r.right;
+    });
+    fab.classList.toggle('ai-fab-away', hit);
+  };
+  const fabLater = () => { if (!fabTick) fabTick = requestAnimationFrame(fabCheck); };
+  window.addEventListener('scroll', fabLater, { passive: true });
+  window.addEventListener('resize', fabLater);
+  setTimeout(fabCheck, 400);
+
   const log = box.querySelector('.ai-log');
   const chips = box.querySelector('.ai-chips');
   const form = box.querySelector('.ai-form');
