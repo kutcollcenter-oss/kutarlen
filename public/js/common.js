@@ -87,6 +87,16 @@
   // Просмотр страницы
   RS.event('view', { a: D.apartment ? D.apartment.id : null });
 
+
+  // Шапка поверх фото первого экрана (компьютер): прозрачная, пока виден первый экран; дальше — обычная светлая
+  const heroCover = document.querySelector('.hero.hero-cover');
+  if (heroCover) {
+    const overHero = () => document.body.classList.toggle('over-hero', heroCover.getBoundingClientRect().bottom > 90);
+    overHero();
+    window.addEventListener('scroll', overHero, { passive: true });
+    window.addEventListener('resize', overHero);
+  }
+
   // ---------- Чистый адрес ----------
   // В адресной строке всегда только «сайт/имя» или «сайт/имя/kvartira/…»: без «#раздел»,
   // меток источника (?src=) и служебных параметров (?down=). Метки уже прочитаны выше, параметры — в RS.params.

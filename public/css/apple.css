@@ -1280,3 +1280,65 @@ a.apt-complex { text-decoration: none; display: inline-block; } a.apt-complex:ho
 #cards .zk .zk-photo .ph { height: 100%; background: var(--soft) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 24 24' fill='none' stroke='%23b8a88c' stroke-width='1.3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z'/%3E%3Cpath d='M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2'/%3E%3Cpath d='M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2'/%3E%3Cpath d='M10 6h4M10 10h4M10 14h4M10 18h4'/%3E%3C/svg%3E") center / 64px no-repeat !important; }
 /* В ЖК теперь только фото зданий (без планировок) — заполняют рамку целиком */
 .zkp-photo img, #cards .zk .zk-photo img { object-fit: cover !important; }
+
+/* =====================================================================
+   Фон первого экрана — Бишкек (26.11.2026; фото Pexels #27532623, бесплатная лицензия Pexels, без указания автора).
+   Компьютер и планшет: город затемнён, текст светлый. Телефон — как раньше: фото менеджера на весь экран.
+   ===================================================================== */
+@media (min-width: 640px) {
+  .hero.hero-cover {
+    background: linear-gradient(90deg, rgba(14, 11, 7, .9) 0%, rgba(14, 11, 7, .74) 48%, rgba(14, 11, 7, .5) 100%),
+      url('/img/bishkek-hero-m.webp') center 40% / cover no-repeat #14110d !important;
+    border-bottom: 0 !important;
+  }
+}
+@media (min-width: 1200px) {
+  .hero.hero-cover {
+    background: linear-gradient(90deg, rgba(14, 11, 7, .9) 0%, rgba(14, 11, 7, .74) 48%, rgba(14, 11, 7, .5) 100%),
+      url('/img/bishkek-hero.webp') center 40% / cover no-repeat #14110d !important;
+  }
+}
+/* Компьютер: светлый текст на фоне города (как тёмный вариант hv-dark) */
+@media (min-width: 900px) {
+  .hero.hero-cover h1, .hero.hero-cover h1 .w > span { color: #fbf6ec; }
+  .hero.hero-cover h1 .hl, .hero.hero-cover h1 .hl > span { color: var(--gold-light); }
+  .hero.hero-cover .pill { color: var(--gold-light) !important; }
+  .hero.hero-cover .pill::before { background: var(--gold-light) !important; }
+  .hero.hero-cover .hero-points { color: rgba(255, 255, 255, .78) !important; }
+  .hero.hero-cover .hero-points li::before { color: var(--gold-light); }
+  .hero.hero-cover .hero-stats { border-top-color: rgba(232, 201, 143, .25); }
+  .hero.hero-cover .hero-stats div + div { border-left-color: rgba(232, 201, 143, .25); }
+  .hero.hero-cover .hero-stats dt { color: #fbf6ec; }
+  .hero.hero-cover .hero-stats dd { color: rgba(255, 255, 255, .66); }
+  .hero.hero-cover .hero-media::before { border-color: rgba(232, 201, 143, .5) !important; }
+  .hero.hero-cover .hero-photo { box-shadow: 0 30px 80px -20px rgba(0, 0, 0, .7) !important; }
+}
+/* Планшет: портрет кругом сверху, текст под ним */
+@media (min-width: 640px) and (max-width: 899px) {
+  .hero.hero-cover { min-height: 0 !important; display: block; }
+  .hero.hero-cover .hero-in { display: flex !important; flex-direction: column; align-items: flex-start; padding-top: 104px !important; padding-bottom: 52px !important; }
+  .hero.hero-cover .hero-media { order: -1; position: relative !important; inset: auto !important; width: 210px; height: 210px; margin: 0 0 26px !important;
+    border-radius: 50% !important; overflow: hidden; border: 3px solid rgba(232, 201, 143, .65) !important; box-shadow: 0 20px 50px -12px rgba(0, 0, 0, .7); }
+  .hero.hero-cover .hero-media::after { display: none; }
+  .hero.hero-cover .hero-photo { height: 100%; border-radius: 50% !important; }
+  .hero.hero-cover .hero-text { padding: 0 !important; }
+}
+/* Компьютер: фото Бишкека и за шапкой. Наверху шапка прозрачная, текст белый (класс over-hero ставит common.js);
+   прокрутили ниже первого экрана — шапка снова светлая. */
+@media (min-width: 900px) {
+  .topbar { transition: background-color .25s, border-color .25s, box-shadow .25s; }
+  body:has(.hero-cover) .hero.hero-cover { margin-top: -73px; }
+  body:has(.hero-cover) .hero.hero-cover .hero-in { padding-top: 121px !important; }
+  body.over-hero .topbar { background: linear-gradient(180deg, rgba(10, 7, 3, .55) 0%, rgba(10, 7, 3, 0) 100%) !important;
+    -webkit-backdrop-filter: none !important; backdrop-filter: none !important; border-bottom-color: transparent !important; box-shadow: none !important; }
+  body.over-hero .topbar .brand b { color: #fff; }
+  body.over-hero .topbar .brand small { color: var(--gold-light); }
+  body.over-hero .topbar .nav a { color: rgba(255, 255, 255, .88); }
+  body.over-hero .topbar .nav a:hover { color: #fff; }
+  body.over-hero .lang-sw { background: rgba(255, 255, 255, .16) !important; -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+  body.over-hero .lang-sw a { color: #fff; }
+  body.over-hero .lang-sw a.on { color: var(--ink); background: #fff; }
+}
+/* Логотип в прозрачной шапке над фото — на светлой плашке, чтобы тёмный логотип был виден */
+body.over-hero .topbar .brand img, body:has(.hero-cover) .topbar .brand img { background: rgba(255, 253, 248, .94); padding: 4px 8px; border-radius: 10px; box-sizing: content-box; }
+@media (min-width: 900px) { body:not(.over-hero) .topbar .brand img { background: none; padding: 0; } }
