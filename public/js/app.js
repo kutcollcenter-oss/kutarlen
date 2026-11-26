@@ -515,7 +515,7 @@
       const where = st.city ? L('inCity', { city: st.city }) : '';
       const text = L('waPick', { kind, where, budget: budget ? `: ${budget}` : '' });
       $('cards').innerHTML = `<div class="empty">
-        <p>${L('emptyHtml', { many: esc(plural(wordsKey, 5)) })}</p>
+        <p>${APTS.length ? L('emptyHtml', { many: esc(plural(wordsKey, 5)) }) : L('emptyNoneHtml')}</p>
         <a class="btn btn-wa btn-lg" href="${esc(wa(text))}" data-wa="empty" target="_blank" rel="noopener">${D.waIcon}${L('pickManually')}</a>
       </div>`;
     }

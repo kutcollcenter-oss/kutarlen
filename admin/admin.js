@@ -390,7 +390,7 @@
   }
 
   async function renderList() {
-    const [apts, zks] = await Promise.all([api('GET', '/api/admin/apartments'), api('GET', '/api/admin/complexes').catch(() => []), api('GET', '/api/owner/promos').catch(() => [])]);
+    const [apts, zks] = await Promise.all([api('GET', '/api/admin/apartments'), api('GET', '/api/admin/complexes').catch(() => [])]);
     aptCount = apts.length;
     const byKey = new Map();
     apts.forEach(a => { const k = aptZk(a); if (!byKey.has(k)) byKey.set(k, []); byKey.get(k).push(a); });
@@ -1572,7 +1572,7 @@
 
   async function renderRealtors() {
     if (!isOwner()) { location.hash = '#list'; return; }
-    const [list, product, mine, ai, mUsers, cos, sUsers, wa, zks, promoList] = await Promise.all([api('GET', '/api/owner/realtors'), api('GET', '/api/owner/product'), api('GET', '/api/admin/apartments'), api('GET', '/api/owner/aichat'), api('GET', '/api/owner/money-users'), api('GET', '/api/owner/companies'), api('GET', '/api/owner/shop-users'), api('GET', '/api/owner/wa').catch(() => null), api('GET', '/api/admin/complexes').catch(() => [])]);
+    const [list, product, mine, ai, mUsers, cos, sUsers, wa, zks, promoList] = await Promise.all([api('GET', '/api/owner/realtors'), api('GET', '/api/owner/product'), api('GET', '/api/admin/apartments'), api('GET', '/api/owner/aichat'), api('GET', '/api/owner/money-users'), api('GET', '/api/owner/companies'), api('GET', '/api/owner/shop-users'), api('GET', '/api/owner/wa').catch(() => null), api('GET', '/api/admin/complexes').catch(() => []), api('GET', '/api/owner/promos').catch(() => [])]);
     // Сколько квартир в рассрочку скопируется новому менеджеру (наличные не копируются)
     const myInstallment = mine.filter(a => a.computed.installment || (!cashLike(typeOf(a)) && a.computed.price)).length;
     const others = list.filter(x => x.role !== 'owner');
