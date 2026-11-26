@@ -317,10 +317,9 @@
 
   function card(a) {
     const c = a.currency;
-    // Все фото квартиры в карточке: листаются сами, по нажатию открываются на весь экран
+    // На главной в карточке одно (главное) фото — не листается; по нажатию все фото открываются на весь экран
     const photo = a.photos.length
-      ? `<div class="cp-track">${a.photos.map(p => `<img src="${p.thumb}" alt="" loading="lazy">`).join('')}</div>
-         ${a.photos.length > 1 ? `<div class="cp-dots">${a.photos.map((p, i) => `<i${i ? '' : ' class="on"'}></i>`).join('')}</div>` : ''}`
+      ? `<div class="cp-track"><img src="${a.photos[0].thumb}" alt="" loading="lazy"></div>`
       : '<div class="ph"></div>';
     const url = a.installment && a.o.down !== a.down ? `${a.url}?down=${a.o.down}` : a.url;
     const main = a.installment
@@ -369,10 +368,10 @@
     const a0 = g[0], c = a0.currency;
     // Только фото ЖК (здание снаружи), без планировок; без повторов
     const seenPh = new Set(), photos = [];
-    g.forEach(a => a.photos.forEach(p => { if (p.zk && !seenPh.has(p.src) && photos.length < 8) { seenPh.add(p.src); photos.push(p); } }));
+    g.forEach(a => a.photos.forEach(p => { if (p.zk && !seenPh.has(p.src) && photos.length < 1) { seenPh.add(p.src); photos.push(p); } }));
     const photo = photos.length
       ? `<div class="cp-track">${photos.map(p => `<img src="${p.thumb}" alt="" loading="lazy">`).join('')}</div>
-         ${photos.length > 1 ? `<div class="cp-dots">${photos.map((p, i) => `<i${i ? '' : ' class="on"'}></i>`).join('')}</div>` : ''}`
+`
       : '<div class="ph"></div>';
     const main = a => (a.installment ? a.o.monthly : a.price);
     const best = g.reduce((x, a) => (main(a) < main(x) ? a : x), g[0]);
@@ -413,7 +412,6 @@
     box.classList.add('zk-view');
     // У ЖК нет фото дома — пустую карточку ЖК не показываем: сразу его квартиры (с планировками), как при фильтре
     box.innerHTML = groupObjs(list).map(g => (g.some(a => a.photos.some(p => p.zk)) ? objCard(g) : g.map(card).join(''))).join('');
-    window.RS.slides(box.querySelectorAll('.card-photo'));
   }
 
   // Подменить в сообщении строки «Взнос: …» и «В месяц: …» (их начала — в словаре: waDown, waMonthly)
@@ -466,7 +464,6 @@
     } else if (list.length) {
       $('cards').classList.remove('zk-view');
       $('cards').innerHTML = list.map(card).join('');
-      window.RS.slides($('cards').querySelectorAll('.card-photo'));
     } else {
       $('cards').classList.remove('zk-view');
       const budget = [
