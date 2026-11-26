@@ -1342,3 +1342,42 @@ a.apt-complex { text-decoration: none; display: inline-block; } a.apt-complex:ho
 /* Логотип в прозрачной шапке над фото — на светлой плашке, чтобы тёмный логотип был виден */
 body.over-hero .topbar .brand img, body:has(.hero-cover) .topbar .brand img { background: rgba(255, 253, 248, .94); padding: 4px 8px; border-radius: 10px; box-sizing: content-box; }
 @media (min-width: 900px) { body:not(.over-hero) .topbar .brand img { background: none; padding: 0; } }
+
+/* =====================================================================
+   «Скоро»: одна новость с фото — на компьютере и планшете фото новости на весь блок (затемнено),
+   слева тёмная полупрозрачная карточка с заголовком, текстом и кнопкой. Телефон — как раньше.
+   ===================================================================== */
+.news-cover-title { display: none; }
+@media (min-width: 640px) {
+  .news-sec.news-cover { position: relative; background: linear-gradient(90deg, rgba(14, 11, 7, .88) 0%, rgba(14, 11, 7, .6) 50%, rgba(14, 11, 7, .25) 100%),
+      var(--news-bg) center / cover no-repeat #14110d !important; padding-top: 72px !important; padding-bottom: 72px !important; }
+  .news-cover .kicker { color: var(--gold-light) !important; }
+  .news-cover h2, .news-cover h2 * { color: #fbf6ec; }
+  .news-cover h2 .hl { color: var(--gold-light); }
+  .news-cover .news { display: block !important; }
+  .news-cover .news-card { max-width: 520px; background: rgba(20, 16, 11, .55) !important; -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+    border: 1px solid rgba(232, 201, 143, .25) !important; box-shadow: 0 24px 60px -20px rgba(0, 0, 0, .6) !important; color: #fff; }
+  .news-cover .news-photo { display: none; }
+  .news-cover .news-cover-title { display: block; margin: 0 0 12px; color: #fff; font-size: 26px; line-height: 1.2; }
+  .news-cover .news-text { color: rgba(255, 255, 255, .86); }
+  .news-cover .news-more { color: var(--gold-light) !important; }
+}
+@media (min-width: 900px) { .news-sec.news-cover { min-height: 560px; display: flex; align-items: center; } .news-sec.news-cover > .wrap { width: 100%; } }
+/* «Скоро» с фото: слои фона на каждую новость; несколько новостей — плавная смена каждые 2 секунды (app.js) */
+@media (min-width: 640px) {
+  .news-sec.news-cover { background: #14110d !important; overflow: hidden; }
+  .news-bgs { position: absolute; inset: 0; z-index: 0; }
+  .news-bg { position: absolute; inset: 0; background-position: center; background-size: cover; background-repeat: no-repeat; opacity: 0; transition: opacity .9s ease; }
+  .news-bg.on { opacity: 1; }
+  .news-bgs::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(14, 11, 7, .88) 0%, rgba(14, 11, 7, .6) 50%, rgba(14, 11, 7, .25) 100%); }
+  .news-cover > .wrap { position: relative; z-index: 1; }
+  .news-cover .news-card:not(.on) { display: none; }
+  .news-cover .news-card.on { animation: newsIn .6s ease both; }
+  .news-dots { display: flex; gap: 8px; margin-top: 18px; }
+  .news-dots button { width: 10px; height: 10px; border-radius: 6px; border: 0; padding: 0; background: rgba(255, 255, 255, .35); cursor: pointer; transition: width .3s, background-color .3s; }
+  .news-dots button.on { width: 28px; background: var(--gold-light); }
+}
+@media (max-width: 639px) { .news-bgs, .news-dots { display: none; } }
+@keyframes newsIn { from { opacity: 0; transform: translateY(8px); } }
+@media (prefers-reduced-motion: reduce) { .news-bg { transition: none; } .news-cover .news-card.on { animation: none; } }
+.zkp-about { margin-top: 34px; } .zkp-about h2 { font-family: var(--sans) !important; font-weight: 700 !important; font-size: 24px !important; margin: 0 0 12px; } .zkp-about p { max-width: 760px; line-height: 1.6; }

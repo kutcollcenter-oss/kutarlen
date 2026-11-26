@@ -461,11 +461,22 @@
           </div>
           <label class="f"><span>Адрес</span><input type="text" name="address" value="${esc(c.address)}" maxlength="200"></label>
           <label class="f"><span>Ссылка на карту — 2ГИС или Google</span><input type="text" name="mapLink" value="${esc(c.mapLink)}" inputmode="url" placeholder="https://go.2gis.com/… или https://maps.app.goo.gl/…"></label>
+          <h2>Характеристики ЖК</h2>
+          <div class="grid2">
+            <label class="f"><span>Срок сдачи</span><input type="text" name="handover" value="${esc(c.handover)}" maxlength="120" placeholder="I квартал 2029 или Дом сдан"></label>
+            <label class="f"><span>Этажность</span><input type="text" name="floors" value="${esc(c.floors || '')}" inputmode="numeric"></label>
+          </div>
+          <div class="hint" style="margin:-6px 0 10px">Несколько этапов — через запятую: «II квартал 2028, II квартал 2030». Тогда в каждой квартире выбирается её этап.</div>
+          <label class="f"><span>Описание ЖК</span><textarea name="details" rows="5">${esc(c.details)}</textarea></label>
+          <label class="f"><span>Описание — по-кыргызски</span><textarea name="detailsKy" rows="4" placeholder="Пусто — на кыргызской версии будет русский текст">${esc(c.detailsKy)}</textarea></label>
           <div class="err" id="zkErr"></div>
           <button class="btn btn-primary">Сохранить ЖК</button>
           <div class="hint" style="margin-top:8px">Сохранится у всех квартир этого ЖК${c.n ? ` (${c.n})` : ''}${isOwner() ? ' у всех менеджеров' : ''}.</div>`
         : `<p style="margin:0">${esc([c.city, c.district, c.address].filter(Boolean).join(' · ') || '—')}</p>
           ${c.mapLink ? `<p style="margin:6px 0 0"><a href="${esc(c.mapLink)}" target="_blank" rel="noopener">Открыть на карте ↗</a></p>` : ''}
+          <h2>Характеристики ЖК</h2>
+          <p style="margin:0">Срок сдачи: <b>${esc(c.handover || '—')}</b> · Этажность: <b>${esc(c.floors || '—')}</b></p>
+          ${c.details ? `<p class="hint" style="white-space:pre-line;margin-top:8px">${esc(c.details)}</p>` : ''}
           <div class="hint" style="margin-top:10px">Фото дома, адрес и карту этого ЖК меняет владелец сервиса — они одинаковые у всех менеджеров. Если что-то не так, напишите ему.</div>`}
       </form>` : '<p class="hint" style="margin-top:10px">Участки и дома, которые не относятся к ЖК. Адрес и карта — в каждой квартире.</p>'}
       <h2>${none ? 'Квартиры и участки' : 'Мои квартиры в этом ЖК'} <span class="hint" style="margin:0">· ${mine.length}</span></h2>
@@ -504,7 +515,7 @@
       e.preventDefault();
       const d = Object.fromEntries(new FormData(e.target));
       try {
-        const r = await api('PUT', `/api/admin/complexes/${encodeURIComponent(key)}`, { city: d.city, district: d.district, address: d.address, mapLink: d.mapLink });
+        const r = await api('PUT', `/api/admin/complexes/${encodeURIComponent(key)}`, { city: d.city, district: d.district, address: d.address, mapLink: d.mapLink, handover: d.handover, floors: d.floors, details: d.details, detailsKy: d.detailsKy });
         if (r.mapError) showErr('zkErr', `Ссылка на карту не распознана: ${r.mapError}`);
         else toast(`ЖК сохранён${r.apartments ? ` — у ${r.apartments} квартир` : ''}`);
       } catch (err) { showErr('zkErr', err.message); }
@@ -741,7 +752,25 @@
       let note = document.getElementById('zkShared');
       if (!note) { note = document.createElement('div'); note.id = 'zkShared'; note.className = 'hint'; form.elements.city.closest('label').before(note); }
       note.hidden = !c;
-      if (c) note.innerHTML = `<b>Адрес:</b> ${esc([c.city, c.district, c.address].filter(Boolean).join(' · ') || '—')}${c.mapLink ? ' · карта есть' : ''}. Адрес, карта и фото дома — общие для ЖК, ${c.canEdit ? `меняются <a href="#zk/${encodeURIComponent(c.key)}">на странице ЖК</a>` : 'их меняет владелец сервиса'}.`;
+      if (c) note.innerHTML = `<b>Адрес:</b> ${esc([c.city, c.district, c.address].filter(Boolean).join(' · ') || '—')}${c.mapLink ? ' · карта есть' : ''}. Адрес, карта, фото дома, этажность, срок сдачи и описание — общие для ЖК, ${c.canEdit ? `меняются <a href="#zk/${encodeURIComponent(c.key)}">на странице ЖК</a>` : 'их меняет владелец сервиса'}.`;
+      // Описание и этажность — у ЖК; в квартире ЖК этих полей нет
+      ['details', 'detailsKy', 'floors'].forEach(n => { const el = form.elements[n]; if (!el) return; el.disabled = lock; const w = el.closest('label'); if (w) w.hidden = lock; });
+      // Срок сдачи — у ЖК. Этапов несколько (2028 и 2030) — у квартиры выбор этапа из списка ЖК
+      const ho = form.elements.handover, hoWrap = ho && ho.closest('label');
+      let stSel = document.getElementById('zkStage');
+      if (stSel) stSel.closest('label').remove();
+      if (ho && hoWrap) {
+        const stages = (c && c.stages) || [];
+        if (lock && stages.length > 1 && type !== 'land' && type !== 'cash') {
+          hoWrap.hidden = true;
+          const cur = stages.find(x => (ho.value || '').includes(x.split(' ').pop())) || '';
+          hoWrap.insertAdjacentHTML('afterend', `<label class="f"><span>Этап сдачи</span><select id="zkStage"><option value="">— Выберите этап —</option>${stages.map(x => `<option ${x === cur ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select><div class="hint">У ЖК несколько этапов сдачи — выберите, в каком эта квартира.</div></label>`);
+          stSel = document.getElementById('zkStage');
+          ho.value = cur;
+          stSel.onchange = () => { ho.value = stSel.value; };
+        } else if (lock) { hoWrap.hidden = true; ho.value = c.handover || ''; }
+        else hoWrap.hidden = !String(hoWrap.dataset.for || '').split(' ').includes(type); // новый ЖК / без ЖК — поле своё
+      }
     };
     const showPick = () => {
       const land = type === 'land';

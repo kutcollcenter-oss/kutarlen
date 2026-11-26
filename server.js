@@ -106,6 +106,8 @@ const pub = (r, a, req, lang = langOf(req)) => {
   // Фото квартиры (планировка, ремонт), за ними — фото дома из её ЖК (zk: true — для страницы и карточки ЖК)
   const c = complexes.get(complexes.keyOf(a));
   p.photos = [...p.photos.map(x => ({ ...x, zk: false })), ...((c && c.photos) || []).map(n => ({ ...photoUrls(n), zk: true }))];
+  // Описание, этажность и срок сдачи — у ЖК (на странице ЖК); у квартиры ЖК своё описание не показываем
+  if (c) p.details = '';
   return p;
 };
 const aptLabel = a => `${a.title ? a.title + ' · ' : ''}${kindLabel(a)}, ${a.area} ${unitOf(a)}`;
@@ -406,7 +408,8 @@ app.get('/' + DEMO_SLUG + '/zhk/:key', (req, res, next) => {
   const url = `/${DEMO_SLUG}/zhk/${key}`;
   const list = demoList(d, req).filter(a => a.zk === url);
   if (!list.length) return res.redirect(302, '/' + DEMO_SLUG);
-  res.send(pages.renderComplex(demoCtx(d, req), list[0].title || list[0].address, list, { url, type: String(req.query.t || '') }));
+  const zc = complexes.get(zkPrep.zkKey(list[0].title)) || {};
+  res.send(pages.renderComplex(demoCtx(d, req), list[0].title || list[0].address, list, { url, type: String(req.query.t || ''), about: (langOf(req) === 'ky' && zc.detailsKy) || zc.details || '' }));
 });
 
 app.get('/:slug', (req, res, next) => {
@@ -424,7 +427,8 @@ app.get('/:slug/zhk/:key', (req, res) => {
   if (!raw.length) return res.status(404).send(pages.renderGone(ctxOf(r, req), similarTo(r, null, req)));
   const list = raw.map(a => pub(r, a, req));
   const name = list[0].title || list[0].address;
-  res.send(pages.renderComplex(ctxOf(r, req), name, list, { url: `/${r.slug}/zhk/${key}`, type: String(req.query.t || '') }));
+  const zc = complexes.get(complexes.keyOf(raw[0])) || {};
+  res.send(pages.renderComplex(ctxOf(r, req), name, list, { url: `/${r.slug}/zhk/${key}`, type: String(req.query.t || ''), about: (langOf(req) === 'ky' && zc.detailsKy) || zc.details || '' }));
 });
 
 app.get('/:slug/kvartira/:id', (req, res) => {
@@ -577,8 +581,10 @@ app.get('/api/admin/complexes', requireAuth, (req, res) => {
       key: c.key, name: c.name, n: g.length, mine: g.filter(a => a.realtorId === req.realtor.id).length,
       city: c.city || 'Бишкек', district: c.district || '', address: c.address || '', mapLink: (c.map || {}).link || '',
       photos: (c.photos || []).filter(p => PHOTO_RE.test(p)),
-      floors: Number(top(g.map(a => a.floors && String(a.floors)))) || '',
-      handover: stageSets.size === 1 ? top(withHo.map(a => String(a.handover).trim())) : '', // у ЖК в несколько этапов — у квартир разный
+      floors: c.floors || Number(top(g.map(a => a.floors && String(a.floors)))) || '',
+      handover: c.handover || (stageSets.size === 1 ? top(withHo.map(a => String(a.handover).trim())) : ''),
+      stages: complexes.stagesOf(c.handover).map(complexes.stageText), // несколько этапов — квартира выбирает свой
+      details: c.details || '', detailsKy: c.detailsKy || '',
       canEdit: canEditComplex(c, req, c.key), mineCreated: c.createdBy === req.realtor.id,
     };
   }).sort((a, b) => b.mine - a.mine || b.n - a.n || a.name.localeCompare(b.name, 'ru'));
@@ -609,6 +615,7 @@ async function complexPatch(b, old = {}) {
     patch.map = !link ? null : (old.map && old.map.link === link && !old.map.error ? old.map : await resolveMap(link));
   }
   if ('photos' in b) patch.photos = cleanPhotos(b.photos) || [];
+  for (const k of ['handover', 'floors', 'details', 'detailsKy']) if (k in b) patch[k] = b[k];
   return patch;
 }
 // Новый ЖК
@@ -1125,6 +1132,15 @@ app.use((req, res) => res.status(404).send(pages.renderInvalid(D().product, base
       if (c.photos.length < before) console.log(`Фото ЖК — «${c.name}»: убрано одинаковых ${before - c.photos.length}, осталось ${c.photos.length}`);
     }
     db.save();
+  }
+  // Один раз: срок сдачи, этажность и описание — из квартир в их ЖК. Перед этим — копия базы.
+  if (!D().done.zkInfo) {
+    const dir = path.join(db.DATA_DIR, 'backups');
+    fs.mkdirSync(dir, { recursive: true });
+    const copy = path.join(dir, `before-zk-info-${new Date().toISOString().slice(0, 10)}.json`);
+    if (!fs.existsSync(copy)) fs.copyFileSync(path.join(db.DATA_DIR, 'db.json'), copy);
+    console.log('Копия базы перед переносом срока, этажности и описания в ЖК: ' + copy);
+    complexes.infoOnce(line => console.log('ЖК — ' + line));
   }
   // Один раз: кыргызские переводы текстов, которые уже есть у менеджеров (lib/ky-fill.js) — только в пустые кыргызские поля.
   // Отметка done.kyFill — чтобы потом не трогать то, что менеджер поменял или очистил сам.

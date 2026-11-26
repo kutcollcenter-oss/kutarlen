@@ -83,6 +83,32 @@
     window.addEventListener('load', fit, { once: true }); // шрифт догрузился — высота текста могла измениться
   });
 
+  // «Скоро» с фото на фоне (компьютер, планшет): несколько новостей — фон и карточка сменяются каждые 2 секунды.
+  // Мышка на карточке или фокус внутри — пауза (чтобы дочитать); точки внизу — переключить вручную.
+  const newsSec = document.querySelector('.news-cover');
+  if (newsSec) {
+    const cards = [...newsSec.querySelectorAll('.news-card')], bgs = [...newsSec.querySelectorAll('.news-bg')], dots = [...newsSec.querySelectorAll('.news-dots button')];
+    if (cards.length > 1) {
+      let cur = 0, hold = false;
+      const wide = window.matchMedia('(min-width: 640px)');
+      const show = k => {
+        cur = (k + cards.length) % cards.length;
+        [cards, bgs, dots].forEach(list => list.forEach((el, j) => el.classList.toggle('on', j === cur)));
+        // «Читать подробнее»: у скрытой карточки высоту текста не измерить — проверяем, когда она показана
+        const p = cards[cur].querySelector('.news-text'), b = cards[cur].querySelector('.news-more');
+        if (p && b && b.getAttribute('aria-expanded') !== 'true') { p.classList.add('is-clamped'); const long = p.scrollHeight > p.clientHeight + 2; p.classList.toggle('is-clamped', long); b.hidden = !long; }
+      };
+      setInterval(() => { if (!hold && !document.hidden && wide.matches) show(cur + 1); }, 2000);
+      const box = newsSec.querySelector('.news');
+      box.addEventListener('pointerenter', () => { hold = true; });
+      box.addEventListener('pointerleave', () => { hold = false; });
+      box.addEventListener('focusin', () => { hold = true; });
+      box.addEventListener('focusout', () => { hold = false; });
+      const dotsBox = newsSec.querySelector('.news-dots');
+      if (dotsBox) dotsBox.addEventListener('click', e => { const b = e.target.closest('button'); if (b) show(+b.dataset.i); });
+    }
+  }
+
   $('faq').innerHTML = blocks(S.faq).map(([q, ...a]) =>
     `<details><summary>${esc(q)}</summary><p>${esc(a.join(' '))}</p></details>`).join('');
 
