@@ -239,3 +239,21 @@ input:disabled, select:disabled, textarea:disabled { opacity: .55; cursor: not-a
 }
 .zk-del { margin-top: 28px; color: var(--bad); border-color: rgba(255, 107, 90, .45); }
 .zk-del:hover { background: rgba(255, 107, 90, .08); color: var(--bad); }
+
+/* Читаемость (аудит 26.11.2026, п. 11): стиль тот же — заглавные вразрядку, — но крупнее и с меньшей разрядкой.
+   Меню на ноутбуке было 11px с разрядкой .2em, кнопки на телефоне ломались в 2–3 строки. */
+:root { --cap: 500 12px/1.3 var(--font); }
+.top a, .top button, #logout { font-size: 12.5px !important; letter-spacing: .14em !important; }
+.top-title { font-size: 13px; letter-spacing: .24em; }
+.btn { letter-spacing: .12em; font-size: 12.5px; line-height: 1.25; }
+@media (max-width: 1023px) {
+  .atab a { font-size: 10.5px; letter-spacing: .04em; }
+}
+@media (max-width: 480px) {
+  .btn { letter-spacing: .06em; padding: 12px 14px; }
+  .tariff-btns, .refer .tariff-btns { gap: 8px; }
+}
+@media (max-width: 480px) {
+  .tariff-btns { display: grid !important; grid-template-columns: 1fr !important; }
+  .tariff-btns .btn { width: 100%; }
+}

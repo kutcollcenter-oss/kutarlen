@@ -306,6 +306,29 @@
   .old-debts span { white-space: nowrap; font-weight: 700; }
   .od { padding: 10px 0; border-top: 1px solid rgba(255, 255, 255, .08); }
   .od .chips { margin-top: 6px; }
+
+  /* Фирменный вид kvartiry.asia (аудит 26.11.2026, п. 14): тёмный фон как в кабинете, акцент — золото вместо синего iOS.
+     Зелёный и красный остаются только для доходов и расходов. */
+  :root { --acc: #c9a15a; }
+  .btn-main { color: #1a140b; background: linear-gradient(180deg, #e3c38a 0%, #c9a15a 55%, #a8834a 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .45), 0 4px 0 #6e5527, 0 10px 22px rgba(201, 161, 90, .3); }
+  .btn-main:active { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 0 0 #6e5527, 0 4px 10px rgba(201, 161, 90, .25); }
+  .chips button.on { border-color: #c9a15a; background: linear-gradient(180deg, #4a3b22, #362a17); }
+  .months button.on { color: #1a140b; }
+  .tog input { accent-color: #c9a15a; }
+  .tabbar button.on { color: #e3c38a; }
+  .tabbar button.on i { text-shadow: 0 0 12px rgba(201, 161, 90, .5); }
+  .tabbar button.on svg { filter: drop-shadow(0 0 6px rgba(201, 161, 90, .55)); }
+  .mtitle { letter-spacing: -.01em; }
+  /* 17. Длинные названия категорий — в две строки, без обрезки многоточием */
+  .tile .n { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.15; min-height: 2.3em;
+    display: -webkit-box; font-size: 13px; text-align: center; overflow-wrap: anywhere; }
+  /* 15. Вход */
+  .login .big::placeholder { color: #5a5a5e; letter-spacing: 0; font-size: 18px; }
+  .forgot { margin-top: 18px; color: var(--muted); font-size: 14px; text-align: center; }
+  .forgot summary { cursor: pointer; color: #e3c38a; list-style: none; }
+  .forgot summary::-webkit-details-marker { display: none; }
+  .forgot p { margin: 10px 0 0; line-height: 1.45; text-align: left; }
 </style>
 </head>
 <body>
@@ -313,10 +336,11 @@
 <!-- Вход -->
 <form class="login" id="login" hidden autocomplete="off">
   <h1 class="mtitle">Учёт</h1>
-  <p class="muted">Введите пароль</p>
-  <input class="big" id="pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="12" autocomplete="off" aria-label="Пароль">
+  <p class="muted">Введите пароль — только цифры</p>
+  <input class="big" id="pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="12" autocomplete="current-password" aria-label="Пароль" placeholder="Пароль">
   <p class="err" id="loginErr"></p>
   <button class="btn btn-main" type="submit">Войти</button>
+  <details class="forgot"><summary>Забыли пароль?</summary><p>Пароль сбрасывает владелец kvartiry.asia в своём кабинете — раздел «Учёт». После сброса он пришлёт вам новую ссылку-приглашение, по ней вы придумаете новый пароль. Записи в учёте при этом сохраняются.</p></details>
 </form>
 
 <!-- Первый вход: пароль задаёт владелец, который уже вошёл в кабинет /admin -->
@@ -452,7 +476,7 @@
   // Изменение к прошлому месяцу: «↑ 20%» (для расходов рост — плохо, красный)
   const delta = (now, before, badUp = true) => {
     if (!before && !now) return '';
-    if (!before) return '<span class="dl">новое</span>';
+    if (!before) return ''; // прошлого месяца нет — сравнивать не с чем
     const p = Math.round((now - before) / before * 100);
     if (!p) return '<span class="dl">как в прошлом</span>';
     return `<span class="dl ${(p > 0) === badUp ? 'up' : 'down'}">${p > 0 ? '↑' : '↓'} ${Math.abs(p)}%</span>`;
@@ -584,10 +608,13 @@
   // График за 12 месяцев: пары столбиков — доход (зелёный) и расход (красный), выбранный месяц подсвечен
   function yearChart() {
     const ms = []; for (let i = 11, m = month; i >= 0; i--) { ms.unshift(m); m = prevMonth(m); }
-    const data = ms.map(m => ({ m, in: total('in', m), out: total('out', m) }));
-    const max = Math.max(1, ...data.map(d => Math.max(d.in, d.out)));
+    let data = ms.map(m => ({ m, in: total('in', m), out: total('out', m) }));
     if (!data.some(d => d.in || d.out)) return '';
-    const W = 340, H = 150, bw = 10, step = W / 12;
+    // Учёт ведётся недавно — пустые месяцы в начале не рисуем (но не меньше 6 столбиков, чтобы график не был «толстым»)
+    const first = data.findIndex(d => d.in || d.out);
+    data = data.slice(Math.min(first, data.length - 6));
+    const max = Math.max(1, ...data.map(d => Math.max(d.in, d.out)));
+    const W = 340, H = 150, bw = 10, step = W / data.length;
     const bars = data.map((d, i) => {
       const x = i * step + step / 2, hi = d.in / max * (H - 24), ho = d.out / max * (H - 24), on = d.m === month;
       // Пустой месяц — без столбиков (не рисуем чёрточки)
@@ -595,7 +622,7 @@
         ${ho ? `<rect x="${x + 1}" y="${H - 18 - ho}" width="${bw}" height="${Math.max(ho, 3)}" rx="3" fill="url(#go)"/>` : ''}
         <text x="${x}" y="${H - 4}" text-anchor="middle">${MONTHS[+d.m.slice(5) - 1].slice(0, 3)}</text></g>`;
     }).join('');
-    return `<div class="card"><h3>Доходы и расходы за год</h3><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Доходы и расходы по месяцам">
+    return `<div class="card"><h3>${data.length < 12 ? 'Доходы и расходы по месяцам' : 'Доходы и расходы за год'}</h3><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Доходы и расходы по месяцам">
       <defs><linearGradient id="gi" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5ee07f"/><stop offset="1" stop-color="#1f9d48"/></linearGradient>
       <linearGradient id="go" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff7a70"/><stop offset="1" stop-color="#c9302a"/></linearGradient></defs>${bars}</svg>
       <div class="legend"><span><i class="li"></i>доходы</span><span><i class="lo"></i>расходы</span><span class="muted">в сомах</span></div></div>`;

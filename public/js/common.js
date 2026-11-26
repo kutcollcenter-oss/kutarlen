@@ -480,3 +480,27 @@
     else if (run < -24) bar.classList.remove('tb-hide');
   }, { passive: true });
 })();
+
+// Фото не загрузилось (файл удалён, плохая связь): вместо значка «битой картинки» и подписи поверх —
+// аккуратная замена. Фото менеджера на первом экране → инициалы (как у менеджера без фото), остальные — просто скрываем.
+(function () {
+  const initials = name => String(name || '').trim().split(/\s+/).map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
+  function broken(img) {
+    if (!(img instanceof HTMLImageElement) || img.dataset.broken) return;
+    img.dataset.broken = '1';
+    const hero = img.closest('#heroPhoto');
+    if (hero) {
+      const name = img.alt || (window.__DATA__ && window.__DATA__.settings && window.__DATA__.settings.name) || '';
+      const sec = hero.closest('.hero-cover');
+      if (sec) sec.classList.remove('hero-cover'); // на телефоне без фото — обычный первый экран
+      hero.innerHTML = `<div class="hero-initials">${initials(name).replace(/[<>&"]/g, '')}</div>`;
+      return;
+    }
+    img.alt = '';
+    img.classList.add('img-x');
+  }
+  document.addEventListener('error', e => broken(e.target), true);
+  // Ошибки, случившиеся до загрузки этого скрипта
+  const scan = () => [...document.images].forEach(img => { if (img.complete && img.currentSrc && !img.naturalWidth) broken(img); });
+  if (document.readyState === 'complete') scan(); else window.addEventListener('load', scan);
+})();
