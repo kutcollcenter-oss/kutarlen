@@ -83,11 +83,11 @@
     window.addEventListener('load', fit, { once: true }); // шрифт догрузился — высота текста могла измениться
   });
 
-  // «Скоро» с фото на фоне (компьютер, планшет): несколько новостей — фон и карточка сменяются каждые 2 секунды.
+  // «Скоро» с фото на фоне (компьютер, планшет): несколько новостей — фон и карточка сменяются каждые 4 секунды.
   // Мышка на карточке или фокус внутри — пауза (чтобы дочитать); точки внизу — переключить вручную.
   const newsSec = document.querySelector('.news-cover');
   if (newsSec) {
-    const cards = [...newsSec.querySelectorAll('.news-card')], bgs = [...newsSec.querySelectorAll('.news-bg')], dots = [...newsSec.querySelectorAll('.news-dots button')];
+    const cards = [...newsSec.querySelectorAll('.news-card')], bgs = [...newsSec.querySelectorAll('.news-bg')], dots = [...newsSec.querySelectorAll('.news-dots button[data-i]')];
     if (cards.length > 1) {
       let cur = 0, hold = false;
       const wide = window.matchMedia('(min-width: 640px)');
@@ -98,14 +98,27 @@
         const p = cards[cur].querySelector('.news-text'), b = cards[cur].querySelector('.news-more');
         if (p && b && b.getAttribute('aria-expanded') !== 'true') { p.classList.add('is-clamped'); const long = p.scrollHeight > p.clientHeight + 2; p.classList.toggle('is-clamped', long); b.hidden = !long; }
       };
-      setInterval(() => { if (!hold && !document.hidden && wide.matches) show(cur + 1); }, 2000);
+      // Сами — каждые 4 секунды; листнули вручную (стрелки, точки, свайп) — отсчёт заново
+      let timer = null;
+      const restart = () => { clearInterval(timer); timer = setInterval(() => { if (!hold && !document.hidden && wide.matches) show(cur + 1); }, 4000); };
+      restart();
+      const go = k => { show(k); restart(); };
+      // Свайп пальцем по блоку (планшет): влево — следующая, вправо — предыдущая
+      let x0 = null, y0 = 0;
+      newsSec.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+      newsSec.addEventListener('touchend', e => {
+        if (x0 === null || !wide.matches) return;
+        const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+        x0 = null;
+        if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) go(cur + (dx < 0 ? 1 : -1));
+      });
       const box = newsSec.querySelector('.news');
       box.addEventListener('pointerenter', () => { hold = true; });
       box.addEventListener('pointerleave', () => { hold = false; });
       box.addEventListener('focusin', () => { hold = true; });
       box.addEventListener('focusout', () => { hold = false; });
       const dotsBox = newsSec.querySelector('.news-dots');
-      if (dotsBox) dotsBox.addEventListener('click', e => { const b = e.target.closest('button'); if (b) show(+b.dataset.i); });
+      if (dotsBox) dotsBox.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.step) go(cur + +b.dataset.step); else go(+b.dataset.i); });
     }
   }
 
@@ -410,6 +423,7 @@
     const years = [...new Set(g.flatMap(a => (a.stages || []).map(x => x.y)))].sort();
     const tag = years.length > 1
       ? `<span class="tag">${esc(L('handover', { x: years.join(` ${L('hoAnd')} `) }))}</span>`
+      : a0.zkTag ? `<span class="tag">${esc(a0.zkTag)}</span>`
       : a0.handover ? `<span class="tag">${esc(a0.tags.find(t => t.includes(a0.handover)) || a0.handover)}</span>` : '';
     const place = placeOf(g);
     const name = a0.title || a0.address || L('objOther');

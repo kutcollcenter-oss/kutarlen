@@ -1363,7 +1363,7 @@ body.over-hero .topbar .brand img, body:has(.hero-cover) .topbar .brand img { ba
   .news-cover .news-more { color: var(--gold-light) !important; }
 }
 @media (min-width: 900px) { .news-sec.news-cover { min-height: 560px; display: flex; align-items: center; } .news-sec.news-cover > .wrap { width: 100%; } }
-/* «Скоро» с фото: слои фона на каждую новость; несколько новостей — плавная смена каждые 2 секунды (app.js) */
+/* «Скоро» с фото: слои фона на каждую новость; несколько новостей — плавная смена каждые 4 секунды (app.js), стрелки ‹ › и точки */
 @media (min-width: 640px) {
   .news-sec.news-cover { background: #14110d !important; overflow: hidden; }
   .news-bgs { position: absolute; inset: 0; z-index: 0; }
@@ -1381,3 +1381,13 @@ body.over-hero .topbar .brand img, body:has(.hero-cover) .topbar .brand img { ba
 @keyframes newsIn { from { opacity: 0; transform: translateY(8px); } }
 @media (prefers-reduced-motion: reduce) { .news-bg { transition: none; } .news-cover .news-card.on { animation: none; } }
 .zkp-about { margin-top: 34px; } .zkp-about h2 { font-family: var(--sans) !important; font-weight: 700 !important; font-size: 24px !important; margin: 0 0 12px; } .zkp-about p { max-width: 760px; line-height: 1.6; }
+
+/* Стрелки ‹ › у новостей */
+@media (min-width: 640px) {
+  .news-dots { align-items: center; }
+  .news-dots .news-arr { width: 40px; height: 40px; border-radius: 50%; background: rgba(255, 255, 255, .14); border: 1px solid rgba(255, 255, 255, .3);
+    color: #fff; font-size: 24px; line-height: 1; display: grid; place-items: center; padding: 0 0 3px; transition: background-color .2s; }
+  .news-dots .news-arr:hover { background: rgba(255, 255, 255, .26); }
+  .news-dots .news-arr:first-child { margin-right: 6px; }
+  .news-dots .news-arr:last-child { margin-left: 6px; }
+}

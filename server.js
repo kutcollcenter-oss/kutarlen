@@ -12,7 +12,7 @@ const seed = require('./lib/seed');
 const { LANGS, KY_KEYS, langOk, localizeSettings } = require('./lib/i18n');
 const { kyText, kyTag } = require('./lib/ky-fill');
 const { migrateHandover, pendingHandover, dropHandoverTags } = require('./lib/handover');
-const { publicApt, waLink, kindLabel, unitOf, money, isListed, typeOf, isCashType, cityOf, TYPES, CITIES, handoverStages, photoUrls } = require('./lib/calc');
+const { publicApt, waLink, kindLabel, unitOf, money, isListed, typeOf, isCashType, cityOf, TYPES, CITIES, handoverStages, photoUrls, handoverLabel } = require('./lib/calc');
 const { resolveMap } = require('./lib/maps');
 const pages = require('./lib/pages');
 const companies = require('./lib/companies');
@@ -108,6 +108,13 @@ const pub = (r, a, req, lang = langOf(req)) => {
   p.photos = [...p.photos.map(x => ({ ...x, zk: false })), ...((c && c.photos) || []).map(n => ({ ...photoUrls(n), zk: true }))];
   // Описание, этажность и срок сдачи — у ЖК (на странице ЖК); у квартиры ЖК своё описание не показываем
   if (c) p.details = '';
+  // Квартира в ЖК: этажность дома и срок сдачи — на странице ЖК. Срок у квартиры показываем, только если у ЖК
+  // несколько этапов (как «Городок Алтай» 2028 и 2030) — тогда он говорит, в каком этапе квартира.
+  if (c) {
+    p.inZk = true;
+    p.zkMultiStage = complexes.stagesOf(c.handover).length > 1;
+    if (!p.zkMultiStage && p.handover) { const lbl = handoverLabel(p.handover, lang); p.tags = p.tags.filter(t => t !== lbl); p.zkTag = lbl; p.handover = ''; } // zkTag — для карточки ЖК на главной
+  }
   return p;
 };
 const aptLabel = a => `${a.title ? a.title + ' · ' : ''}${kindLabel(a)}, ${a.area} ${unitOf(a)}`;
