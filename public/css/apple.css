@@ -1450,3 +1450,25 @@ h1, h2, h3, .hero h1 { letter-spacing: -.01em !important; }
 
 /* Не загрузившееся фото — без «битой картинки» и подписи поверх (common.js, аудит п. 13) */
 img.img-x { visibility: hidden; }
+
+/* ===== Фильтр «Квартиры под ваш бюджет» проще (решение 26.11.2026) =====
+   «Любой» — обычная первая кнопка, а не большая золотая; точные суммы ползунком и площадь — под ссылкой
+   «Точная сумма и площадь»; внизу одна главная кнопка «Показать: N квартир». */
+.chips.quick { display: flex !important; flex-wrap: wrap; gap: 8px; }
+.chips.quick button { flex: 0 0 auto; padding: 0 16px; white-space: nowrap; }
+#fRooms { display: flex; flex-wrap: wrap; gap: 8px; }
+#fRooms button[data-v=""] { padding: 0 16px; }
+.filter .exact-hint, .filter .field > .range, .filter .f-extra { display: none; }
+.filter.more-open .exact-hint, .filter.more-open .field > .range { display: block; }
+.filter.more-open .f-extra { display: block; }
+.f-links { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 24px; }
+.f-more::after { content: ' ▾'; }
+.filter.more-open .f-more::after { content: ' ▴'; }
+.fsheet-foot .btn.f-none { background: var(--soft, #efe7da) !important; color: var(--ink) !important; box-shadow: none !important; }
+@media (min-width: 900px) {
+  .filter .f-links { grid-column: 1 / 3; }
+  .fsheet-foot { display: flex; justify-content: flex-end; align-items: center; grid-column: 3; }
+  .fsheet-foot .btn { min-height: 52px; padding: 0 28px; color: #fff; border: 0; border-radius: var(--pill) !important;
+    background: linear-gradient(180deg, #c9a364 0%, #a8834a 100%); font-weight: 700;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 3px 0 #7d5f30, 0 10px 22px rgba(168, 131, 74, .3) !important; }
+}

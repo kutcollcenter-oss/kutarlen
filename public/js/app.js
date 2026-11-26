@@ -223,7 +223,7 @@
     setupRange(fMonthly, B.monthly, st.monthly ?? B.monthly.max);
     setupRange(aLo, B.area, st.area[0]); setupRange(aHi, B.area, st.area[1]);
     $('fType').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === st.type));
-    $('fRooms').querySelectorAll('button').forEach(b => b.classList.toggle('on', st.rooms.has(b.dataset.v)));
+    markRooms();
     // Коммерция считается как рассрочка: те же ползунки взноса и платежа, только без комнат
     const isNew = !cashLike(st.type);
     $('fDownWrap').hidden = !isNew;
@@ -233,6 +233,10 @@
     $('lArea').textContent = L(land ? 'areaSot' : 'areaM2');
     $('sortPpm').textContent = L(land ? 'sortPpmLand' : 'sortPpm');
     drawQuick();
+  }
+
+  function markRooms() {
+    $('fRooms').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === '' ? !st.rooms.size : st.rooms.has(b.dataset.v)));
   }
 
   // ---------- Быстрые суммы: «до 500 тыс», «до 1 млн», … ----------
@@ -258,8 +262,8 @@
     const vals = { down: quickValues(inst.map(a => a.down), [0.25, 0.5, 0.8]), monthly: quickValues(inst.map(a => a.monthly), [0.15, 0.4, 0.7]) };
     for (const key in QUICK) {
       const box = $(QUICK[key]);
-      box.innerHTML = vals[key].map(v => `<button type="button" data-v="${v}">${esc(L('quickUpTo', { x: shortMoney(v) }))}</button>`).join('')
-        + `<button type="button" data-v="">${esc(L('anySum'))}</button>`;
+      box.innerHTML = `<button type="button" data-v="">${esc(L('anyShort'))}</button>`
+        + vals[key].map(v => `<button type="button" data-v="${v}">${esc(L('quickUpTo', { x: shortMoney(v) }))}</button>`).join('');
       box.hidden = !vals[key].length;
       box.nextElementSibling.hidden = !vals[key].length; // «Или выберите точную сумму»
     }
@@ -303,12 +307,17 @@
   $('fRooms').addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     const v = b.dataset.v;
-    st.rooms.has(v) ? st.rooms.delete(v) : st.rooms.add(v);
-    b.classList.toggle('on', st.rooms.has(v));
+    if (v === '') st.rooms.clear(); else st.rooms.has(v) ? st.rooms.delete(v) : st.rooms.add(v);
+    markRooms();
     fitArea();
     update();
   });
   $('fReset').addEventListener('click', () => { reset(); syncInputs(); update(); });
+  // «Точная сумма и площадь» — раскрыть/спрятать ползунки
+  $('fMore').addEventListener('click', () => {
+    const open = $('filter').classList.toggle('more-open');
+    $('fMore').setAttribute('aria-expanded', String(open));
+  });
   $('sort').addEventListener('change', update);
   // Аналитика: посетитель пользовался фильтром (один раз за визит страницы)
   ['input', 'click'].forEach(t => $('filter').addEventListener(t, () => window.RS.once('filter')));
@@ -468,6 +477,11 @@
     const u = L(st.type === 'land' ? 'perSot' : 'perM2');
     $('oDown').textContent = st.down == null ? L('any') : money(st.down, c);
     $('oMonthly').textContent = st.monthly == null ? L('any') : L('upTo', { x: money(st.monthly, c) });
+    // Сумма справа от вопроса — только для точной суммы с ползунка: «любой» и «до 1 млн» и так видны по выделенной кнопке
+    for (const [key, out] of [['down', 'oDown'], ['monthly', 'oMonthly']]) {
+      const chip = st[key] == null || [...$(QUICK[key]).querySelectorAll('button')].some(b => b.dataset.v !== '' && +b.dataset.v === st[key]);
+      $(out).hidden = chip && !$(QUICK[key]).hidden;
+    }
     const n = v => +(+v).toFixed(1); // площадь — не больше одного знака после точки
     $('oArea').textContent = st.area[0] === st.area[1] ? `${n(st.area[0])} ${u}` : `${n(st.area[0])} – ${n(st.area[1])} ${u}`;
     [fDown, fMonthly].forEach(paintRange);
@@ -491,7 +505,8 @@
       $('fSum').textContent = parts.join(' · ') || L('fAll');
       $('fBadge').hidden = !parts.length;
       $('fBadge').textContent = parts.length;
-      $('fDone').textContent = L('fShow', { n: list.length });
+      $('fDone').textContent = list.length ? L('fShowW', { n: list.length, word: plural(wordsKey, list.length) }) : L('fNone');
+      $('fDone').classList.toggle('f-none', !list.length);
     }
     lastCount = list.length;
     if (window.__wiz) window.__wiz();
@@ -568,7 +583,9 @@
     if (!open) $('count').scrollIntoView({ block: 'start', behavior: 'smooth' });
   };
   $('fOpen').onclick = () => sheet(true);
-  ['fClose', 'fDone', 'fShade'].forEach(id => { $(id).onclick = () => sheet(false); });
+  ['fClose', 'fShade'].forEach(id => { $(id).onclick = () => sheet(false); });
+  // Ничего не нашлось — кнопка сбрасывает фильтр; иначе закрывает лист (на телефоне) и ведёт к квартирам
+  $('fDone').onclick = () => { if (!lastCount) { $('fReset').click(); return; } sheet(false); };
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && filterEl.classList.contains('open')) sheet(false); });
 
   // ---------- Пошаговый подбор (телефон, рассрочка и коммерция) ----------

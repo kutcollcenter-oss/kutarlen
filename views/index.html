@@ -84,16 +84,18 @@
       <div class="field" id="fRoomsWrap">
         <div class="field-head"><label>{{rooms}}</label></div>
         <div class="chips" id="fRooms">
-          <button data-v="1">1</button><button data-v="2">2</button><button data-v="3">3</button><button data-v="4">4+</button>
+          <button data-v="">{{roomsAny}}</button><button data-v="1">1</button><button data-v="2">2</button><button data-v="3">3</button><button data-v="4">4+</button>
         </div>
       </div>
 
-      <div class="field">
+      <div class="field f-extra">
         <div class="field-head"><label id="lArea">{{areaM2}}</label><output id="oArea"></output></div>
         <div class="dual" id="fArea"><input type="range" aria-label="{{areaFrom}}"><input type="range" aria-label="{{areaTo}}"></div>
       </div>
 
-      <button class="link-btn" id="fReset" type="button">{{resetFilter}}</button>
+      <!-- Точная сумма ползунком и площадь нужны редко — спрятаны под ссылкой (решение 26.11.2026) -->
+      <div class="f-links"><button class="link-btn f-more" id="fMore" type="button" aria-expanded="false">{{moreFilters}}</button>
+      <button class="link-btn" id="fReset" type="button">{{resetFilter}}</button></div>
     </div>
 
     <div class="results-head">
