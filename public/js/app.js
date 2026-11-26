@@ -411,8 +411,9 @@
   function drawObjs(list) {
     const box = $('cards');
     box.classList.add('zk-view');
-    box.innerHTML = groupObjs(list).map(objCard).join('');
-    window.RS.slides(box.querySelectorAll('.zk-photo'));
+    // У ЖК нет фото дома — пустую карточку ЖК не показываем: сразу его квартиры (с планировками), как при фильтре
+    box.innerHTML = groupObjs(list).map(g => (g.some(a => a.photos.some(p => p.zk)) ? objCard(g) : g.map(card).join(''))).join('');
+    window.RS.slides(box.querySelectorAll('.card-photo'));
   }
 
   // Подменить в сообщении строки «Взнос: …» и «В месяц: …» (их начала — в словаре: waDown, waMonthly)
