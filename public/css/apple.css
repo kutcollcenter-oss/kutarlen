@@ -1391,3 +1391,32 @@ body.over-hero .topbar .brand img, body:has(.hero-cover) .topbar .brand img { ba
   .news-dots .news-arr:first-child { margin-right: 6px; }
   .news-dots .news-arr:last-child { margin-left: 6px; }
 }
+
+/* Квартиры на странице ЖК — карточки как на elitka.kg: крупная планировка, условия строками, «Подробнее» */
+.zkp-apts { display: grid !important; grid-template-columns: 1fr !important; gap: 16px !important; }
+@media (min-width: 640px) { .zkp-apts { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; } }
+@media (min-width: 1100px) { .zkp-apts { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; gap: 20px !important; } }
+.zk-apt { display: flex !important; flex-direction: column; padding: 0 !important; overflow: hidden; border-radius: var(--r-lg) !important; grid-template-columns: none !important; }
+.zk-apt[hidden] { display: none !important; }
+.zk-apt .zk-apt-ph { width: 100% !important; height: auto !important; aspect-ratio: 1 / 1; border-radius: 0 !important; background: #fff; padding: 14px; box-sizing: border-box; grid-row: auto !important; }
+.zk-apt .zk-apt-ph img { width: 100%; height: 100%; object-fit: contain; }
+.zk-apt-body { display: flex; flex-direction: column; flex: 1; padding: 14px 18px 18px; gap: 6px; }
+.zk-apt .zk-apt-price b { font-size: 22px; }
+.zk-apt-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.zk-apt-head span { font-weight: 600; color: var(--ink); }
+.zk-apt-head b { font-weight: 700; color: var(--ink); white-space: nowrap; }
+.zk-apt-dl { margin: 4px 0 12px; display: grid; gap: 6px; }
+.zk-apt-dl div { display: flex; justify-content: space-between; gap: 10px; font-size: 14.5px; }
+.zk-apt-dl dt { color: var(--muted); }
+.zk-apt-dl dd { margin: 0; color: var(--ink); font-weight: 500; text-align: right; white-space: nowrap; }
+.zk-apt-btn { margin-top: auto; display: flex; align-items: center; justify-content: center; min-height: 46px; border: 1.5px solid var(--ink); border-radius: 12px; font-weight: 600; font-size: 15px; color: var(--ink); transition: background-color .15s, color .15s; }
+@media (hover: hover) { .zk-apt:hover .zk-apt-btn { background: var(--ink); color: #fff; } }
+
+/* =====================================================================
+   Шрифты как на elitka.kg (26.11.2026): Murecho — заголовки и текст, Nunito Sans — кнопки.
+   В обоих есть кыргызские Ө Ү Ң. Подключаются в lib/pages.js (head, theme 'apple').
+   ===================================================================== */
+:root { --serif: Murecho, Arial, sans-serif; --sans: Murecho, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; }
+body { font-family: var(--sans); }
+h1, h2, h3, .hero h1 { letter-spacing: -.01em !important; }
+.btn, button, .chips button, .seg button, .zk-apt-btn, .zk-more, .tab, select, .news-btn, .hero-cta .btn { font-family: 'Nunito Sans', var(--sans) !important; }
