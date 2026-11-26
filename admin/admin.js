@@ -490,6 +490,85 @@
     bindItems(document.getElementById('items'), apts, renderList);
   }
 
+  // ---------- Срок сдачи ЖК по этапам (решение 27.11.2026: «только удобнее вводить») ----------
+  // Хранится как раньше — текстом «IV квартал 2028, IV квартал 2030» или «Дом сдан» (его читают сайт и квартиры),
+  // но вместо печати через запятую — список этапов: квартал + год, кнопка «+ Добавить этап».
+  const ROMAN_Q = ['I', 'II', 'III', 'IV'];
+  // Текст → { done, rows: [{ q, y } | { text }] }. Непонятную часть («ноябрь 2026») не теряем — оставляем строкой как есть.
+  function parseStages(text) {
+    const s = String(text || '').trim();
+    if (!s) return { done: false, rows: [] }; // срок не указан — пусто, пока не нажмут «+ Добавить этап»
+    if (/сдан/i.test(s)) return { done: true, rows: [] };
+    const rows = s.split(/[,;]|\sи\s/).map(x => x.trim()).filter(Boolean).map(part => {
+      const y = (part.match(/(?:^|\D)(20\d\d)(?!\d)/) || [])[1];
+      const m = part.match(/(?:^|[^\wА-Яа-я])(IV|I{1,3}|[1-4])\s*[-–]?\s*(?:-?й\s*)?кв/i);
+      const q = m ? (/\d/.test(m[1]) ? +m[1] : ROMAN_Q.indexOf(m[1].toUpperCase()) + 1) : 0;
+      const clean = y && part.replace(/(IV|I{1,3}|[1-4])\s*[-–]?\s*(?:-?й\s*)?(квартал|кв\.?)/i, '').replace(/20\d\d\s*(г\.?|года?)?/, '').trim() === '';
+      return y && clean ? { q, y: +y } : { text: part };
+    });
+    return { done: false, rows: rows.length ? rows : [{ q: 4, y: new Date().getFullYear() + 2 }] };
+  }
+  const stageRowText = r => (r.text != null ? r.text.trim() : r.q ? `${ROMAN_Q[r.q - 1]} квартал ${r.y}` : String(r.y));
+  function stageRowHtml(r, i) {
+    const now = new Date().getFullYear();
+    const years = []; for (let y = now - 3; y <= now + 10; y++) years.push(y);
+    if (r.y && !years.includes(r.y)) years.push(r.y);
+    return `<div class="st-row" data-i="${i}"><span class="st-n">Этап ${i + 1}</span>
+      ${r.text != null
+        ? `<input type="text" class="st-text" value="${esc(r.text)}" maxlength="60">`
+        : `<select class="st-q" aria-label="Квартал">${[0, 1, 2, 3, 4].map(q => `<option value="${q}"${q === r.q ? ' selected' : ''}>${q ? `${ROMAN_Q[q - 1]} кв.` : 'весь год'}</option>`).join('')}</select>
+           <select class="st-y" aria-label="Год">${years.sort().map(y => `<option${y === r.y ? ' selected' : ''}>${y}</option>`).join('')}</select>`}
+      <button type="button" class="st-x" aria-label="Убрать этап" title="Убрать этап">×</button></div>`;
+  }
+  function stagesEditor(text) {
+    const st = parseStages(text);
+    return `<div class="f stages" id="stages"><span>Срок сдачи</span>
+      <input type="hidden" name="handover" value="${esc(text || '')}">
+      <div class="seg st-mode"><button type="button" data-done="0"${st.done ? '' : ' class="on"'}>Строится</button><button type="button" data-done="1"${st.done ? ' class="on"' : ''}>Дом сдан</button></div>
+      <div class="st-list"${st.done ? ' hidden' : ''}>${st.rows.map(stageRowHtml).join('')}</div>
+      <button type="button" class="btn st-add"${st.done ? ' hidden' : ''}>+ Добавить этап</button>
+      <div class="hint">Если дом сдают по очередям — добавьте этап на каждую очередь. В каждой квартире потом выбирается её этап.</div>
+    </div>`;
+  }
+  function bindStages() {
+    const box = document.getElementById('stages'); if (!box) return;
+    const hidden = box.querySelector('input[name="handover"]'), list = box.querySelector('.st-list'), add = box.querySelector('.st-add');
+    let done = box.querySelector('.st-mode [data-done="1"]').classList.contains('on');
+    const rows = () => [...list.querySelectorAll('.st-row')].map(el => (el.querySelector('.st-text')
+      ? { text: el.querySelector('.st-text').value }
+      : { q: +el.querySelector('.st-q').value, y: +el.querySelector('.st-y').value }));
+    const write = () => {
+      if (done) { hidden.value = 'Дом сдан'; return; }
+      // Одинаковые этапы не повторяем, по порядку сроков
+      const seen = new Set(), out = [];
+      rows().forEach(r => { const t = stageRowText(r); if (t && !seen.has(t)) { seen.add(t); out.push(r); } });
+      out.sort((a, b) => (a.text != null || b.text != null ? 0 : a.y * 10 + a.q - (b.y * 10 + b.q)));
+      hidden.value = out.map(stageRowText).join(', ');
+    };
+    const redraw = rs => { list.innerHTML = rs.map(stageRowHtml).join(''); write(); };
+    box.querySelector('.st-mode').onclick = e => {
+      const b = e.target.closest('[data-done]'); if (!b) return;
+      done = b.dataset.done === '1';
+      box.querySelectorAll('.st-mode button').forEach(x => x.classList.toggle('on', x === b));
+      list.hidden = done; add.hidden = done;
+      if (!done && !list.children.length) redraw([{ q: 4, y: new Date().getFullYear() + 2 }]);
+      write();
+    };
+    add.onclick = () => {
+      const rs = rows(), last = [...rs].reverse().find(r => r.y);
+      rs.push(last ? { q: last.q, y: last.y + 1 } : { q: 4, y: new Date().getFullYear() + 2 }); // следующий этап — на год позже
+      redraw(rs);
+    };
+    list.addEventListener('change', write);
+    list.addEventListener('input', write);
+    list.addEventListener('click', e => {
+      const x = e.target.closest('.st-x'); if (!x) return;
+      const rs = rows(); rs.splice(+x.closest('.st-row').dataset.i, 1);
+      redraw(rs); // убрали все этапы — срок не указан
+    });
+    write();
+  }
+
   // Фото дома в ЖК: загрузить, сделать главным, убрать (только если можно менять ЖК)
   function zkPhotosHtml(photos, edit) {
     return photos.map((p, i) => `<div class="photo"><img src="${zkPhoto(p)}" alt="">${i === 0 ? '<span class="main">Главное</span>' : ''}
@@ -522,11 +601,8 @@
           <label class="f"><span>Адрес</span><input type="text" name="address" value="${esc(c.address)}" maxlength="200"></label>
           <label class="f"><span>Ссылка на карту — 2ГИС или Google</span><input type="text" name="mapLink" value="${esc(c.mapLink)}" inputmode="url" placeholder="Из 2ГИС или Google Карт"></label>
           <h2>Характеристики ЖК</h2>
-          <div class="grid2">
-            <label class="f"><span>Срок сдачи</span><input type="text" name="handover" value="${esc(c.handover)}" maxlength="120" placeholder="I квартал 2029 или Дом сдан"></label>
-            <label class="f"><span>Этажность</span><input type="text" name="floors" value="${esc(c.floors || '')}" inputmode="numeric"></label>
-          </div>
-          <div class="hint" style="margin:-6px 0 10px">Несколько этапов — через запятую: «II квартал 2028, II квартал 2030». Тогда в каждой квартире выбирается её этап.</div>
+          ${stagesEditor(c.handover)}
+          <label class="f"><span>Этажность</span><input type="text" name="floors" value="${esc(c.floors || '')}" inputmode="numeric" style="max-width:160px"></label>
           <label class="f"><span>Описание ЖК</span><textarea name="details" rows="5">${esc(c.details)}</textarea></label>
           <label class="f"><span>Описание — по-кыргызски</span><textarea name="detailsKy" rows="4" placeholder="Пусто — на кыргызской версии будет русский текст">${esc(c.detailsKy)}</textarea></label>
           <div class="err" id="zkErr"></div>
@@ -580,6 +656,7 @@
       } catch (err) { toast(err.message); }
       e.target.value = '';
     };
+    bindStages();
     document.getElementById('zkf').onsubmit = async e => {
       e.preventDefault();
       const d = Object.fromEntries(new FormData(e.target));

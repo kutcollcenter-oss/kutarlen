@@ -404,3 +404,17 @@ body.lx { --lx-r: 22px; --lx-glass: rgba(21, 36, 27, .72); font-family: 'Golos T
   background: transparent; color: var(--gold2, #e8c98f); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
 .lx-tier-promo:hover { border-style: solid; border-color: var(--gold, #c9a15a); }
 .lx-pask-tier { min-height: 1em; }
+
+/* Калькулятор дохода: подсказка выбрать процент, пока он не выбран (решение 27.11.2026) */
+.lx-pct-hint { grid-column: 1 / -1; margin-top: 12px; color: var(--gold2, #e8c98f); font-size: 15px; line-height: 1.4; }
+.lx-pct-hint span { display: inline-block; animation: lxPoint 1.4s ease-in-out infinite; }
+@keyframes lxPoint { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+.lx-ask.nudge .lx-chips button { animation: lxBreathe 2.4s ease-in-out infinite; }
+.lx-ask.nudge .lx-chips button:nth-child(2) { animation-delay: .15s; }
+.lx-ask.nudge .lx-chips button:nth-child(3) { animation-delay: .3s; }
+.lx-ask.nudge .lx-chips button:nth-child(4) { animation-delay: .45s; }
+.lx-ask.nudge .lx-chips button:nth-child(5) { animation-delay: .6s; }
+.lx-ask.nudge .lx-pct input { animation: lxGlow 2.4s ease-in-out infinite; }
+@keyframes lxBreathe { 0%, 100% { box-shadow: 0 0 0 0 rgba(201, 161, 90, 0); } 50% { box-shadow: 0 0 0 3px rgba(201, 161, 90, .45); } }
+@keyframes lxGlow { 0%, 100% { box-shadow: 0 0 0 0 rgba(201, 161, 90, 0); } 50% { box-shadow: 0 0 0 4px rgba(201, 161, 90, .35); } }
+@media (prefers-reduced-motion: reduce) { .lx-pct-hint span, .lx-ask.nudge .lx-chips button, .lx-ask.nudge .lx-pct input { animation: none; } }
