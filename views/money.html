@@ -61,6 +61,9 @@
   .word figcaption { margin-top: 6px; font-size: 12px; color: var(--muted); }
   .card h3 { margin: 0 0 10px; font-size: 17px; }
   .muted { color: var(--muted); font-size: 14px; }
+  .day { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .day-sum { display: flex; gap: 10px; text-transform: none; letter-spacing: 0; font-size: 14px; }
+  .day-sum .in { color: var(--in); } .day-sum .out { color: var(--out); }
   .day { margin: 16px 18px 6px; color: var(--muted); font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
   .row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); cursor: pointer; }
   .row:first-child { border-top: 0; }
@@ -589,9 +592,17 @@
       const q = query.trim().toLowerCase(), qd = q.replace(/\D/g, '');
       const list = D.entries.filter(e => (q ? [e.cat, e.note, walletOf(e.wallet).name].join(' ').toLowerCase().includes(q) || (qd && String(e.amount).includes(qd)) : inMonth(e)))
         .sort((a, b) => (b.date + (b.createdAt || '')).localeCompare(a.date + (a.createdAt || '')));
+      // Итог дня рядом с датой: доходы и расходы (переводы между кошельками и копилки не считаем), по валютам
+      const daySum = d => {
+        const sums = {};
+        list.filter(e => e.date === d && (e.kind === 'in' || e.kind === 'out')).forEach(e => {
+          const t = sums[e.currency] || (sums[e.currency] = { in: 0, out: 0 }); t[e.kind] += e.amount;
+        });
+        return Object.entries(sums).map(([c, t]) => (t.in ? `<b class="in">+${money(t.in, c)}</b>` : '') + (t.out ? `<b class="out">−${money(t.out, c)}</b>` : '')).join('');
+      };
       let html = '', day = '', open = false;
       for (const e of list) {
-        if (e.date !== day) { if (open) html += '</div>'; day = e.date; const [yy, mm, dd] = day.split('-'); html += `<div class="day">${dd}.${mm}.${yy}</div><div class="card">`; open = true; }
+        if (e.date !== day) { if (open) html += '</div>'; day = e.date; const [yy, mm, dd] = day.split('-'); html += `<div class="day"><span>${dd}.${mm}.${yy}</span><span class="day-sum">${daySum(day)}</span></div><div class="card">`; open = true; }
         html += entryRow(e);
       }
       if (open) html += '</div>';
