@@ -390,7 +390,7 @@
   }
 
   async function renderList() {
-    const [apts, zks] = await Promise.all([api('GET', '/api/admin/apartments'), api('GET', '/api/admin/complexes').catch(() => [])]);
+    const [apts, zks] = await Promise.all([api('GET', '/api/admin/apartments'), api('GET', '/api/admin/complexes').catch(() => []), api('GET', '/api/owner/promos').catch(() => [])]);
     aptCount = apts.length;
     const byKey = new Map();
     apts.forEach(a => { const k = aptZk(a); if (!byKey.has(k)) byKey.set(k, []); byKey.get(k).push(a); });
@@ -1436,6 +1436,49 @@
     });
   }
 
+  // Промокоды партнёров (например, SUETA для подписчиков @suetaakg): ссылка kvartiry.asia/p/КОД, промокод сам
+  // вписывается в сообщение «Хочу подключить»; видно, сколько человек перешли и нажали кнопку.
+  function promosHtml(list) {
+    const link = c => `${location.origin}/p/${c}`;
+    return `<div class="hint" style="margin-bottom:10px">Дайте партнёру ссылку — его подписчики откроют страницу /partner, увидят свой промокод, и он сам впишется в сообщение вам в WhatsApp. Так сразу видно, кто от кого пришёл.</div>
+      ${list.map(p => `<div class="promo-row" data-code="${esc(p.code)}" style="border-top:1px solid var(--line2,#333);padding:12px 0">
+        <div class="row" style="justify-content:space-between;align-items:baseline"><b style="font-size:18px;letter-spacing:.06em">${esc(p.code)}</b><span class="hint" style="margin:0">${p.active ? 'работает' : 'выключен'}</span></div>
+        <div class="hint" style="margin:4px 0">${esc(p.partner || '—')}${p.discount ? ` · скидка ${p.discount}% на первую оплату` : ''}${p.offer ? ` · ${esc(p.offer)}` : ''}${p.percent ? ` · партнёру ${p.percent}% от первой оплаты` : ''}</div>
+        <div style="margin:6px 0">Перешли по ссылке: <b>${p.visits}</b> · нажали «Подключить»: <b>${p.clicks}</b></div>
+        <div class="linkrow"><code>${esc(link(p.code))}</code><button type="button" class="btn" data-pcopy="${esc(link(p.code))}">Копировать</button></div>
+        <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn" data-ptoggle>${p.active ? 'Выключить' : 'Включить'}</button><button type="button" class="btn" data-pdel>Удалить</button></div>
+      </div>`).join('')}
+      <form id="promoNew" style="border-top:1px solid var(--line2,#333);padding-top:12px">
+        <b>Новый промокод</b>
+        <div class="grid2" style="margin-top:8px">
+          <label class="f"><span>Код</span><input type="text" name="code" maxlength="20" placeholder="SUETA" required style="text-transform:uppercase"></label>
+          <label class="f"><span>Партнёр</span><input type="text" name="partner" maxlength="80" placeholder="Алина Кайзер, @suetaakg"></label>
+        </div>
+        <div class="grid2">
+          <label class="f"><span>Скидка подписчику, %</span><input type="text" name="discount" inputmode="numeric" placeholder="20"></label>
+          <label class="f"><span>Доля партнёра от первой оплаты, %</span><input type="text" name="percent" inputmode="numeric" placeholder="50"></label>
+        </div>
+        <div class="err" id="promoErr"></div>
+        <button class="btn btn-primary">Создать промокод</button>
+      </form>`;
+  }
+  function bindPromos() {
+    const body = document.getElementById('promoBody');
+    if (!body) return;
+    const redraw = list => { body.innerHTML = promosHtml(list); document.querySelector('#promoCard summary').innerHTML = `<b>Промокоды</b> · ${list.length} · для партнёров на странице /partner`; bindPromos(); };
+    body.querySelectorAll('[data-pcopy]').forEach(b => { b.onclick = () => copy(b.dataset.pcopy); });
+    body.querySelectorAll('.promo-row').forEach(row => {
+      const code = row.dataset.code;
+      row.querySelector('[data-ptoggle]').onclick = async () => { const on = row.querySelector('[data-ptoggle]').textContent === 'Включить'; redraw(await api('PUT', `/api/owner/promos/${code}`, { active: on })); };
+      row.querySelector('[data-pdel]').onclick = async () => { if (await confirmBox('Удалить промокод?', `Ссылка /p/${code} перестанет работать.`, 'Удалить', true)) redraw(await api('DELETE', `/api/owner/promos/${code}`)); };
+    });
+    document.getElementById('promoNew').onsubmit = async e => {
+      e.preventDefault();
+      try { redraw(await api('POST', '/api/owner/promos', Object.fromEntries(new FormData(e.target)))); toast('Промокод создан — скопируйте ссылку для партнёра'); }
+      catch (err) { showErr('promoErr', err.message); }
+    };
+  }
+
   // Номера из WhatsApp: подключение WhatsApp Cloud API (Meta)
   function waCardHtml(w) {
     const when = t => new Date(t).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
@@ -1529,7 +1572,7 @@
 
   async function renderRealtors() {
     if (!isOwner()) { location.hash = '#list'; return; }
-    const [list, product, mine, ai, mUsers, cos, sUsers, wa, zks] = await Promise.all([api('GET', '/api/owner/realtors'), api('GET', '/api/owner/product'), api('GET', '/api/admin/apartments'), api('GET', '/api/owner/aichat'), api('GET', '/api/owner/money-users'), api('GET', '/api/owner/companies'), api('GET', '/api/owner/shop-users'), api('GET', '/api/owner/wa').catch(() => null), api('GET', '/api/admin/complexes').catch(() => [])]);
+    const [list, product, mine, ai, mUsers, cos, sUsers, wa, zks, promoList] = await Promise.all([api('GET', '/api/owner/realtors'), api('GET', '/api/owner/product'), api('GET', '/api/admin/apartments'), api('GET', '/api/owner/aichat'), api('GET', '/api/owner/money-users'), api('GET', '/api/owner/companies'), api('GET', '/api/owner/shop-users'), api('GET', '/api/owner/wa').catch(() => null), api('GET', '/api/admin/complexes').catch(() => [])]);
     // Сколько квартир в рассрочку скопируется новому менеджеру (наличные не копируются)
     const myInstallment = mine.filter(a => a.computed.installment || (!cashLike(typeOf(a)) && a.computed.price)).length;
     const others = list.filter(x => x.role !== 'owner');
@@ -1637,6 +1680,7 @@
         <div id="shpBody" style="margin-top:12px">${shopUsersHtml(sUsers)}</div>
       </details>
       ${wa ? waCardHtml(wa) : ''}
+      <details class="card" id="promoCard"><summary><b>Промокоды</b> · ${promoList.length} · для партнёров на странице /partner</summary><div id="promoBody" style="margin-top:12px">${promosHtml(promoList)}</div></details>
 
       <details class="card" id="aiCard"><summary><b>ИИ-помощник на сайтах</b> · ${ai.on && ai.providers.some(p => p.hasKey) ? `работает ✓ · у ${list.filter(x => x.aiAccess).length} из ${list.length}` : 'выключен'}</summary>
         <form id="aifm" style="margin-top:12px">
@@ -1743,6 +1787,7 @@
     bindMoneyUsers(mUsers);
     bindShopUsers(sUsers);
     if (wa) bindWaCard();
+    bindPromos();
     const reopenAi = async () => { await renderRealtors(); document.getElementById('aiCard').open = true; document.getElementById('aiTeach').scrollIntoView({ block: 'start' }); };
     const addLesson = async (q, a, errId) => {
       try { await api('POST', '/api/owner/aichat/lessons', { q, a }); toast('Урок добавлен — ИИ учтёт его со следующего ответа'); await reopenAi(); }

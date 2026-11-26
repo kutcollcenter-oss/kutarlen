@@ -374,3 +374,27 @@ body.lx { --lx-r: 22px; --lx-glass: rgba(21, 36, 27, .72); font-family: 'Golos T
 .lx-m-goal em { display: block; height: 6px; background: #efe7d8; border-radius: 3px !important; overflow: hidden; }
 .lx-m-goal em i { display: block; height: 100%; background: linear-gradient(90deg, #c9a25a, #e8c98f); border-radius: 3px !important; }
 .lx-m-goal small { font-size: 11px; color: #8a8174; }
+
+/* Промокод партнёра (kvartiry.asia/p/SUETA): полоса сверху и поле «Есть промокод?» у тарифов */
+.lx-promo { position: relative; z-index: 60; padding: 12px 16px; text-align: center; font-size: 15px; line-height: 1.4;
+  background: linear-gradient(90deg, #c9a364, #e8c98f, #c9a364); color: #1a1408; }
+.lx-promo b { letter-spacing: .06em; }
+.lx-promo-form { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 18px; font-size: 15px; }
+.lx-promo-form input { margin-left: 6px; height: 40px; padding: 0 12px; border-radius: 10px; border: 1px solid rgba(232, 201, 143, .4); background: rgba(255, 255, 255, .06);
+  color: inherit; font: inherit; width: 170px; }
+.lx-promo-form .lx-btn { height: 40px; padding: 0 18px; }
+.lx-promo-err { color: #ff8a80; font-size: 14px; }
+/* Окошко «Есть промокод?» при выборе тарифа */
+.lx-pask { position: fixed; inset: 0; z-index: 200; display: none; align-items: center; justify-content: center; padding: 16px; background: rgba(0, 0, 0, .6); }
+.lx-pask.on { display: flex; }
+.lx-pask-box { position: relative; width: 100%; max-width: 420px; padding: 26px 22px 22px; border-radius: 20px; background: #17130d; color: #f6efe2;
+  border: 1px solid rgba(232, 201, 143, .3); box-shadow: 0 30px 80px rgba(0, 0, 0, .6); }
+.lx-pask-box h3 { margin: 0 0 8px; font-size: 22px; }
+.lx-pask-box p { margin: 0 0 16px; font-size: 15px; line-height: 1.45; opacity: .85; }
+.lx-pask-box form { display: grid; gap: 10px; }
+.lx-pask-box input { height: 48px; padding: 0 14px; border-radius: 12px; border: 1px solid rgba(232, 201, 143, .45); background: rgba(255, 255, 255, .06);
+  color: inherit; font: inherit; font-size: 17px; }
+.lx-pask-box .lx-btn { width: 100%; justify-content: center; }
+.lx-pask-err { min-height: 18px; color: #ff8a80; font-size: 14px; }
+.lx-pask-x { position: absolute; top: 10px; right: 12px; border: 0; background: none; color: inherit; font-size: 26px; line-height: 1; cursor: pointer; opacity: .7; }
+.lx-old { opacity: .55; margin-right: 4px; }

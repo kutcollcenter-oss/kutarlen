@@ -229,6 +229,8 @@ require('./lib/money').mount(app, { D, save: () => db.save(), cookies, newId: ()
   renewLink: text => { const p = product(); return p.whatsapp ? waLink(p.whatsapp, text) : ''; },
   isOwner: req => { const s = auth.readSession(D().secret, cookies(req).sess, id => D().users.find(u => u.id === id)); return !!(s && s.user.role === 'owner'); } });
 // Учёт товаров для бизнеса: kvartiry.asia/shop/<имя> — товары, закупки, продажи, расходы, анализ. Людей заводит владелец.
+// Промокоды партнёров для /partner: kvartiry.asia/p/SUETA — в сообщение «Хочу подключить» дописывается промокод
+const promos = require('./lib/promos').mount(app, { D, save: () => db.save(), requireAuth, ownerOnly, cookies });
 require('./lib/shop').mount(app, { D, save: () => db.save(), cookies, newId: () => db.newId(), requireAuth, ownerOnly,
   isOwner: req => { const s = auth.readSession(D().secret, cookies(req).sess, id => D().users.find(u => u.id === id)); return !!(s && s.user.role === 'owner'); } });
 
@@ -283,7 +285,7 @@ app.get(PARTNER_PATH, (req, res) => {
     count: using.length,
     faces: faces.slice(0, 6).map(r => ({ name: r.settings.name || '', photo: r.settings.photo || '' })),
   };
-  res.send(pages.renderLanding(product(), base(req), demo));
+  res.send(pages.renderLanding(product(), base(req), demo, promos.fromReq(req, res)));
 });
 
 // Старые ссылки вида /kvartira/<id> (до кабинетов) ведут на сайт менеджера этой квартиры
