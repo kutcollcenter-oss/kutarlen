@@ -230,3 +230,12 @@ input:disabled, select:disabled, textarea:disabled { opacity: .55; cursor: not-a
   .setup-list li { grid-template-columns: 26px 1fr; row-gap: 10px; }
   .setup-list .btn { grid-column: 2; justify-self: start; min-height: 36px; }
 }
+
+/* Форма квартиры на телефоне: без нижнего меню, одна панель «Назад / Сохранить» внизу (решение 26.11.2026) */
+@media (max-width: 1023px) {
+  body.editing .atab { display: none; }
+  body.editing { padding-bottom: 0; }
+  body.editing .savebar { bottom: 0; }
+}
+.zk-del { margin-top: 28px; color: var(--bad); border-color: rgba(255, 107, 90, .45); }
+.zk-del:hover { background: rgba(255, 107, 90, .08); color: var(--bad); }

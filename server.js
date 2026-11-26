@@ -649,6 +649,17 @@ app.put('/api/admin/complexes/:key', requireAuth, async (req, res) => {
   res.json({ ok: true, apartments: r.apartments, mapError: patch.map && patch.map.error || '' });
 });
 
+// Удалить ЖК — только пустой (ни одной квартиры ни у кого): владелец — любой, менеджер — созданный им самим
+app.delete('/api/admin/complexes/:key', requireAuth, (req, res) => {
+  const key = String(req.params.key), c = complexes.get(key);
+  if (!c) return res.status(404).json({ error: 'ЖК не найден' });
+  if (req.user.role !== 'owner' && c.createdBy !== req.realtor.id) return res.status(403).json({ error: 'Этот ЖК удаляет владелец сервиса' });
+  const r = complexes.remove(key);
+  if (r.error) return res.status(400).json({ error: r.error });
+  r.photos.forEach(removePhotoFiles); // фото дома, которое больше нигде не используется
+  res.json({ ok: true });
+});
+
 const FIELDS = {
   type: v => typeOf({ type: v }),
   title: v => String(v || '').trim().slice(0, 120),

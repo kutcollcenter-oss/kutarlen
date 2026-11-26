@@ -520,7 +520,7 @@
             <label class="f"><span>Район</span><input type="text" name="district" value="${esc(c.district)}" maxlength="60" placeholder="Например: Джал, Восток-5"></label>
           </div>
           <label class="f"><span>Адрес</span><input type="text" name="address" value="${esc(c.address)}" maxlength="200"></label>
-          <label class="f"><span>Ссылка на карту — 2ГИС или Google</span><input type="text" name="mapLink" value="${esc(c.mapLink)}" inputmode="url" placeholder="https://go.2gis.com/… или https://maps.app.goo.gl/…"></label>
+          <label class="f"><span>Ссылка на карту — 2ГИС или Google</span><input type="text" name="mapLink" value="${esc(c.mapLink)}" inputmode="url" placeholder="Из 2ГИС или Google Карт"></label>
           <h2>Характеристики ЖК</h2>
           <div class="grid2">
             <label class="f"><span>Срок сдачи</span><input type="text" name="handover" value="${esc(c.handover)}" maxlength="120" placeholder="I квартал 2029 или Дом сдан"></label>
@@ -541,7 +541,16 @@
       </form>` : '<p class="hint" style="margin-top:10px">Участки и дома, которые не относятся к ЖК. Адрес и карта — в каждой квартире.</p>'}
       <h2>${none ? 'Квартиры и участки' : 'Мои квартиры в этом ЖК'} <span class="hint" style="margin:0">· ${mine.length}</span></h2>
       <div id="items">${mine.map(a => item(none ? a : { ...a, title: typeOf(a) === 'commercial' ? 'Коммерческое помещение' : `${rooms(a.rooms)}, ${a.area} м²` })).join('') || '<p class="hint">Пока пусто — нажмите «+ Квартира».</p>'}</div>
+      ${c && !c.n && (isOwner() || c.mineCreated) ? `<button type="button" class="btn zk-del" id="zkDel">Удалить этот ЖК</button>
+        <div class="hint" style="margin-top:6px">В ЖК нет ни одной квартиры — его можно удалить из общего списка.</div>` : ''}
     </div>`;
+    const del = document.getElementById('zkDel');
+    if (del) del.onclick = async () => {
+      if (!(await confirmBox(`Удалить ЖК «${c.name}»?`, 'Он исчезнет из списка ЖК у всех менеджеров. Квартир в нём нет.', 'Удалить', true))) return;
+      try { await api('DELETE', `/api/admin/complexes/${encodeURIComponent(key)}`); } catch (e) { if (e.message !== 'auth') toast(e.message); return; }
+      toast('ЖК удалён');
+      location.hash = '#list';
+    };
     bindNav();
     bindItems(document.getElementById('items'), mine, () => renderZk(key));
     document.getElementById('addApt').onclick = e => { if (atLimit()) { e.preventDefault(); limitInfo(); } };
@@ -601,7 +610,7 @@
           <label class="f"><span>Район</span><input type="text" name="district" maxlength="60" placeholder="Например: Джал"></label>
         </div>
         <label class="f"><span>Адрес</span><input type="text" name="address" maxlength="200"></label>
-        <label class="f"><span>Ссылка на карту — 2ГИС или Google</span><input type="text" name="mapLink" inputmode="url" placeholder="https://go.2gis.com/… или https://maps.app.goo.gl/…"></label>
+        <label class="f"><span>Ссылка на карту — 2ГИС или Google</span><input type="text" name="mapLink" inputmode="url" placeholder="Из 2ГИС или Google Карт"></label>
         <div class="err" id="zkNewErr"></div>
         <button class="btn btn-primary">Создать ЖК</button>
         <div class="hint" style="margin-top:8px">Фото дома добавите на странице ЖК сразу после создания.</div>
@@ -649,7 +658,8 @@
     const isNewRecord = id === 'new';
     let a;
     if (isNewRecord) {
-      a = { type: 'installment', title: '', rooms: 1, area: '', pricePerM2: '', down: '', months: '', cashDiscount: '', price: '', floorFrom: 1, floors: '', address: '', details: '', tags: [], photos: [] };
+      // Из папки «Без ЖК» добавляют участки и дома — сразу тип «Участок», без поля «Выберите ЖК»
+      a = { type: zkParam === '_none' ? 'land' : 'installment', title: '', rooms: 1, area: '', pricePerM2: '', down: '', months: '', cashDiscount: '', price: '', floorFrom: 1, floors: '', address: '', details: '', tags: [], photos: [] };
     } else {
       const apts = await api('GET', '/api/admin/apartments');
       a = apts.find(x => x.id === id);
@@ -712,7 +722,7 @@
           ${f('address', 'Адрес')}
           <div class="mapbox">
             <label class="f"><span>Ссылка на карту — 2ГИС или Google Карты</span>
-              <input type="text" name="mapLink" value="${esc((a.map || a.map2gis || {}).link || '')}" placeholder="https://go.2gis.com/… или https://maps.app.goo.gl/…" inputmode="url">
+              <input type="text" name="mapLink" value="${esc((a.map || a.map2gis || {}).link || '')}" placeholder="Из 2ГИС или Google Карт" inputmode="url">
               <div class="err" id="mapErr">${(a.map || a.map2gis || {}).error ? esc((a.map || a.map2gis).error) : ''}</div>
             </label>
             <p class="mapbox-note">Вставьте ссылку из <b>2ГИС</b> или из <b>Google Карт</b>: в приложении найдите дом → «Поделиться» → «Копировать ссылку».
@@ -1476,7 +1486,7 @@
           <label class="f"><span>Район</span><input type="text" name="district" value="${esc(c.district || '')}" maxlength="60"></label>
         </div>
         <label class="f"><span>Адрес</span><input type="text" name="address" value="${esc(c.address || '')}" maxlength="200"></label>
-        <label class="f"><span>Ссылка на карту — 2ГИС или Google</span><input type="text" name="mapLink" value="${esc(c.mapLink || '')}" inputmode="url" placeholder="https://go.2gis.com/… или https://maps.app.goo.gl/…"></label>
+        <label class="f"><span>Ссылка на карту — 2ГИС или Google</span><input type="text" name="mapLink" value="${esc(c.mapLink || '')}" inputmode="url" placeholder="Из 2ГИС или Google Карт"></label>
         <div class="err"></div>
         <button class="btn">Сохранить для всех квартир ЖК</button>
       </form>`).join('')}
@@ -2024,6 +2034,8 @@
   async function route() {
     const h = location.hash.slice(1) || 'list';
     window.scrollTo(0, 0);
+    // В форме квартиры на телефоне нижнее меню прячем — внизу остаётся одна панель «Назад / Сохранить»
+    document.body.classList.toggle('editing', h.startsWith('edit/'));
     try {
       if (h.startsWith('edit/')) await renderEdit(h.slice(5));
       else if (h === 'zk-new') await renderZkNew();
