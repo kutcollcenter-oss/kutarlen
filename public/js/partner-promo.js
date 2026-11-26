@@ -25,7 +25,7 @@
     dlg.querySelector('form').addEventListener('submit', async e => {
       e.preventDefault();
       const a = pending; if (!a) return;
-      const code = dlg.querySelector('input').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const code = dlg.querySelector('input').value.trim(); // русские буквы сервер понимает сам
       const err = dlg.querySelector('.lx-pask-err');
       if (!code) { err.textContent = 'Впишите промокод или нажмите «Пропустить»'; return; }
       const r = await fetch('/api/promo/' + encodeURIComponent(code)).catch(() => null);
