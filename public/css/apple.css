@@ -1472,3 +1472,31 @@ img.img-x { visibility: hidden; }
     background: linear-gradient(180deg, #c9a364 0%, #a8834a 100%); font-weight: 700;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 3px 0 #7d5f30, 0 10px 22px rgba(168, 131, 74, .3) !important; }
 }
+
+/* ===== Фильтр на телефоне — как на компьютере (решение 27.11.2026) =====
+   Было: пошаговый подбор «Шаг 1 из 2» + отдельный лист «Комнаты, площадь».
+   Стало: та же карточка, что на компьютере — три строки кнопок («Любой» первой), ссылка «Точная сумма и площадь»
+   и одна главная кнопка «Показать: N квартир». Строки кнопок листаются вбок, чтобы карточка была короткой. */
+@media (max-width: 899px) {
+  .fbar, .wiz, .fsheet-head, .fshade { display: none !important; }
+  .filter { position: static !important; transform: none !important; visibility: visible !important; max-height: none !important; overflow: visible !important;
+    z-index: auto !important; margin: 0 !important; padding: 18px 16px 16px !important; border-radius: var(--r-lg) !important;
+    box-shadow: var(--sh-1) !important; transition: none !important; display: grid; gap: 18px;
+    grid-template-columns: minmax(0, 1fr) !important; width: 100%; box-sizing: border-box; min-width: 0; }
+  .filter > *, .filter .field { min-width: 0; }
+  .ftop { min-width: 0; grid-template-columns: minmax(0, 1fr); }
+  html.fsheet-open { overflow: visible; }
+  /* Вкладки типа — в одну строку, листаются вбок, текст не ломается */
+  .ftop .seg#fType { display: flex !important; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .ftop .seg#fType::-webkit-scrollbar { display: none; }
+  .ftop .seg#fType button { flex: 0 0 auto; white-space: nowrap; padding: 0 14px; }
+  /* Кнопки сумм и комнат — одной строкой, листаются вбок */
+  .filter .chips.quick, .filter #fRooms { flex-wrap: nowrap !important; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    margin-right: -16px; padding-right: 16px; }
+  .filter .chips.quick::-webkit-scrollbar, .filter #fRooms::-webkit-scrollbar { display: none; }
+  .filter #fRooms button { flex: 0 0 auto; min-width: 48px; }
+  .filter .field-head label { font-size: 16px; }
+  .f-links { justify-content: space-between; }
+  .fsheet-foot { position: static !important; padding: 0 !important; background: none !important; }
+  .fsheet-foot .btn { min-height: 52px; border-radius: var(--pill) !important; font-weight: 700; }
+}
