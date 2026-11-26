@@ -353,50 +353,21 @@
     });
   }
 
-  // ---------- Список квартир ----------
-  async function renderList() {
-    const apts = await api('GET', '/api/admin/apartments');
-    const count = t => apts.filter(a => typeOf(a) === t).length;
-    aptCount = apts.length;
-    const shown = listFilter === 'all' ? apts : apts.filter(a => typeOf(a) === listFilter);
-    app.innerHTML = `${nav('list')}<div class="wrap">
-      ${installBanner()}
-      <div class="row" style="justify-content:space-between"><h1>Квартиры</h1><a class="btn btn-primary" href="#edit/new" data-add>+ Добавить</a></div>
-      <label class="search"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
-        <input type="search" id="lq" placeholder="Поиск: ЖК, адрес, площадь" value="${esc(listQuery)}" autocomplete="off"></label>
-      ${me.realtor.plan.maxApartments ? `<p class="${apts.length >= me.realtor.plan.maxApartments ? 'warn' : 'hint'}" style="margin-top:-6px">Тариф: ${apts.length} из ${flats(me.realtor.plan.maxApartments)}${apts.length >= me.realtor.plan.maxApartments ? ' — лимит исчерпан, новые добавить нельзя' : ''}</p>` : ''}
-      <div class="filters" id="lf">
-        <button data-f="all" class="${listFilter === 'all' ? 'on' : ''}">Все ${apts.length}</button>
-        ${Object.entries(TYPES).map(([k, v]) => `<button data-f="${k}" class="${listFilter === k ? 'on' : ''}">${v} ${count(k)}</button>`).join('')}
-      </div>
-      <div id="items"></div>
-    </div>`;
-    bindNav();
-    bindInstall();
-    // Поиск: название, адрес, площадь, город — без перезагрузки страницы, чтобы не терялся курсор в поле
-    const drawItems = () => {
-      const q = listQuery.trim().toLowerCase();
-      const list = q ? shown.filter(a => [a.title, a.address, a.city, a.area, a.computed && a.computed.roomsLabel].join(' ').toLowerCase().includes(q)) : shown;
-      document.getElementById('items').innerHTML = list.map(item).join('')
-        || `<p class="hint">${q ? 'Ничего не найдено' : 'Пока пусто'}</p>`;
-    };
-    drawItems();
-    document.getElementById('lq').oninput = e => { listQuery = e.target.value; drawItems(); };
-    // С клавиатуры: Enter на строке квартиры — открыть на изменение
-    document.getElementById('items').onkeydown = e => { const r = e.target.closest('.apt-row'); if (r && e.key === 'Enter' && e.target === r) location.hash = `#edit/${r.dataset.id}`; };
-    document.getElementById('lf').onclick = e => {
-      const b = e.target.closest('button'); if (!b) return;
-      listFilter = b.dataset.f; renderList();
-    };
-    document.querySelector('[data-add]').onclick = e => { if (atLimit()) { e.preventDefault(); limitInfo(); } };
-    document.getElementById('items').onclick = async e => {
+  // ---------- Квартиры по ЖК: «Квартиры» → ЖК → квартиры этого ЖК ----------
+  // У ЖК одна запись: адрес, район, город, карта и фото дома (общие для всех менеджеров). В квартире — только её фото
+  // (планировка, ремонт). Менять ЖК: владелец — любой; менеджер — свой новый ЖК, пока в нём нет чужих квартир.
+  const zkKeyAll = t => String(t || '').replace(/[​-‍⁠﻿]/g, '').toLowerCase().replace(/[«»"'`“”„]/g, '').replace(/^(жк|ж\/к|жилой комплекс)[\s,.:-]+/, '').replace(/ө/g, 'о').replace(/ү/g, 'у').replace(/ң/g, 'н').replace(/\s+/g, ' ').trim();
+  const aptZk = a => (typeOf(a) === 'land' ? '' : zkKeyAll(a.title));
+  const zkPhoto = n => `/uploads/${n}-t.webp`;
+
+  // Нажатия по строкам квартир: открыть, «⋯» — открыть на сайте / дублировать / удалить
+  function bindItems(box, apts, again) {
+    box.onkeydown = e => { const r = e.target.closest('.apt-row'); if (r && e.key === 'Enter' && e.target === r) location.hash = `#edit/${r.dataset.id}`; };
+    box.onclick = async e => {
       const el = e.target.closest('[data-id]');
       if (!el) return;
-      const id = el.dataset.id;
-      const apt = apts.find(x => x.id === id);
-      // Нажатие на квартиру — открыть на изменение; «⋯» — остальные действия
-      const act = { dataset: { act: e.target.closest('[data-more]') ? '' : 'edit' } };
-      if (act.dataset.act === 'edit') { location.hash = `#edit/${id}`; return; }
+      const id = el.dataset.id, apt = apts.find(x => x.id === id);
+      if (!e.target.closest('[data-more]')) { location.hash = `#edit/${id}`; return; }
       const pick = await actionSheet(apt && (apt.title || 'Квартира'), [
         ...(apt && apt.computed.price ? [{ key: 'open', label: 'Открыть на сайте' }] : []),
         { key: 'dup', label: 'Дублировать' },
@@ -404,18 +375,181 @@
       ]);
       if (!pick) return;
       if (pick === 'open') { window.open(apt.computed.url, '_blank'); return; }
-      act.dataset.act = pick;
-      if (act.dataset.act === 'dup' && atLimit()) { limitInfo(); return; }
-      if (act.dataset.act === 'dup') {
+      if (pick === 'dup') {
+        if (atLimit()) { limitInfo(); return; }
         const a = await api('POST', `/api/admin/apartments/${id}/duplicate`);
         toast('Копия создана');
         location.hash = `#edit/${a.id}`;
       }
-      if (act.dataset.act === 'del') {
+      if (pick === 'del') {
         if (!(await confirmBox('Удалить квартиру?', 'Она исчезнет с сайта. Например, если квартира продана.', 'Удалить', true))) return;
         await api('DELETE', `/api/admin/apartments/${id}`);
-        toast('Удалено'); renderList();
+        toast('Удалено'); again();
       }
+    };
+  }
+
+  async function renderList() {
+    const [apts, zks] = await Promise.all([api('GET', '/api/admin/apartments'), api('GET', '/api/admin/complexes').catch(() => [])]);
+    aptCount = apts.length;
+    const byKey = new Map();
+    apts.forEach(a => { const k = aptZk(a); if (!byKey.has(k)) byKey.set(k, []); byKey.get(k).push(a); });
+    // Владелец видит все ЖК; менеджер — где есть его квартиры и которые он создал сам
+    const shown = zks.filter(c => isOwner() || byKey.has(c.key) || c.mineCreated);
+    const none = byKey.get('') || [];
+    const tile = (href, name, sub, img, count) => `<a class="zk-tile" href="${href}">
+        <div class="zk-tile-img">${img ? `<img src="${img}" alt="" loading="lazy">` : ''}</div>
+        <div class="zk-tile-txt"><b>${esc(name)}</b><span>${esc(sub)}</span><small>${count}</small></div></a>`;
+    app.innerHTML = `${nav('list')}<div class="wrap">
+      ${installBanner()}
+      <div class="row" style="justify-content:space-between"><h1>Квартиры</h1><a class="btn btn-primary" href="#zk-new">+ ЖК</a></div>
+      <label class="search"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+        <input type="search" id="lq" placeholder="Поиск квартиры: ЖК, адрес, площадь" value="${esc(listQuery)}" autocomplete="off"></label>
+      ${me.realtor.plan.maxApartments ? `<p class="${apts.length >= me.realtor.plan.maxApartments ? 'warn' : 'hint'}" style="margin-top:-6px">Тариф: ${apts.length} из ${flats(me.realtor.plan.maxApartments)}${apts.length >= me.realtor.plan.maxApartments ? ' — лимит исчерпан, новые добавить нельзя' : ''}</p>` : ''}
+      <div id="zkGrid" class="zk-grid">
+        ${shown.map(c => {
+          const mine = byKey.get(c.key) || [];
+          const img = c.photos[0] ? zkPhoto(c.photos[0]) : mine[0] && mine[0].computed.photos[0] ? mine[0].computed.photos[0].thumb : '';
+          return tile(`#zk/${encodeURIComponent(c.key)}`, c.name, [c.district, c.address].filter(Boolean).join(' · ') || c.city, img, mine.length ? `Моих квартир: ${mine.length}` : 'Квартир пока нет — добавьте');
+        }).join('')}
+        ${tile('#zk/_none', 'Без ЖК', 'Участки и дома без ЖК', none[0] && none[0].computed.photos[0] ? none[0].computed.photos[0].thumb : '', none.length ? `Квартир: ${none.length}` : 'Пусто')}
+      </div>
+      <div id="items"></div>
+    </div>`;
+    bindNav();
+    bindInstall();
+    // Поиск — сразу по всем квартирам (вместо ЖК показываем найденные квартиры)
+    const drawItems = () => {
+      const q = listQuery.trim().toLowerCase();
+      document.getElementById('zkGrid').hidden = !!q;
+      const list = q ? apts.filter(a => [a.title, a.address, a.city, a.area, a.computed && a.computed.roomsLabel].join(' ').toLowerCase().includes(q)) : [];
+      document.getElementById('items').innerHTML = q ? (list.map(item).join('') || '<p class="hint">Ничего не найдено</p>') : '';
+    };
+    drawItems();
+    document.getElementById('lq').oninput = e => { listQuery = e.target.value; drawItems(); };
+    bindItems(document.getElementById('items'), apts, renderList);
+  }
+
+  // Фото дома в ЖК: загрузить, сделать главным, убрать (только если можно менять ЖК)
+  function zkPhotosHtml(photos, edit) {
+    return photos.map((p, i) => `<div class="photo"><img src="${zkPhoto(p)}" alt="">${i === 0 ? '<span class="main">Главное</span>' : ''}
+      ${edit ? `<div class="pa">${i ? `<button type="button" data-main="${i}" title="Сделать главным">★</button>` : ''}<button type="button" data-rm="${i}" title="Убрать">✕</button></div>` : ''}</div>`).join('');
+  }
+
+  async function renderZk(key) {
+    const [apts, zks] = await Promise.all([api('GET', '/api/admin/apartments'), api('GET', '/api/admin/complexes')]);
+    aptCount = apts.length;
+    const none = key === '_none';
+    const c = none ? null : zks.find(x => x.key === key);
+    if (!none && !c) { location.hash = '#list'; return; }
+    const mine = apts.filter(a => aptZk(a) === (none ? '' : key));
+    const edit = !!(c && c.canEdit);
+    let photos = c ? [...c.photos] : [];
+    app.innerHTML = `${nav('list')}<div class="wrap">
+      <a class="hint" href="#list" style="display:inline-block;margin:0 0 8px">← Все ЖК</a>
+      <div class="row" style="justify-content:space-between;align-items:flex-start"><h1 style="margin:0">${esc(none ? 'Без ЖК' : c.name)}</h1>
+        <a class="btn btn-primary" href="#edit/new?zk=${encodeURIComponent(key)}" id="addApt">+ Квартира</a></div>
+      ${c ? `<form class="card" id="zkf" style="margin-top:14px">
+        <h2 style="margin-top:0">Фото дома</h2>
+        <div class="hint" style="margin:-6px 0 10px">Фасад, вид сверху, двор, подъезд. Эти фото — на странице ЖК и у всех его квартир. Планировки — в самих квартирах.</div>
+        <div class="photos" id="zkPhotos">${zkPhotosHtml(photos, edit)}</div>
+        ${edit ? '<label class="upload"><input type="file" id="zkFiles" accept="image/*" multiple>+ Загрузить фото дома</label>' : ''}
+        <h2>Адрес и карта</h2>
+        ${edit ? `<div class="grid2">
+            <label class="f"><span>Город</span><select name="city">${['Бишкек', 'Ош'].map(x => `<option ${(c.city || 'Бишкек') === x ? 'selected' : ''}>${x}</option>`).join('')}</select></label>
+            <label class="f"><span>Район</span><input type="text" name="district" value="${esc(c.district)}" maxlength="60" placeholder="Например: Джал, Восток-5"></label>
+          </div>
+          <label class="f"><span>Адрес</span><input type="text" name="address" value="${esc(c.address)}" maxlength="200"></label>
+          <label class="f"><span>Ссылка на карту — 2ГИС или Google</span><input type="text" name="mapLink" value="${esc(c.mapLink)}" inputmode="url" placeholder="https://go.2gis.com/… или https://maps.app.goo.gl/…"></label>
+          <div class="err" id="zkErr"></div>
+          <button class="btn btn-primary">Сохранить ЖК</button>
+          <div class="hint" style="margin-top:8px">Сохранится у всех квартир этого ЖК${c.n ? ` (${c.n})` : ''}${isOwner() ? ' у всех менеджеров' : ''}.</div>`
+        : `<p style="margin:0">${esc([c.city, c.district, c.address].filter(Boolean).join(' · ') || '—')}</p>
+          ${c.mapLink ? `<p style="margin:6px 0 0"><a href="${esc(c.mapLink)}" target="_blank" rel="noopener">Открыть на карте ↗</a></p>` : ''}
+          <div class="hint" style="margin-top:10px">Фото дома, адрес и карту этого ЖК меняет владелец сервиса — они одинаковые у всех менеджеров. Если что-то не так, напишите ему.</div>`}
+      </form>` : '<p class="hint" style="margin-top:10px">Участки и дома, которые не относятся к ЖК. Адрес и карта — в каждой квартире.</p>'}
+      <h2>${none ? 'Квартиры и участки' : 'Мои квартиры в этом ЖК'} <span class="hint" style="margin:0">· ${mine.length}</span></h2>
+      <div id="items">${mine.map(a => item(none ? a : { ...a, title: typeOf(a) === 'commercial' ? 'Коммерческое помещение' : `${rooms(a.rooms)}, ${a.area} м²` })).join('') || '<p class="hint">Пока пусто — нажмите «+ Квартира».</p>'}</div>
+    </div>`;
+    bindNav();
+    bindItems(document.getElementById('items'), mine, () => renderZk(key));
+    document.getElementById('addApt').onclick = e => { if (atLimit()) { e.preventDefault(); limitInfo(); } };
+    if (!edit) return;
+    const box = document.getElementById('zkPhotos');
+    const savePhotos = async () => {
+      await api('PUT', `/api/admin/complexes/${encodeURIComponent(key)}`, { photos });
+      box.innerHTML = zkPhotosHtml(photos, true);
+    };
+    box.onclick = async e => {
+      const m = e.target.closest('[data-main]'), r = e.target.closest('[data-rm]');
+      if (m) { const [p] = photos.splice(+m.dataset.main, 1); photos.unshift(p); await savePhotos(); toast('Главное фото ЖК изменено'); }
+      if (r) {
+        if (!(await confirmBox('Убрать фото дома?', 'Оно исчезнет со страницы ЖК и у всех его квартир.', 'Убрать', true))) return;
+        photos.splice(+r.dataset.rm, 1); await savePhotos(); toast('Фото убрано');
+      }
+    };
+    document.getElementById('zkFiles').onchange = async e => {
+      const files = [...e.target.files];
+      if (!files.length) return;
+      const fd = new FormData();
+      files.forEach(fl => fd.append('photos', fl));
+      toast(`Загрузка ${files.length} фото…`);
+      try {
+        const r = await api('POST', '/api/admin/photos', fd);
+        photos.push(...r.photos); await savePhotos(); toast('Фото дома добавлены');
+      } catch (err) { toast(err.message); }
+      e.target.value = '';
+    };
+    document.getElementById('zkf').onsubmit = async e => {
+      e.preventDefault();
+      const d = Object.fromEntries(new FormData(e.target));
+      try {
+        const r = await api('PUT', `/api/admin/complexes/${encodeURIComponent(key)}`, { city: d.city, district: d.district, address: d.address, mapLink: d.mapLink });
+        if (r.mapError) showErr('zkErr', `Ссылка на карту не распознана: ${r.mapError}`);
+        else toast(`ЖК сохранён${r.apartments ? ` — у ${r.apartments} квартир` : ''}`);
+      } catch (err) { showErr('zkErr', err.message); }
+    };
+  }
+
+  // Новый ЖК: выбрать из базы (его уже внесли другие) или создать
+  async function renderZkNew() {
+    const [apts, zks] = await Promise.all([api('GET', '/api/admin/apartments'), api('GET', '/api/admin/complexes')]);
+    const mineKeys = new Set(apts.map(aptZk));
+    const other = zks.filter(c => !mineKeys.has(c.key) && !c.mineCreated);
+    app.innerHTML = `${nav('list')}<div class="wrap">
+      <a class="hint" href="#list" style="display:inline-block;margin:0 0 8px">← Все ЖК</a>
+      <h1>Добавить ЖК</h1>
+      ${other.length ? `<div class="card"><h2 style="margin-top:0">ЖК уже есть в базе</h2>
+        <div class="hint" style="margin:-6px 0 10px">Адрес, карта и фото дома уже внесены — останется добавить свои квартиры.</div>
+        <label class="f"><span>ЖК</span><select id="zkOther"><option value="">— Выберите ЖК —</option>${other.map(c => `<option value="${esc(c.key)}">${esc(c.name)}${c.city !== 'Бишкек' ? ` (${esc(c.city)})` : ''}</option>`).join('')}</select></label>
+        <button type="button" class="btn btn-primary" id="zkOpen">Открыть</button></div>` : ''}
+      <form class="card" id="zkNew"><h2 style="margin-top:0">Новый ЖК</h2>
+        <label class="f"><span>Название ЖК</span><input type="text" name="name" maxlength="120" placeholder="Например: ЖК «Алтай Голд»" required></label>
+        <div class="grid2">
+          <label class="f"><span>Город</span><select name="city"><option>Бишкек</option><option>Ош</option></select></label>
+          <label class="f"><span>Район</span><input type="text" name="district" maxlength="60" placeholder="Например: Джал"></label>
+        </div>
+        <label class="f"><span>Адрес</span><input type="text" name="address" maxlength="200"></label>
+        <label class="f"><span>Ссылка на карту — 2ГИС или Google</span><input type="text" name="mapLink" inputmode="url" placeholder="https://go.2gis.com/… или https://maps.app.goo.gl/…"></label>
+        <div class="err" id="zkNewErr"></div>
+        <button class="btn btn-primary">Создать ЖК</button>
+        <div class="hint" style="margin-top:8px">Фото дома добавите на странице ЖК сразу после создания.</div>
+      </form>
+    </div>`;
+    bindNav();
+    const open = document.getElementById('zkOpen');
+    if (open) open.onclick = () => { const v = document.getElementById('zkOther').value; if (v) location.hash = `#zk/${encodeURIComponent(v)}`; else toast('Выберите ЖК'); };
+    document.getElementById('zkNew').onsubmit = async e => {
+      e.preventDefault();
+      const d = Object.fromEntries(new FormData(e.target));
+      // Такой ЖК уже есть под другим написанием — открываем его
+      const same = zks.find(c => c.key === zkKeyAll(d.name));
+      if (same) { toast(`ЖК «${same.name}» уже есть — открываю его`); location.hash = `#zk/${encodeURIComponent(same.key)}`; return; }
+      try {
+        const r = await api('POST', '/api/admin/complexes', d);
+        toast(r.exists ? `ЖК «${r.name}» уже есть — открываю его` : 'ЖК создан — добавьте фото дома и квартиры');
+        location.hash = `#zk/${encodeURIComponent(r.key)}`;
+      } catch (err) { showErr('zkNewErr', err.message); }
     };
   }
 
@@ -438,7 +572,9 @@
   }
 
   // ---------- Добавление / редактирование ----------
-  async function renderEdit(id) {
+  async function renderEdit(idArg) {
+    const [id, qs] = String(idArg).split('?');
+    const zkParam = new URLSearchParams(qs || '').get('zk') || '';
     const isNewRecord = id === 'new';
     let a;
     if (isNewRecord) {
@@ -450,8 +586,8 @@
       a.type = typeOf(a);
     }
     let photos = [...(a.photos || [])];
-    // Какие фото — «фото ЖК» (видны на странице ЖК), какие — только в квартире (планировки, ремонт)
-    const kinds = {};
+    // Куда вернуться: на страницу ЖК этой квартиры
+    const backTo = () => { const k = aptZk({ type, title: form.elements.title.value }) || (zkParam && zkParam !== '_none' ? zkParam : ''); return `#zk/${encodeURIComponent(k || '_none')}`; };
     const v = k => esc(a[k] === 0 && k !== 'rooms' ? '' : a[k]);
     const f = (name, label, attrs = '') =>
       `<label class="f"><span>${label}</span><input type="text" name="${name}" value="${v(name)}" ${attrs}></label>`;
@@ -469,7 +605,8 @@
           </div>
         </div>
         <div class="card">
-          <h2 style="margin-top:0">Фото</h2>
+          <h2 style="margin-top:0">Фото квартиры</h2>
+          <div class="hint" style="margin:-6px 0 10px">Планировка, фото ремонта. Фото дома (фасад) — на странице ЖК, их добавлять сюда не нужно: на сайте они покажутся у квартиры сами.</div>
           <div class="photos" id="photos"></div>
           <label class="upload"><input type="file" id="files" accept="image/*" multiple>+ Загрузить фото (можно несколько)</label>
           <div class="hint">Первое фото — главное. Фото автоматически сжимаются.</div>
@@ -517,7 +654,7 @@
           <label class="f"><span>Метки — по-кыргызски, через запятую</span><input type="text" name="tagsKy" value="${esc((a.tagsKy || []).join(', '))}" placeholder="${esc((a.tags || []).join(', ') || 'Арзандатуу, Үй тапшырылган')}"></label>
         </div>
         <div class="savebar">
-          <a class="btn" href="#list">← Назад</a>
+          <a class="btn" href="#list" id="backBtn">← Назад</a>
           <button class="btn btn-primary">${isNewRecord ? 'Добавить на сайт' : 'Сохранить'}</button>
         </div>
       </form>
@@ -566,7 +703,6 @@
       document.getElementById('photos').innerHTML = photos.map((p, i) => `
         <div class="photo"><img src="/uploads/${p}-t.webp" alt="">
           ${i === 0 ? '<span class="main">Главное</span>' : ''}
-          <button type="button" class="pk${kinds[p] === 'zk' ? ' on' : ''}" data-zk="${i}" title="Показывать на странице ЖК (здание снаружи). Планировки — только в квартире">${kinds[p] === 'zk' ? '✓ Фото ЖК' : 'Фото ЖК?'}</button>
           <div class="pa">${i ? `<button type="button" data-main="${i}" title="Сделать главным">★</button>` : ''}<button type="button" data-rm="${i}" title="Убрать">✕</button></div>
         </div>`).join('');
     }
@@ -598,15 +734,14 @@
     // который сам создал этот ЖК; остальным поля закрыты.
     const SHARED = ['city', 'district', 'address', 'mapLink'];
     const lockFor = c => {
-      const lock = !!c && !c.canEdit;
-      SHARED.forEach(n => { const el = form.elements[n]; if (el) el.disabled = lock; });
+      const lock = !!c;
+      SHARED.forEach(n => { const el = form.elements[n]; if (el) { el.disabled = lock; const w = el.closest('label'); if (w) w.hidden = lock; } });
+      const mb = form.querySelector('.mapbox'), mp = form.querySelector('.map-prev'); if (mb) mb.hidden = lock; if (mp) mp.hidden = lock;
       const mn = form.querySelector('.mapbox-note'); if (mn) mn.hidden = lock; // подсказка, где взять ссылку, — только когда поле открыто
       let note = document.getElementById('zkShared');
       if (!note) { note = document.createElement('div'); note.id = 'zkShared'; note.className = 'hint'; form.elements.city.closest('label').before(note); }
       note.hidden = !c;
-      if (c) note.innerHTML = lock
-        ? `<b>Адрес, район и карта — общие для ${/^жк|^жилой/i.test(c.name) ? esc(c.name) : `ЖК «${esc(c.name)}»`}.</b> Они одинаковые у всех его квартир. Если что-то не так — напишите владельцу сервиса.`
-        : `<b>Адрес, район и карта — общие для ${/^жк|^жилой/i.test(c.name) ? esc(c.name) : `ЖК «${esc(c.name)}»`}.</b> Если поменяете — поменяются у всех его квартир${c.n > 1 ? ` (${c.n})` : ''}.`;
+      if (c) note.innerHTML = `<b>Адрес:</b> ${esc([c.city, c.district, c.address].filter(Boolean).join(' · ') || '—')}${c.mapLink ? ' · карта есть' : ''}. Адрес, карта и фото дома — общие для ЖК, ${c.canEdit ? `меняются <a href="#zk/${encodeURIComponent(c.key)}">на странице ЖК</a>` : 'их меняет владелец сервиса'}.`;
     };
     const showPick = () => {
       const land = type === 'land';
@@ -633,6 +768,7 @@
       zkPick.value = known ? curKey : form.elements.title.value.trim() ? '__new' : '';
       if (known) form.elements.title.value = complexes.find(c => c.key === curKey).name; // старое написание → как у всех
       lockFor(known ? complexes.find(c => c.key === curKey) : null);
+      if (isNewRecord && zkParam && zkParam !== '_none' && complexes.some(c => c.key === zkParam)) { zkPick.value = zkParam; pickKey(zkParam); }
       showPick();
     }).catch(() => { zkPick.innerHTML = '<option value="__new">Написать название</option>'; zkPick.value = '__new'; showPick(); });
     zkPick.onchange = () => {
@@ -650,24 +786,14 @@
     });
 
     setType(type); drawPhotos();
-    const loadKinds = async list => {
-      if (!list.length) return;
-      Object.assign(kinds, await api('GET', `/api/admin/photo-kinds?names=${list.join(',')}`).catch(() => ({})));
-      drawPhotos();
-    };
-    loadKinds(photos);
+    document.getElementById('backBtn').onclick = e => { e.preventDefault(); location.hash = backTo(); };
+
     form.addEventListener('input', updCalc);
     form.querySelector('#type').onclick = e => { const b = e.target.closest('button'); if (b) setType(b.dataset.v); };
 
     document.getElementById('photos').onclick = e => {
-      const m = e.target.closest('[data-main]'), r = e.target.closest('[data-rm]'), z = e.target.closest('[data-zk]');
-      if (z) {
-        const name = photos[+z.dataset.zk], zk = kinds[name] !== 'zk';
-        api('PUT', '/api/admin/photo-kind', { name, zk })
-          .then(x => { kinds[name] = x.kind; drawPhotos(); toast(zk ? 'Фото будет на странице ЖК' : 'Фото только в квартире'); })
-          .catch(err => toast(err.message));
-        return;
-      }
+      const m = e.target.closest('[data-main]'), r = e.target.closest('[data-rm]');
+
       if (m) { const [p] = photos.splice(+m.dataset.main, 1); photos.unshift(p); drawPhotos(); }
       if (r) { photos.splice(+r.dataset.rm, 1); drawPhotos(); }
     };
@@ -679,7 +805,7 @@
       toast(`Загрузка ${files.length} фото…`);
       try {
         const r = await api('POST', '/api/admin/photos', fd);
-        photos.push(...r.photos); Object.assign(kinds, r.kinds || {}); drawPhotos(); toast('Фото загружены — не забудьте сохранить');
+        photos.push(...r.photos); drawPhotos(); toast('Фото загружены — не забудьте сохранить');
       } catch (err) { toast(err.message); }
       e.target.value = '';
     };
@@ -704,7 +830,7 @@
         return;
       }
       toast('Сохранено');
-      location.hash = '#list';
+      location.hash = backTo();
     };
   }
 
@@ -1482,7 +1608,6 @@
         <div id="shpBody" style="margin-top:12px">${shopUsersHtml(sUsers)}</div>
       </details>
       ${wa ? waCardHtml(wa) : ''}
-      ${zkCardHtml(zks)}
 
       <details class="card" id="aiCard"><summary><b>ИИ-помощник на сайтах</b> · ${ai.on && ai.providers.some(p => p.hasKey) ? `работает ✓ · у ${list.filter(x => x.aiAccess).length} из ${list.length}` : 'выключен'}</summary>
         <form id="aifm" style="margin-top:12px">
@@ -1589,7 +1714,6 @@
     bindMoneyUsers(mUsers);
     bindShopUsers(sUsers);
     if (wa) bindWaCard();
-    bindZkCard(zks);
     const reopenAi = async () => { await renderRealtors(); document.getElementById('aiCard').open = true; document.getElementById('aiTeach').scrollIntoView({ block: 'start' }); };
     const addLesson = async (q, a, errId) => {
       try { await api('POST', '/api/owner/aichat/lessons', { q, a }); toast('Урок добавлен — ИИ учтёт его со следующего ответа'); await reopenAi(); }
@@ -1768,6 +1892,8 @@
     window.scrollTo(0, 0);
     try {
       if (h.startsWith('edit/')) await renderEdit(h.slice(5));
+      else if (h === 'zk-new') await renderZkNew();
+      else if (h.startsWith('zk/')) await renderZk(decodeURIComponent(h.slice(3)));
       else if (h === 'settings') await renderSettings();
       else if (h === 'analytics' || h === 'stats') await renderAnalytics();
       else if (h === 'realtors') await renderRealtors();

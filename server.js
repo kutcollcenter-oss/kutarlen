@@ -12,7 +12,7 @@ const seed = require('./lib/seed');
 const { LANGS, KY_KEYS, langOk, localizeSettings } = require('./lib/i18n');
 const { kyText, kyTag } = require('./lib/ky-fill');
 const { migrateHandover, pendingHandover, dropHandoverTags } = require('./lib/handover');
-const { publicApt, waLink, kindLabel, unitOf, money, isListed, typeOf, isCashType, cityOf, TYPES, CITIES } = require('./lib/calc');
+const { publicApt, waLink, kindLabel, unitOf, money, isListed, typeOf, isCashType, cityOf, TYPES, CITIES, handoverStages, photoUrls } = require('./lib/calc');
 const { resolveMap } = require('./lib/maps');
 const pages = require('./lib/pages');
 const companies = require('./lib/companies');
@@ -103,7 +103,9 @@ const ctxOf = (r, req) => ({ s: localizeSettings(r.settings, langOf(req)), base:
 const complexes = require('./lib/complexes').mount({ D: () => D(), save: () => db.save() });
 const pub = (r, a, req, lang = langOf(req)) => {
   const p = publicApt(a, r.settings, base(req), `/${r.slug}`, lang);
-  p.photos = p.photos.map((x, i) => ({ ...x, zk: photoKind.kindOf((a.photos || [])[i]) === 'zk' }));
+  // Фото квартиры (планировка, ремонт), за ними — фото дома из её ЖК (zk: true — для страницы и карточки ЖК)
+  const c = complexes.get(complexes.keyOf(a));
+  p.photos = [...p.photos.map(x => ({ ...x, zk: false })), ...((c && c.photos) || []).map(n => ({ ...photoUrls(n), zk: true }))];
   return p;
 };
 const aptLabel = a => `${a.title ? a.title + ' · ' : ''}${kindLabel(a)}, ${a.area} ${unitOf(a)}`;
@@ -146,6 +148,7 @@ async function saveLogo(buffer) {
 
 function removePhotoFiles(name) {
   const used = D().apartments.some(a => (a.photos || []).includes(name))
+    || Object.values(D().complexes || {}).some(c => (c.photos || []).includes(name))
     || D().realtors.some(r => ((r.settings || {}).news || []).some(n => n.photo === name));
   if (used) return; // фото ещё используется в дубликате или в новости
   for (const f of [`${name}.webp`, `${name}-t.webp`, `${name}-og.jpg`]) {
@@ -553,39 +556,37 @@ app.get('/api/admin/apartments', requireAuth, (req, res) => {
   res.json(list.map(a => adminApt(req.realtor, a, req)));
 });
 
-// Список ЖК для выбора в карточке квартиры: из квартир всех менеджеров (одно написание, город, район, адрес,
-// этажность, срок сдачи, карта — самые частые). Выбрал ЖК — эти поля подставляются сами, без опечаток.
+// ---------- ЖК в кабинете: «Квартиры» → ЖК → квартиры ЖК ----------
+// Список ЖК (записи lib/complexes.js) + по каждому: сколько квартир всего и моих, этажность и срок сдачи (самые частые
+// у квартир — подставляются в новую квартиру), фото дома, можно ли мне менять ЖК.
 app.get('/api/admin/complexes', requireAuth, (req, res) => {
   const top = arr => { const n = new Map(); arr.filter(Boolean).forEach(x => n.set(x, (n.get(x) || 0) + 1)); return ([...n.entries()].sort((a, b) => b[1] - a[1])[0] || [''])[0]; };
   const groups = new Map();
   for (const a of D().apartments) {
-    if (typeOf(a) === 'land') continue;
-    const k = zkPrep.zkKey(a.title);
+    const k = complexes.keyOf(a);
     if (!k) continue;
     if (!groups.has(k)) groups.set(k, []);
     groups.get(k).push(a);
   }
-  const list = [...groups.entries()].map(([key, g]) => {
+  const list = complexes.list().map(c => {
+    const g = groups.get(c.key) || [];
     // «I квартал 2029» и «1-квартал 2029 г» — один срок: сравниваем этапы, а не написание
     const withHo = g.filter(a => String(a.handover || '').trim());
-    const stageSets = new Set(withHo.map(a => require('./lib/calc').handoverStages(a.handover).map(x => `${x.y}.${x.q}`).join(',') || String(a.handover).trim().toLowerCase()));
-    const hos = stageSets.size === 1 ? [top(withHo.map(a => String(a.handover).trim()))] : [];
-    // Город, район, адрес и карта — из единой записи ЖК (lib/complexes.js)
-    const c = complexes.get(key) || {};
+    const stageSets = new Set(withHo.map(a => handoverStages(a.handover).map(x => `${x.y}.${x.q}`).join(',') || String(a.handover).trim().toLowerCase()));
     return {
-      key, name: c.name || top(g.map(a => a.title)), n: g.length, mine: g.filter(a => a.realtorId === req.realtor.id).length,
-      city: c.city || top(g.map(a => a.city || 'Бишкек')), district: c.district || '',
-      address: c.address || '', mapLink: (c.map || {}).link || '',
+      key: c.key, name: c.name, n: g.length, mine: g.filter(a => a.realtorId === req.realtor.id).length,
+      city: c.city || 'Бишкек', district: c.district || '', address: c.address || '', mapLink: (c.map || {}).link || '',
+      photos: (c.photos || []).filter(p => PHOTO_RE.test(p)),
       floors: Number(top(g.map(a => a.floors && String(a.floors)))) || '',
-      handover: hos.length === 1 ? hos[0] : '', // у ЖК в несколько этапов срок не подставляем — он у квартир разный
-      canEdit: canEditComplex(c, req, key),
+      handover: stageSets.size === 1 ? top(withHo.map(a => String(a.handover).trim())) : '', // у ЖК в несколько этапов — у квартир разный
+      canEdit: canEditComplex(c, req, c.key), mineCreated: c.createdBy === req.realtor.id,
     };
   }).sort((a, b) => b.mine - a.mine || b.n - a.n || a.name.localeCompare(b.name, 'ru'));
   res.json(list);
 });
 
-// Менять адрес, район, город и карту ЖК: владелец — любой ЖК; менеджер — только ЖК, который создал сам
-// и в котором пока только его квартиры (иначе поменял бы адрес чужим).
+// Менять ЖК (адрес, район, город, карта, фото дома): владелец — любой; менеджер — только ЖК, который создал сам
+// и в котором пока только его квартиры (иначе поменял бы чужим).
 function canEditComplex(c, req, key) {
   if (req.user.role === 'owner') return true;
   if (!c || c.createdBy !== req.realtor.id) return false;
@@ -598,18 +599,37 @@ function syncComplex(a, body, req) {
   if (c && touched && canEditComplex(c, req, key)) complexes.update(key, { city: a.city, district: a.district, address: a.address, map: a.map || null });
   complexes.apply(a);
 }
-
-// Владелец: правка ЖК (раздел «ЖК» в кабинете) — сразу у всех квартир этого ЖК
-app.put('/api/owner/complexes/:key', requireAuth, ownerOnly, async (req, res) => {
-  const key = String(req.params.key), c = complexes.get(key);
-  if (!c) return res.status(404).json({ error: 'ЖК не найден' });
-  const b = req.body || {}, patch = {};
-  for (const k of ['city', 'district', 'address']) if (k in b) patch[k] = k === 'city' ? (CITIES.includes(b.city) ? b.city : 'Бишкек') : b[k];
+// Поля ЖК из формы: город, район, адрес, ссылка на карту (распознаём), фото дома
+async function complexPatch(b, old = {}) {
+  const patch = {};
+  if ('city' in b) patch.city = CITIES.includes(b.city) ? b.city : 'Бишкек';
+  for (const k of ['district', 'address']) if (k in b) patch[k] = b[k];
   if ('mapLink' in b) {
     const link = String(b.mapLink || '').trim().slice(0, 2000);
-    patch.map = !link ? null : (c.map && c.map.link === link && !c.map.error ? c.map : await resolveMap(link));
+    patch.map = !link ? null : (old.map && old.map.link === link && !old.map.error ? old.map : await resolveMap(link));
   }
+  if ('photos' in b) patch.photos = cleanPhotos(b.photos) || [];
+  return patch;
+}
+// Новый ЖК
+app.post('/api/admin/complexes', requireAuth, async (req, res) => {
+  const b = req.body || {};
+  const name = String(b.name || '').trim();
+  if (!zkPrep.zkKey(name)) return res.status(400).json({ error: 'Напишите название ЖК' });
+  const patch = await complexPatch(b);
+  const r = complexes.create(name, patch, req.realtor.id);
+  if (r.error) return res.status(400).json({ error: r.error });
+  res.json({ key: r.key, exists: !!r.exists, name: complexes.get(r.key).name, mapError: patch.map && patch.map.error || '' });
+});
+// Изменить ЖК — сразу у всех его квартир (у всех менеджеров)
+app.put('/api/admin/complexes/:key', requireAuth, async (req, res) => {
+  const key = String(req.params.key), c = complexes.get(key);
+  if (!c) return res.status(404).json({ error: 'ЖК не найден' });
+  if (!canEditComplex(c, req, key)) return res.status(403).json({ error: 'Этот ЖК меняет владелец сервиса' });
+  const patch = await complexPatch(req.body || {}, c);
+  const removed = patch.photos ? (c.photos || []).filter(p => !patch.photos.includes(p)) : [];
   const r = complexes.update(key, patch);
+  removed.forEach(removePhotoFiles); // фото, которое больше нигде не используется, — удаляем файлы
   res.json({ ok: true, apartments: r.apartments, mapError: patch.map && patch.map.error || '' });
 });
 
@@ -1088,6 +1108,23 @@ app.use((req, res) => res.status(404).send(pages.renderInvalid(D().product, base
     if (!fs.existsSync(copy)) fs.copyFileSync(path.join(db.DATA_DIR, 'db.json'), copy);
     console.log('Копия базы перед общими адресами ЖК: ' + copy);
     complexes.buildOnce(line => console.log('ЖК — ' + line));
+  }
+  // Один раз: фото дома переезжают из квартир в их ЖК (в квартирах остаются планировки). Перед этим — копия базы.
+  if (!D().done.zkPhotos) {
+    const dir = path.join(db.DATA_DIR, 'backups');
+    fs.mkdirSync(dir, { recursive: true });
+    const copy = path.join(dir, `before-zk-photos-${new Date().toISOString().slice(0, 10)}.json`);
+    if (!fs.existsSync(copy)) fs.copyFileSync(path.join(db.DATA_DIR, 'db.json'), copy);
+    console.log('Копия базы перед переносом фото в ЖК: ' + copy);
+    complexes.movePhotosOnce(photoKind.kindOf, line => console.log('Фото ЖК — ' + line));
+    // Одно и то же фото фасада часто загружали несколько раз под разными именами — в ЖК оставляем по одному
+    for (const c of Object.values(D().complexes || {})) {
+      if ((c.photos || []).length < 2) continue;
+      const before = c.photos.length;
+      c.photos = await photoKind.dedupe(c.photos);
+      if (c.photos.length < before) console.log(`Фото ЖК — «${c.name}»: убрано одинаковых ${before - c.photos.length}, осталось ${c.photos.length}`);
+    }
+    db.save();
   }
   // Один раз: кыргызские переводы текстов, которые уже есть у менеджеров (lib/ky-fill.js) — только в пустые кыргызские поля.
   // Отметка done.kyFill — чтобы потом не трогать то, что менеджер поменял или очистил сам.

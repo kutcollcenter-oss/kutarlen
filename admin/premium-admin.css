@@ -180,3 +180,17 @@ select option { background: #131313; color: var(--ink); }
 .photo .pk.on { background: #c8a86b; border-color: #c8a86b; color: #111; }
 /* Закрытые поля (адрес и карта ЖК у менеджера) — видно, что их не поменять */
 input:disabled, select:disabled, textarea:disabled { opacity: .55; cursor: not-allowed; background-image: none; }
+
+/* Квартиры по ЖК: плитки ЖК */
+.zk-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 12px; }
+@media (min-width: 700px) { .zk-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1100px) { .zk-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.zk-grid[hidden] { display: none; }
+.zk-tile { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 14px; align-items: center; padding: 10px; border: 1px solid var(--line2, rgba(255,255,255,.14)); background: var(--s2, #151515); color: inherit; text-decoration: none; transition: border-color .15s; }
+.zk-tile:hover { border-color: #c8a86b; }
+.zk-tile-img { width: 96px; height: 72px; background: var(--s3, #222) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 24 24' fill='none' stroke='%23777' stroke-width='1.4'%3E%3Cpath d='M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z'/%3E%3Cpath d='M10 6h4M10 10h4M10 14h4M10 18h4'/%3E%3C/svg%3E") center no-repeat; overflow: hidden; }
+.zk-tile-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.zk-tile-txt { display: grid; gap: 3px; min-width: 0; }
+.zk-tile-txt b { font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.zk-tile-txt span { font-size: 13px; opacity: .7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.zk-tile-txt small { font-size: 12px; color: #c8a86b; }
