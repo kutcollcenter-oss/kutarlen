@@ -398,3 +398,9 @@ body.lx { --lx-r: 22px; --lx-glass: rgba(21, 36, 27, .72); font-family: 'Golos T
 .lx-pask-err { min-height: 18px; color: #ff8a80; font-size: 14px; }
 .lx-pask-x { position: absolute; top: 10px; right: 12px; border: 0; background: none; color: inherit; font-size: 26px; line-height: 1; cursor: pointer; opacity: .7; }
 .lx-old { opacity: .55; margin-right: 4px; }
+
+/* Тариф: вторая кнопка «У меня есть промокод» — тихая, под главной (решение 27.11.2026) */
+.lx-tier-promo { margin-top: 10px; width: 100%; min-height: 44px; border: 1px dashed rgba(232, 201, 143, .45); border-radius: 999px;
+  background: transparent; color: var(--gold2, #e8c98f); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+.lx-tier-promo:hover { border-style: solid; border-color: var(--gold, #c9a15a); }
+.lx-pask-tier { min-height: 1em; }
