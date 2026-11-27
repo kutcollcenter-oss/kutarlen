@@ -20,6 +20,8 @@
   let listFilter = 'all';
   let listQuery = '';   // поиск в списке квартир
   let profileTab = 'main'; // открытая вкладка «Профиля»
+  // Вкладки «Профиля»: на телефоне — строкой вверху страницы, на компьютере — подпунктами в боковом меню
+  const PROFILE_TABS = [['main', 'Основное'], ['texts', 'Тексты сайта'], ['ky', 'Кыргызча'], ['news', 'Новости'], ['pw', 'Пароль']];
 
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const cur = type => (cashLike(type) ? settings.currencyCash || '$' : settings.currencyInstallment || 'сом');
@@ -260,7 +262,16 @@
     const href = (h, ext) => (ext ? `href="${esc(me.realtor.url)}" target="_blank" rel="noopener"` : `href="#${h}"`);
     const top = items.map(([h, label, , , ext]) => `<a ${href(h, ext)} class="tl${active === h ? ' on' : ''}${ext ? ' ext' : ''}">${label}${ext ? ' ↗' : ''}</a>`).join('');
     const bottom = items.map(([h, label, icon, , ext]) => `<a ${href(h, ext)} class="${active === h ? 'on' : ''}${ext ? ' ext' : ''}">${icon}<span>${label}</span></a>`).join('');
-    return `<div class="top"><div class="wrap">
+    // Компьютер: боковое меню слева, как «Параметры» Windows (27.11.2026): аватар и имя, разделы, под «Профилем» — его вкладки
+    const subs = PROFILE_TABS.map(([t, l]) => `<a href="#settings/${t}" class="side-sub${active === 'settings' && profileTab === t ? ' on' : ''}" data-ptab-link="${t}">${l}</a>`).join('');
+    const photo = settings && settings.photo;
+    const side = `<aside class="side" aria-label="Разделы кабинета">
+      <div class="side-me">${photo ? `<img src="${esc(photo)}" alt="">` : `<span class="side-ava">${esc(String(me.realtor.name || '?').trim().charAt(0).toUpperCase())}</span>`}
+        <div><b>${esc(me.realtor.name)}</b><small>${isOwner() ? 'Владелец сервиса' : 'Кабинет менеджера'}</small></div></div>
+      <nav class="side-nav">${items.map(([h, label, icon, , ext]) => `<a ${href(h, ext)} class="side-a${active === h ? ' on' : ''}${ext ? ' ext' : ''}">${icon}<span>${label}${ext ? ' ↗' : ''}</span></a>${h === 'settings' ? `<div class="side-subs">${subs}</div>` : ''}`).join('')}</nav>
+      <button type="button" class="side-out" id="logoutSide">Выйти</button>
+    </aside>`;
+    return `${side}<div class="top"><div class="wrap">
       <span class="top-title">${esc(me.realtor.name)}</span>
       ${top}
       <span class="sp"></span>
@@ -349,7 +360,9 @@
   }
 
   function bindNav() {
-    document.getElementById('logout').onclick = async () => { await api('POST', '/api/admin/logout'); renderLogin(); };
+    const out = async () => { await api('POST', '/api/admin/logout'); renderLogin(); };
+    document.getElementById('logout').onclick = out;
+    const so = document.getElementById('logoutSide'); if (so) so.onclick = out;
     app.querySelectorAll('[data-copy]').forEach(b => { b.onclick = () => copy(b.dataset.copy); });
     app.querySelectorAll('[data-copy-text]').forEach(b => { b.onclick = () => copy(b.dataset.copyText, 'Текст со ссылкой скопирован'); });
   }
@@ -1122,7 +1135,7 @@
     const f = (k, label, type = 'text', hint = '') => `<label class="f"><span>${label}</span><input type="${type}" name="${k}" value="${esc(s[k])}">${hint ? `<div class="hint">${hint}</div>` : ''}</label>`;
     const t = (k, label, hint = '') => `<label class="f"><span>${label}</span><textarea name="${k}" rows="6">${esc(s[k])}</textarea>${hint ? `<div class="hint">${hint}</div>` : ''}</label>`;
     // Вкладки: длинная страница разбита на части. Сохраняется вся форма сразу (кнопка «Сохранить» внизу любой вкладки).
-    const TABS = [['main', 'Основное'], ['texts', 'Тексты сайта'], ['ky', 'Кыргызча'], ['news', 'Новости'], ['pw', 'Пароль']];
+    const TABS = PROFILE_TABS;
     app.innerHTML = `${nav('settings')}<div class="wrap"><h1>Профиль</h1>
       <div class="filters ptabs" id="ptabs" role="tablist">${TABS.map(([k, l]) => `<button type="button" role="tab" data-t="${k}">${l}</button>`).join('')}</div>
       <form id="sf">
@@ -1218,7 +1231,11 @@
       document.querySelectorAll('#ptabs [data-t]').forEach(b => { b.classList.toggle('on', b.dataset.t === t); b.setAttribute('aria-selected', b.dataset.t === t); });
       document.querySelectorAll('[data-ptab]').forEach(el => { el.hidden = el.dataset.ptab !== t; });
       document.getElementById('psave').hidden = t === 'pw';
+      document.querySelectorAll('.side-sub').forEach(a => a.classList.toggle('on', a.dataset.ptabLink === t));
+      if (location.hash !== `#settings/${t}`) history.replaceState(null, '', `#settings/${t}`);
     };
+    // Подпункт бокового меню на этой же странице — просто переключаем вкладку (несохранённые поля не теряются)
+    document.querySelectorAll('.side-sub').forEach(a => { a.onclick = e => { e.preventDefault(); showTab(a.dataset.ptabLink); window.scrollTo(0, 0); }; });
     document.getElementById('ptabs').onclick = e => { const b = e.target.closest('[data-t]'); if (b) { showTab(b.dataset.t); window.scrollTo(0, 0); } };
     showTab(profileTab);
     const form = document.getElementById('sf');
@@ -2121,7 +2138,11 @@
       if (h.startsWith('edit/')) await renderEdit(h.slice(5));
       else if (h === 'zk-new') await renderZkNew();
       else if (h.startsWith('zk/')) await renderZk(decodeURIComponent(h.slice(3)));
-      else if (h === 'settings') await renderSettings();
+      else if (h === 'settings' || h.startsWith('settings/')) {
+        const t = h.split('/')[1];
+        if (PROFILE_TABS.some(([k]) => k === t)) profileTab = t;
+        await renderSettings();
+      }
       else if (h === 'analytics' || h === 'stats') await renderAnalytics();
       else if (h === 'realtors') await renderRealtors();
       else await renderList();
