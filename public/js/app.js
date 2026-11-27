@@ -43,10 +43,14 @@
   // Нечего показать (нет офиса, Instagram и цифр) — блок «Где нас найти» убираем целиком
   if (!S.officeAddress && !S.instagram && !stats.length && $('about')) $('about').remove();
 
-  $('steps').innerHTML = lines(S.steps).map(s => `<li>${esc(s)}</li>`).join('');
-  const docs = lines(S.documents);
+  // «Как работает рассрочка»: шаги и документы менеджер пишет сам (у агентств и в других странах условия свои).
+  // Пустое поле — эта часть скрыта; оба пустые — блока на сайте нет вовсе.
+  const steps = lines(S.steps), docs = lines(S.documents);
+  if (steps.length) $('steps').innerHTML = steps.map(s => `<li>${esc(s)}</li>`).join('');
+  else $('steps').remove();
   if (docs.length) $('docs').innerHTML = docs.map(s => `<li>${esc(s)}</li>`).join('');
   else $('docsWrap').remove();
+  if (!steps.length && !docs.length && $('installment')) $('installment').remove();
 
   const reviews = blocks(S.reviews);
   if (reviews.length) {

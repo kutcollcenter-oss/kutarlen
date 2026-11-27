@@ -376,7 +376,7 @@
     const count = aptCount || r.count || 0;
     const extra = Number(me.product.extraPrice) || 0;
     const renew = waOwner(`Здравствуйте! Хочу продлить кабинет${until ? ` (оплачено до ${fmtDate(until)})` : ''}.`);
-    const more = waOwner(`Здравствуйте! Хочу добавить квартиры к лимиту${extra ? ` (${extra} сом за квартиру)` : ''}.`);
+    // Кнопки «Добавить квартиры» здесь нет (решение 27.11.2026): о расширении лимита — окно, когда лимит исчерпан
     const prices = [me.product.priceMonth && `1 мес — ${nf.format(me.product.priceMonth)} сом`, me.product.price3 && `3 мес — ${nf.format(me.product.price3)} сом`, me.product.price6 && `6 мес — ${nf.format(me.product.price6)} сом`].filter(Boolean).join(' · ');
     return `<div class="tariff${tone}">
       <div class="tariff-head"><span>Мой тариф</span>${until ? `<small>оплачено до ${fmtDate(until)}</small>` : ''}</div>
@@ -384,7 +384,7 @@
       <div class="tariff-row"><span>Квартир</span><b>${max ? `${count} из ${max}` : `${count} · без ограничения`}</b></div>
       ${prices ? `<div class="tariff-row"><span>Продление</span><b>${prices}</b></div>` : ''}
       ${extra ? `<div class="tariff-row"><span>Доп. квартира</span><b>${nf.format(extra)} сом в месяц</b></div>` : ''}
-      ${renew && (until || max) ? `<div class="tariff-btns">${until ? `<a class="btn btn-primary" href="${renew}" target="_blank" rel="noopener">Продлить</a>` : ''}${max ? `<a class="btn" href="${more}" target="_blank" rel="noopener">Добавить квартиры</a>` : ''}</div>` : ''}
+      ${renew && until ? `<div class="tariff-btns"><a class="btn btn-primary" href="${renew}" target="_blank" rel="noopener">Продлить</a></div>` : ''}
     </div>`;
   }
 
@@ -1186,8 +1186,8 @@
           <button type="button" class="btn btn-block" id="newsAdd">+ Добавить новость</button>
         </div>
         <div class="card" data-ptab="texts"><h2 style="margin-top:0">Блоки главной</h2>
-          ${t('steps', 'Как работает рассрочка — шаги', 'Каждый шаг с новой строки')}
-          ${t('documents', 'Какие документы нужны', 'Каждый пункт с новой строки')}
+          ${t('steps', 'Как работает рассрочка — шаги', 'Каждый шаг с новой строки. Пишите свои условия: с кем договор, как платёж. Пустое поле — шагов на сайте не будет')}
+          ${t('documents', 'Какие документы нужны', 'Каждый пункт с новой строки. Пустое поле — пункт скрыт')}
           <div class="f"><span>Отзывы клиентов</span>
             <div id="revList" class="rev-list"></div>
             <button type="button" class="btn btn-block" id="revAdd">+ Добавить отзыв</button>
