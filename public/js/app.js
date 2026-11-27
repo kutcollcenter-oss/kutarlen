@@ -420,7 +420,7 @@
     const photo = photos.length
       ? `<div class="cp-track">${photos.map(p => `<img src="${p.thumb}" alt="" loading="lazy">`).join('')}</div>
 `
-      : '<div class="ph"></div>';
+      : `<div class="ph zk-ph"><b>${esc(String(a0.title || '').replace(/^ЖКs*/i, '').replace(/[«»"]/g, ''))}</b>${a0.city ? `<small>${esc(a0.city)}</small>` : ''}</div>`;
     const main = a => (a.installment ? a.o.monthly : a.price);
     const best = g.reduce((x, a) => (main(a) < main(x) ? a : x), g[0]);
     const unitWord = a0.installment ? L('perMonth') : '';
@@ -459,8 +459,9 @@
   function drawObjs(list) {
     const box = $('cards');
     box.classList.add('zk-view');
-    // У ЖК нет фото дома — пустую карточку ЖК не показываем: сразу его квартиры (с планировками), как при фильтре
-    box.innerHTML = groupObjs(list).map(g => (g.some(a => a.photos.some(p => p.zk)) ? objCard(g) : g.map(card).join(''))).join('');
+    // Каждый ЖК — карточкой ЖК, даже без фото дома (решение 27.11.2026, Ош Сити): вместо фото — заставка с названием.
+    // Отдельными карточками — только то, что не относится к ЖК (участки, квартиры без названия ЖК).
+    box.innerHTML = groupObjs(list).map(g => (g[0].zk && g[0].type !== 'land' ? objCard(g) : g.map(card).join(''))).join('');
   }
 
   // Подменить в сообщении строки «Взнос: …» и «В месяц: …» (их начала — в словаре: waDown, waMonthly)

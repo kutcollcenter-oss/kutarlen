@@ -1500,3 +1500,10 @@ img.img-x { visibility: hidden; }
   .fsheet-foot { position: static !important; padding: 0 !important; background: none !important; }
   .fsheet-foot .btn { min-height: 52px; border-radius: var(--pill) !important; font-weight: 700; }
 }
+
+/* Карточка ЖК без фото дома: тёмная «золотая» заставка с названием и городом (решение 27.11.2026) */
+#cards .zk .zk-photo .ph.zk-ph { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 18px; text-align: center;
+  background: radial-gradient(120% 90% at 50% 0%, #3a2e1d 0%, #1c160f 70%) !important; color: #f4e7cf; }
+#cards .zk .zk-photo .ph.zk-ph b { font-family: var(--serif, Georgia, serif); font-size: clamp(22px, 5vw, 30px); font-weight: 700; line-height: 1.15; color: #e8c98f; }
+#cards .zk .zk-photo .ph.zk-ph small { font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: #b9a88a; }
+#cards .zk .zk-photo:has(.zk-ph) { background: #1c160f !important; }
