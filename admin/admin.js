@@ -1747,6 +1747,8 @@
           </div>
           <label class="f"><span>Адрес сайта</span><div class="slug-in"><span>${esc(location.host)}/</span><input name="slug" autocapitalize="none" spellcheck="false" placeholder="из имени, например aydana"></div></label>
           <label class="f"><span>WhatsApp менеджера</span><input name="whatsapp" type="tel" placeholder="+996 …"></label>
+          <label class="f"><span>С кем работает</span><select name="companyId">${(cos || []).map(c => `<option value="${esc(c.id)}">Строительная компания «${esc(c.name)}»</option>`).join('')}<option value="none">Агентство, другой застройщик или другая страна</option></select>
+            <div class="hint">От этого зависит ИИ-помощник на сайте: у менеджера компании он рассказывает о её домах и истории, у агентства — только о квартирах и условиях самого менеджера</div></label>
           <div class="grid2">
             <label class="f"><span>Оплачено до</span><input name="paidUntil" type="date" value="${inMonth}"></label>
             <label class="f"><span>Лимит квартир</span><input name="maxApartments" inputmode="numeric" value="${esc(product.includedApartments || 20)}"></label>

@@ -914,6 +914,8 @@ app.post('/api/owner/realtors', requireAuth, ownerOnly, (req, res) => {
     partnerCta: b.partnerCta !== false,
   };
   if (b.whatsapp) r.settings.whatsapp = String(b.whatsapp).slice(0, 30);
+  // С кем работает: застройщик (ИИ знает его дома и историю) или «none» — агентство, другая страна (ИИ о застройщике молчит)
+  if (companies.validId(b.companyId)) r.companyId = b.companyId;
   D().realtors.push(r);
   D().users.push({ id: db.newId(), login, role: 'realtor', realtorId: r.id, ...auth.hashPassword(password), createdAt: new Date().toISOString() });
   // По умолчанию новый менеджер пустой; копии квартир владельца — только если отмечено при создании
