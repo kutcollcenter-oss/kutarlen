@@ -1507,3 +1507,15 @@ img.img-x { visibility: hidden; }
 #cards .zk .zk-photo .ph.zk-ph b { font-family: var(--serif, Georgia, serif); font-size: clamp(22px, 5vw, 30px); font-weight: 700; line-height: 1.15; color: #e8c98f; }
 #cards .zk .zk-photo .ph.zk-ph small { font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: #b9a88a; }
 #cards .zk .zk-photo:has(.zk-ph) { background: #1c160f !important; }
+
+/* Подвал: тихий намёк риелторам рядом с «Сайт на kvartiry.asia» — тем же мелким шрифтом, только золотым (27.11.2026) */
+.fx-copy .fx-hint { color: #c9a35a; white-space: nowrap; }
+.fx-copy .fx-hint i { font-style: normal; color: var(--muted); }
+/* Компьютер: подвал чуть выше, чтобы плавающая кнопка «Спросить ИИ» справа внизу не закрывала строку */
+@media (min-width: 900px) { .footer.fx .fx-bottom { padding-bottom: 76px; } }
+/* Телефон и планшет: намёк отдельной строкой, а подвал выше нижнего меню и кнопки «Спросить ИИ» — ничего не прячется под ними */
+@media (max-width: 899px) {
+  .fx-copy .fx-hint { display: block; margin-top: 6px; }
+  .fx-copy .fx-hint i { display: none; }
+  .footer.fx .fx-bottom { padding-bottom: 64px; }
+}
