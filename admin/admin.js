@@ -462,7 +462,7 @@
         <div class="zk-tile-txt"><b>${esc(name)}</b><span>${esc(sub)}</span><small>${count}</small></div></a>`;
     app.innerHTML = `${nav('list')}<div class="wrap">
       ${installBanner()}
-      <div class="row" style="justify-content:space-between"><h1>Квартиры</h1><a class="btn btn-primary" href="#zk-new">+ ЖК</a></div>
+      <div class="row" style="justify-content:space-between"><h1>Квартиры</h1><div class="row" style="gap:8px"><a class="btn btn-primary" href="#zk-new">+ ЖК</a><a class="btn" href="#edit/new?zk=_none" title="Вторичка, частный дом или участок">+ Без ЖК</a></div></div>
       <label class="search"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
         <input type="search" id="lq" placeholder="Поиск квартиры: ЖК, адрес, площадь" value="${esc(listQuery)}" autocomplete="off"></label>
       ${me.realtor.plan.maxApartments && apts.length >= me.realtor.plan.maxApartments ? `<p class="${apts.length >= me.realtor.plan.maxApartments ? 'warn' : 'hint'}" style="margin-top:-6px">Тариф: ${apts.length} из ${flats(me.realtor.plan.maxApartments)}${apts.length >= me.realtor.plan.maxApartments ? ' — лимит исчерпан, новые добавить нельзя' : ''}</p>` : ''}
@@ -472,7 +472,7 @@
           const img = c.photos[0] ? zkPhoto(c.photos[0]) : mine[0] && mine[0].computed.photos[0] ? mine[0].computed.photos[0].thumb : '';
           return tile(`#zk/${encodeURIComponent(c.key)}`, c.name, [c.district, c.address].filter(Boolean).join(' · ') || c.city, img, mine.length ? `Моих квартир: ${mine.length}` : 'Квартир пока нет — добавьте');
         }).join('')}
-        ${tile('#zk/_none', 'Без ЖК', 'Участки и дома без ЖК', none[0] && none[0].computed.photos[0] ? none[0].computed.photos[0].thumb : '', none.length ? `Квартир: ${none.length}` : 'Пусто')}
+        ${tile('#zk/_none', 'Без ЖК', 'Вторичка, дома и участки', none[0] && none[0].computed.photos[0] ? none[0].computed.photos[0].thumb : '', none.length ? `Квартир: ${none.length}` : 'Пусто')}
       </div>
       <div id="items"></div>
     </div>`;
@@ -735,8 +735,9 @@
     const isNewRecord = id === 'new';
     let a;
     if (isNewRecord) {
-      // Из папки «Без ЖК» добавляют участки и дома — сразу тип «Участок», без поля «Выберите ЖК»
-      a = { type: zkParam === '_none' ? 'land' : 'installment', title: '', rooms: 1, area: '', pricePerM2: '', down: '', months: '', cashDiscount: '', price: '', floorFrom: 1, floors: '', address: '', details: '', tags: [], photos: [] };
+      // Из папки «Без ЖК»: квартира на вторичке или дом — тип «Наличные», в списке ЖК выбрано «Без ЖК» (27.11.2026).
+      // Участок — кнопкой типа «Участок».
+      a = { type: zkParam === '_none' ? 'cash' : 'installment', title: '', rooms: 1, area: '', pricePerM2: '', down: '', months: '', cashDiscount: '', price: '', floorFrom: 1, floors: '', address: '', details: '', tags: [], photos: [] };
     } else {
       const apts = await api('GET', '/api/admin/apartments');
       a = apts.find(x => x.id === id);
@@ -924,7 +925,7 @@
       document.getElementById('zkPickWrap').hidden = land;
       lockFor(land ? null : complexes.find(x => x.key === zkPick.value) || null); // у участка адрес свой
       const isNew = land || zkPick.value === '__new';
-      document.getElementById('titleWrap').hidden = !isNew;
+      document.getElementById('titleWrap').hidden = !isNew; // «Без ЖК» — названия нет, адрес пишется ниже
       if (!land && zkPick.value === '__new') document.getElementById('titleLbl').textContent = 'Название нового ЖК';
     };
     const pickKey = key => {
@@ -940,8 +941,9 @@
       const known = complexes.some(c => c.key === curKey);
       zkPick.innerHTML = '<option value="">— Выберите ЖК —</option>'
         + complexes.map(c => `<option value="${esc(c.key)}">${esc(c.name)}${c.city && c.city !== 'Бишкек' ? ` (${esc(c.city)})` : ''}</option>`).join('')
-        + '<option value="__new">+ Новый ЖК — написать название</option>';
-      zkPick.value = known ? curKey : form.elements.title.value.trim() ? '__new' : '';
+        + '<option value="__new">+ Новый ЖК — написать название</option>'
+        + '<option value="__none">Без ЖК — вторичка, частный дом</option>';
+      zkPick.value = known ? curKey : form.elements.title.value.trim() ? '__new' : (!isNewRecord || zkParam === '_none') ? '__none' : '';
       if (known) form.elements.title.value = complexes.find(c => c.key === curKey).name; // старое написание → как у всех
       lockFor(known ? complexes.find(c => c.key === curKey) : null);
       if (isNewRecord && zkParam && zkParam !== '_none' && complexes.some(c => c.key === zkParam)) { zkPick.value = zkParam; pickKey(zkParam); }
@@ -951,7 +953,7 @@
       // Новый ЖК или «не выбран»: адрес и карту от прошлого ЖК убираем, поля открываем
       const reset = () => { lockFor(null); ['district', 'address', 'mapLink'].forEach(n => { if (form.elements[n] && form.elements[n].value === (autoVals[n] || '')) form.elements[n].value = ''; }); };
       if (zkPick.value === '__new') { form.elements.title.value = ''; zkHint.hidden = true; reset(); showPick(); form.elements.title.focus(); return; }
-      if (!zkPick.value) { form.elements.title.value = ''; zkHint.hidden = true; reset(); showPick(); return; }
+      if (!zkPick.value || zkPick.value === '__none') { form.elements.title.value = ''; zkHint.hidden = true; reset(); showPick(); return; }
       pickKey(zkPick.value);
     };
     // Пишут «новый» ЖК, а он уже есть под другим написанием — выбираем существующий
@@ -991,7 +993,7 @@
     };
     const save = async () => {
       const d = readForm();
-      if (type !== 'land' && !String(d.title || '').trim()) { toast('Выберите ЖК из списка или «+ Новый ЖК»'); zkPick.focus(); return; }
+      if (type !== 'land' && zkPick.value !== '__none' && !String(d.title || '').trim()) { toast('Выберите ЖК из списка, «+ Новый ЖК» или «Без ЖК»'); zkPick.focus(); return; }
       const ok = cashLike(type) ? d.price > 0 && d.area > 0 : d.pricePerM2 > 0 && d.area > 0;
       if (!ok && !(await confirmBox('Сохранить без цены?', 'Цена или площадь не указаны — квартира не появится на сайте, пока их не заполните.', 'Сохранить'))) return;
       if (ok && !cashLike(type) && !(d.months > 0) && !(await confirmBox('Сохранить без срока?', 'Не указан срок рассрочки — на сайте будет только цена при 100% оплате.', 'Сохранить'))) return;
