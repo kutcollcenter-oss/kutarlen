@@ -1,0 +1,245 @@
+/* =====================================================================
+   Кабинет «Спокойный» (27.11.2026): заменяет «Тёмный премиум».
+   Жалоба: «глаза мозолит» — заглавные вразрядку, тонкий декоративный шрифт заголовков, чёрный фон с острыми углами.
+   Теперь: один читаемый шрифт (Golos Text), обычный регистр, мягкие скругления, спокойные цвета, крупные понятные цифры.
+   Две палитры: светлая (тёплый белый) и мягкая тёмная (графит). Какая включена — атрибут data-calm у <html>.
+   Подключается последним и перекрывает apple-admin.css. Убрать строку в index.html — вернётся стиль iPhone.
+   ===================================================================== */
+:root, :root[data-calm="light"] {
+  --bg: #f5f4f1; --s1: #ffffff; --s2: #faf9f7; --s3: #efede8;
+  --ink: #1d1d1f; --ink2: #3a3a3c; --muted: #77767b; --line: #e6e3dd; --line2: #d6d2ca;
+  --primary: #1d1d1f; --on-primary: #ffffff; --accent: #a8792c; --accent-l: rgba(168, 121, 44, .10);
+  --ok: #2f8f4e; --warn: #b7791f; --bad: #d1453b; --sage: #2f8f4e; --sage-l: rgba(47, 143, 78, .10);
+  --hover: rgba(0, 0, 0, .04); --active: rgba(0, 0, 0, .06);
+  --side: #efede8; --field: #ffffff; --shadow: 0 1px 2px rgba(0, 0, 0, .04), 0 2px 8px rgba(0, 0, 0, .03);
+  color-scheme: light;
+}
+:root[data-calm="dark"] {
+  --bg: #161719; --s1: #1e1f22; --s2: #232427; --s3: #2b2c30;
+  --ink: #ececee; --ink2: #cfd0d4; --muted: #9a9ba2; --line: #2c2d31; --line2: #3a3b40;
+  --primary: #ececee; --on-primary: #161719; --accent: #d4ae68; --accent-l: rgba(212, 174, 104, .12);
+  --ok: #7cc790; --warn: #e2b25c; --bad: #f07a6e; --sage: #7cc790; --sage-l: rgba(124, 199, 144, .12);
+  --hover: rgba(255, 255, 255, .04); --active: rgba(255, 255, 255, .07);
+  --side: #1b1c1f; --field: #161719; --shadow: none;
+  color-scheme: dark;
+}
+:root {
+  --font: 'Golos Text', Inter, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --head: var(--font); --mono: var(--font);
+  --r: 12px; --r-sm: 9px; --r-lg: 16px;
+  --sh-1: none; --sh-2: none; --glass: var(--bg); --glass-edge: var(--line);
+  --cap: 500 13px/1.35 var(--font);
+}
+body { background: var(--bg); color: var(--ink); font: 400 15px/1.5 var(--font); letter-spacing: 0; -webkit-font-smoothing: antialiased; }
+::selection { background: var(--accent-l); color: var(--ink); }
+a { color: inherit; }
+
+/* Заголовки: обычный шрифт, без вычурности */
+h1 { font: 650 28px/1.2 var(--font); letter-spacing: -.02em; margin: 26px 0 16px; color: var(--ink); }
+h2, .card > h2:first-child, details.card > summary b, :is(#sf, #pwf) .card h2, #pwf > h2, .modal-box h2 {
+  font: 600 17px/1.3 var(--font) !important; letter-spacing: -.01em !important; text-transform: none !important; color: var(--ink) !important; }
+h3 { font: 600 15px/1.35 var(--font); color: var(--ink); }
+
+/* Блоки: белые карточки с мягкой рамкой и скруглением */
+.card, .kpi, .linkbox, .stat-grid div, .tariff, table, .install, .auth .login, .auth-help, .setup, .refer, .zk-tile {
+  background: var(--s1); border: 1px solid var(--line); box-shadow: var(--shadow); border-radius: var(--r-lg) !important; }
+.rev, .news-ed, .mapbox, .calcbox { background: var(--s2); border: 1px solid var(--line); box-shadow: none; border-radius: var(--r) !important; }
+.card { padding: 20px; }
+.linkbox > span, .tariff-head span, .kpi span, .tbl th { font: 500 13px/1.35 var(--font); letter-spacing: 0; text-transform: none; color: var(--muted); }
+.hint, :is(#sf, #pwf) .hint, .item .s, .rt-stats { color: var(--muted); font-size: 13.5px; line-height: 1.5; }
+.linkrow code, .tagrow code, pre { background: var(--s2); border: 1px solid var(--line); color: var(--ink); border-radius: var(--r-sm) !important; }
+
+/* Цифры аналитики: крупно, но обычным шрифтом */
+.kpi { padding: 16px 18px; }
+.kpi b { font: 650 30px/1.15 var(--font); letter-spacing: -.02em; color: var(--ink); font-variant-numeric: tabular-nums; }
+.kpi small { color: var(--muted); font-size: 13px; }
+/* Столбики: посетители — мягкий золотой, доля написавших — насыщенный */
+.chart .bar, .lv { background: color-mix(in srgb, var(--accent) 38%, var(--s3)); border-radius: 5px 5px 2px 2px !important; }
+.chart .bar i, .lw { background: var(--accent); border-radius: 5px 5px 2px 2px !important; }
+.legend .lv, .legend .lw { border-radius: 3px !important; }
+.fn-bar, .mini-bar { background: var(--s3); border-radius: 4px !important; }
+.fn-bar i, .mini-bar i { background: var(--ok); border-radius: 4px !important; }
+.dev { background: var(--accent); border-radius: 6px !important; } .dev i { background: var(--s3); }
+
+/* Кнопки: обычный регистр, скругление */
+.btn { font: 500 14px/1.25 var(--font); letter-spacing: 0; text-transform: none; background: var(--s1); color: var(--ink);
+  border: 1px solid var(--line2); box-shadow: none; min-height: 42px; padding: 10px 16px; border-radius: var(--r-sm) !important; transition: background .15s, border-color .15s; }
+.btn:hover { background: var(--hover); border-color: var(--line2); color: var(--ink); }
+.btn:active { transform: none; background: var(--active); }
+.btn-primary, .auth .login .btn-primary { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
+.btn-primary:hover, .auth .login .btn-primary:hover { background: var(--primary); color: var(--on-primary); opacity: .88; }
+.btn-danger { background: transparent; color: var(--bad); border-color: color-mix(in srgb, var(--bad) 45%, transparent); }
+.btn-danger:hover { background: color-mix(in srgb, var(--bad) 8%, transparent); color: var(--bad); }
+.btn-danger-fill { background: var(--bad); color: #fff; border-color: var(--bad); }
+.btn-wa-admin { background: #25d366; color: #fff; border-color: #25d366; }
+.btn-wa-admin:hover { background: #25d366; color: #fff; opacity: .9; }
+.btn.btn-on { background: var(--sage-l); color: var(--ok); border-color: transparent; }
+.more-btn { background: transparent; border: 1px solid var(--line); color: var(--muted); width: 36px; height: 36px; border-radius: var(--r-sm) !important; }
+.more-btn:hover { background: var(--hover); color: var(--ink); }
+
+/* Вкладки и фильтры: «таблетки» */
+.filters, .ptabs { gap: 6px; border-bottom: 0; padding-bottom: 0; }
+.filters button, .ptabs button { background: transparent !important; border: 0 !important; color: var(--muted); font: 500 14px var(--font);
+  letter-spacing: 0; text-transform: none; padding: 8px 14px; min-height: 0; box-shadow: none !important; border-radius: 999px !important; }
+.filters button:hover, .ptabs button:hover { background: var(--hover) !important; color: var(--ink); }
+.filters button.on, .ptabs button.on, .ptabs button.btn-primary { color: var(--ink); background: var(--s1) !important; box-shadow: 0 0 0 1px var(--line2) !important; }
+.ptabs { margin-bottom: 18px; }
+
+/* Поиск и поля */
+.search { background: var(--s1); border: 1px solid var(--line); color: var(--muted); min-height: 44px; border-radius: var(--r) !important; }
+.search input[type=search] { color: var(--ink); background: transparent; }
+label.f > span, .f > span, :is(#sf, #pwf) .f > span, .auth .login label.f > span {
+  font: 500 13.5px/1.35 var(--font) !important; letter-spacing: 0 !important; text-transform: none !important; color: var(--ink2) !important; }
+input[type=text], input[type=number], input[type=password], input[type=tel], input[type=date], input[type=email], input[type=search], select, textarea,
+.rev input, .modal-box .modal-in, .slug-in, .auth .login input {
+  background: var(--field); color: var(--ink); border: 1px solid var(--line2); box-shadow: none; font: 400 15px/1.4 var(--font); border-radius: var(--r-sm) !important; }
+.search input[type=search] { border: 0; }
+input::placeholder, textarea::placeholder, :is(#sf, #pwf) ::placeholder { color: color-mix(in srgb, var(--muted) 70%, transparent); }
+input:focus, select:focus, textarea:focus, .slug-in:focus-within, .auth .login input:focus {
+  background: var(--field) !important; border-color: var(--accent) !important; box-shadow: 0 0 0 3px var(--accent-l) !important; outline: none; }
+select option { background: var(--s1); color: var(--ink); }
+.upload { background: var(--s2); border: 1px dashed var(--line2); color: var(--ink2); font: 500 14px var(--font); letter-spacing: 0; text-transform: none; border-radius: var(--r) !important; }
+.upload:hover { background: var(--hover); border-color: var(--accent); }
+.check input { accent-color: var(--accent); }
+.seg { background: var(--s3); border: 0; padding: 4px; gap: 4px; border-radius: var(--r) !important; }
+.seg button { color: var(--muted); border: 0; border-radius: var(--r-sm) !important; font: 500 14px var(--font); }
+.seg button + button { box-shadow: none; }
+.seg button.on { background: var(--s1); color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, .12); }
+.seg button.on small { color: var(--muted); }
+.photo, .photo img { border-radius: var(--r-sm) !important; }
+.photo .main { background: var(--primary); color: var(--on-primary); border-radius: 6px !important; }
+.photo .pa button { background: rgba(0, 0, 0, .6); border: 0; color: #fff; border-radius: 6px !important; }
+.savebar { background: linear-gradient(transparent, var(--bg) 40%); }
+
+/* Метки и статусы: маленькие плашки */
+.badge, .st { font: 600 12px var(--font); letter-spacing: 0; text-transform: none; padding: 3px 8px; border-radius: 999px !important; }
+.badge-new, .badge-installment { color: var(--ink2); background: var(--s3) !important; }
+.badge-resale, .badge-cash { color: var(--warn); background: color-mix(in srgb, var(--warn) 12%, transparent) !important; }
+.badge-commercial { color: #8a5cd6; background: rgba(138, 92, 214, .12) !important; }
+.badge-land, .st-active, .st-unlimited { color: var(--ok); background: var(--sage-l) !important; }
+.st-ending { color: var(--warn); background: color-mix(in srgb, var(--warn) 12%, transparent) !important; }
+.st-expired, .st-blocked { color: var(--bad); background: color-mix(in srgb, var(--bad) 12%, transparent) !important; }
+/* Предупреждения: мягкая плашка */
+.warn { background: color-mix(in srgb, var(--warn) 10%, var(--s1)); color: var(--ink2); border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent); padding: 12px 14px; border-radius: var(--r) !important; }
+.warn.bad { background: color-mix(in srgb, var(--bad) 8%, var(--s1)); color: var(--ink2); border-color: color-mix(in srgb, var(--bad) 30%, transparent); }
+.warn a { color: var(--ink); font-weight: 600; }
+.up { color: var(--ok); } .down, .err { color: var(--bad); }
+.tariff.warn-t { box-shadow: inset 3px 0 0 var(--warn); }
+.tariff.bad { box-shadow: inset 3px 0 0 var(--bad); }
+.refer { box-shadow: inset 3px 0 0 var(--accent); }
+.refer-t { color: var(--accent); }
+
+/* Список квартир */
+#items { gap: 8px; border-top: 0; }
+.item, .item.apt-row { background: var(--s1); border: 1px solid var(--line); box-shadow: none; padding: 12px; border-radius: var(--r) !important; }
+.item:hover, .item.apt-row:hover { background: var(--s1); border-color: var(--line2); box-shadow: var(--shadow); }
+.apt-row img, .apt-row .noimg { border-radius: var(--r-sm) !important; }
+.apt-row-txt .t, .item .t { font: 600 15px/1.3 var(--font); letter-spacing: 0; }
+.item.rt.is-blocked { background: color-mix(in srgb, var(--bad) 6%, var(--s1)); box-shadow: inset 3px 0 0 var(--bad); }
+
+/* Плитки ЖК */
+.zk-tile { padding: 10px; transition: border-color .15s, box-shadow .15s; }
+.zk-tile:hover { border-color: var(--line2); box-shadow: 0 4px 14px rgba(0, 0, 0, .06); }
+.zk-tile-img { border-radius: var(--r-sm) !important; background-color: var(--s3); }
+.zk-tile-txt b { font: 600 15px/1.3 var(--font); color: var(--ink); }
+.zk-tile-txt span { color: var(--muted); opacity: 1; }
+.zk-tile-txt small { color: var(--accent); font-weight: 500; }
+
+/* «Начните за 4 шага» */
+.setup { box-shadow: var(--shadow); padding: 18px 18px 8px; }
+.setup-head b { font: 600 18px/1.25 var(--font); color: var(--ink); letter-spacing: -.01em; }
+.setup-head span { font: 500 13px var(--font); letter-spacing: 0; text-transform: none; color: var(--accent); }
+.setup-bar { height: 6px; background: var(--s3); border-radius: 99px !important; overflow: hidden; }
+.setup-bar i { background: var(--accent); border-radius: 99px !important; }
+.setup-list li { border-top-color: var(--line); }
+.setup-n { border: 1px solid var(--line2); color: var(--accent); border-radius: 50% !important; }
+.setup-list li.ok .setup-n { background: var(--accent); border-color: var(--accent); color: #fff; }
+.setup-t b { font: 500 15px/1.35 var(--font); color: var(--ink); }
+.setup-list li.ok .setup-t b { color: var(--muted); text-decoration-color: var(--line2); }
+.setup-list .btn { font-size: 13.5px; letter-spacing: 0; }
+.setup-list .btn-primary { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.setup-x { font: 500 13px var(--font); letter-spacing: 0; text-transform: none; color: var(--muted); }
+.setup-x:hover { color: var(--ink); }
+
+/* Тариф одной строкой */
+.tariff-line { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); color: var(--ink); }
+.tariff-line span { font: 500 13px var(--font); letter-spacing: 0; text-transform: none; color: var(--muted); }
+.tariff-line i { font: 500 13.5px var(--font); letter-spacing: 0; text-transform: none; color: var(--accent); }
+
+/* Номера из WhatsApp */
+.wa-list { border-top: 1px solid var(--line); }
+.wa-item { border-bottom: 1px solid var(--line); }
+.wa-phone { font-weight: 600; }
+
+/* Срок сдачи по этапам */
+.stages > span { font: 500 13.5px var(--font); letter-spacing: 0; text-transform: none; color: var(--ink2); }
+.st-row .st-n { color: var(--accent); }
+.st-x { border: 1px solid var(--line2); background: transparent; color: var(--muted); border-radius: var(--r-sm) !important; }
+.st-x:hover { color: var(--bad); border-color: var(--bad); }
+
+/* Окна, шторка, сообщения */
+.modal { background: rgba(0, 0, 0, .45); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.modal-box { background: var(--s1); border: 1px solid var(--line); box-shadow: 0 20px 60px rgba(0, 0, 0, .25); border-radius: var(--r-lg) !important; }
+.sheet-group, .sheet-cancel { background: var(--s1); border: 1px solid var(--line); border-radius: var(--r-lg) !important; }
+.sheet-title { font: 500 13px var(--font); letter-spacing: 0; text-transform: none; color: var(--muted); border-bottom-color: var(--line); }
+.sheet-btn { color: var(--ink); font-size: 16px; }
+.sheet-group .sheet-btn + .sheet-btn { border-top-color: var(--line); }
+.sheet-btn.danger { color: var(--bad); }
+.toast { background: var(--primary); color: var(--on-primary); font: 500 14px var(--font); letter-spacing: 0; text-transform: none; border-radius: 999px !important; box-shadow: 0 8px 24px rgba(0, 0, 0, .18); }
+.install-x { background: transparent; border: 1px solid var(--line); border-radius: var(--r-sm) !important; }
+.install-txt span { color: var(--muted); }
+.install img { border-radius: 10px !important; }
+
+/* Экран входа */
+.auth, .auth-side { background: var(--bg); }
+.auth-cover { background: var(--s2); border-right: 1px solid var(--line); }
+.auth-kicker { font: 500 13px var(--font); letter-spacing: 0; text-transform: none; color: var(--accent); }
+.auth-cover h1 { font: 650 34px/1.15 var(--font); letter-spacing: -.02em; color: var(--ink); }
+.auth-cover h1 em { color: var(--muted); }
+.auth-points li { color: var(--ink2); }
+.auth-points li::before { background: var(--accent); border-radius: 50% !important; }
+.auth .login h2 { font: 600 20px var(--font); color: var(--ink); }
+.auth-wa { border-color: var(--line); border-radius: var(--r-sm) !important; }
+.login .note-box { background: color-mix(in srgb, var(--warn) 10%, transparent); border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent); color: var(--ink2); border-radius: var(--r) !important; }
+
+/* Шапка (телефон и планшет) и нижнее меню */
+.top { background: color-mix(in srgb, var(--bg) 92%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
+.top a, .top button, #logout { font: 500 14px var(--font) !important; letter-spacing: 0 !important; text-transform: none !important; color: var(--muted) !important; }
+.top a:hover, .top button:hover, .top .on { color: var(--ink) !important; background: none; }
+.top .on::after { background: var(--ink); height: 2px; border-radius: 2px !important; }
+.top-title { font: 600 15px var(--font); letter-spacing: 0; text-transform: none; color: var(--ink); }
+@media (max-width: 1023px) {
+  .atab { left: 0; right: 0; bottom: 0; padding: 0 0 env(safe-area-inset-bottom); gap: 0; background: color-mix(in srgb, var(--s1) 94%, transparent);
+    -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border: 0; border-top: 1px solid var(--line); box-shadow: none; border-radius: 0 !important; }
+  .atab a { font: 500 11px var(--font); letter-spacing: 0; text-transform: none; color: var(--muted); min-height: 62px; gap: 4px; background: none; border-radius: 0 !important; }
+  .atab a svg { width: 22px; height: 22px; stroke-width: 1.6; }
+  .atab a.on { color: var(--ink); background: none; box-shadow: none; }
+  .atab a.on svg { color: var(--accent); }
+  .atab a.ext { color: var(--ok); }
+}
+
+/* Компьютер: боковое меню (как «Параметры» Windows) */
+@media (min-width: 1024px) {
+  .side { background: var(--side); border-right: 1px solid var(--line); }
+  .side-me b { color: var(--ink); }
+  .side-ava { background: var(--accent-l); color: var(--accent); }
+  .side-a { color: var(--ink2); font: 500 14.5px var(--font); border-radius: var(--r-sm) !important; }
+  .side-a svg { color: var(--muted); }
+  .side-a:hover { background: var(--hover); }
+  .side-a.on { background: var(--s1); color: var(--ink); box-shadow: var(--shadow); }
+  [data-calm="dark"] .side-a.on { background: var(--active); }
+  .side-a.on svg { color: var(--accent); }
+  .side-a.on::before { background: var(--accent); }
+  .side-a.ext, .side-a.ext svg { color: var(--ok); }
+  .side-sub { color: var(--muted); border-radius: var(--r-sm) !important; }
+  .side-sub:hover { background: var(--hover); color: var(--ink); }
+  .side-sub.on { color: var(--ink); background: var(--hover); font-weight: 500; }
+  .side-out { color: var(--muted); border-radius: var(--r-sm) !important; }
+  .side-out:hover { color: var(--bad); background: var(--hover); }
+  .side-me img, .side-ava { border-radius: 50% !important; }
+}
+
+/* Заглавных вразрядку больше нигде нет — в т.ч. в старых правилах, которые здесь не перечислены */
+body *:not(code):not(pre) { text-transform: none !important; }
+.auth .login .btn-primary { font: 600 15px var(--font); letter-spacing: 0; min-height: 48px; border-radius: var(--r-sm) !important; }
+.login .remember { font-weight: 400; font-size: 14.5px; line-height: 1.4; }
